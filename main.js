@@ -39,7 +39,7 @@ if (process.env.NODE_ENV !== 'test') {
     logger.warn(`Using log level: ${process.env.LOG_LEVEL}`);
     logger.info(`API running at http://localhost:${PORT}`);
     logger.info(`Health at http://localhost:${PORT}/api/v1/health`);
-    logger.info(`API docs running at http://localhost:${PORT}/api/v1/docs`);
+    logger.info(`API docs running at http://localhost:${PORT}/api/v1/docs/`);
     logger.info(`Environment: ${process.env.NODE_ENV}`);
   });
 }
