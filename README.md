@@ -1,8 +1,8 @@
-# Microservice Template
+# beats-interaction Microservice
 
 [![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow)](https://www.conventionalcommits.org/)
 
-A basic Node.js microservice template designed to help you quickly bootstrap microservices with Docker, testing, and logging support. Please edit this file once you are developing your microservice and document it properly.
+A basic Node.js microservice designed to manage playlists, comments and ratings. You can create playlists, rate beats and playlists and also comment on them.
 
 ## Project Structure
 
@@ -23,7 +23,7 @@ A basic Node.js microservice template designed to help you quickly bootstrap mic
 
 ## Prerequisites
 
-- Node.js 20+ (LTS recommended)
+- Node.js 22+ (LTS recommended)
 - npm
 - Docker (optional)
 - Docker Compose (optional)
@@ -33,14 +33,14 @@ A basic Node.js microservice template designed to help you quickly bootstrap mic
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/SocialBeats/microservice-template.git
-   cd microservice-template
+   git clone https://github.com/SocialBeats/beats-interaction.git
+   cd beats-interaction
    ```
 
 2. Install dependencies:
 
    ```bash
-   npm install
+   npm ci
    ```
 
 3. Choose your development environment and run:
@@ -59,10 +59,12 @@ A basic Node.js microservice template designed to help you quickly bootstrap mic
    **What you need:**
    - MongoDB installed and running locally on port 27017
    - The `.env` file will be configured with:
+
+     ```.env
+     MONGOURL=mongodb://localhost:27017/beats-interaction
+     MONGOTESTURL=mongodb://localhost:27017/beats-interaction_test
      ```
-     MONGOURL=mongodb://localhost:27017/microservice-template
-     MONGOTESTURL=mongodb://localhost:27017/microservice-template_test
-     ```
+
    - Edit other variables in `.env` as needed (JWT_SECRET, LOG_LEVEL, etc.)
 
    ### Hybrid Development (App in Docker, Database on Host)
@@ -81,9 +83,10 @@ A basic Node.js microservice template designed to help you quickly bootstrap mic
    - MongoDB installed and running locally on port 27017
    - **MongoDB MUST be configured to accept connections from Docker containers**
    - The `.env` file will be configured with:
-     ```
-     MONGOURL=mongodb://host.docker.internal:27017/microservice-template
-     MONGOTESTURL=mongodb://host.docker.internal:27017/microservice-template_test
+
+     ```.env
+     MONGOURL=mongodb://host.docker.internal:27017/beats-interaction
+     MONGOTESTURL=mongodb://host.docker.internal:27017/beats-interaction_test
      ```
 
    **⚠️ IMPORTANT: MongoDB Configuration for Docker Access**
@@ -92,50 +95,67 @@ A basic Node.js microservice template designed to help you quickly bootstrap mic
 
    **For Linux:**
    1. Edit the MongoDB configuration file:
+
       ```bash
       sudo nano /etc/mongod.conf
       ```
+
    2. Find the `net` section and modify `bindIp`:
+
       ```yaml
       net:
         port: 27017
         bindIp: 0.0.0.0
       ```
+
    3. Save the file and restart MongoDB:
+
       ```bash
       sudo systemctl restart mongod
       ```
+
    4. Verify MongoDB is listening on all interfaces:
+
       ```bash
       sudo netstat -tuln | grep 27017
       ```
+
       You should see `0.0.0.0:27017` in the output.
 
    **For Windows:**
    1. Locate and edit the MongoDB configuration file:
-      ```
+
+      ```fs
       C:\Program Files\MongoDB\Server\<version>\bin\mongod.cfg
       ```
+
       (Replace `<version>` with your MongoDB version, e.g., `7.0`)
+
    2. Find the `net` section and modify `bindIp`:
+
       ```yaml
       net:
         port: 27017
         bindIp: 0.0.0.0
       ```
+
    3. Save the file and restart the MongoDB service:
       - Open **Services** (press `Win + R`, type `services.msc`, and press Enter)
       - Find **MongoDB Server** in the list
       - Right-click and select **Restart**
    4. Alternatively, restart via Command Prompt (as Administrator):
+
       ```cmd
       net stop MongoDB
       net start MongoDB
       ```
+
    5. Verify MongoDB is listening on all interfaces:
+
       ```cmd
       netstat -an | findstr :27017
       ```
+
       You should see `0.0.0.0:27017` in the output.
 
    ### Full Docker Compose Development
@@ -154,10 +174,12 @@ A basic Node.js microservice template designed to help you quickly bootstrap mic
    - Docker and Docker Compose installed
    - No local MongoDB installation required
    - The `.env` file will be configured with:
+
+     ```.env
+     MONGOURL=mongodb://mongodb:27017/beats-interaction
+     MONGOTESTURL=mongodb://mongodb:27017/beats-interaction_test
      ```
-     MONGOURL=mongodb://mongodb:27017/microservice-template
-     MONGOTESTURL=mongodb://mongodb:27017/microservice-template_test
-     ```
+
    - The `mongodb` hostname refers to the MongoDB container defined in `docker-compose.yml`
 
    ***
@@ -184,7 +206,7 @@ npm run test:coverage
 
 ## Logging
 
-This template includes a `logger.js` utility for consistent structured logging across the application. Logs levels are the following: error > warn > info > verbose > debug > silly
+This repo includes a `logger.js` utility for consistent structured logging across the application. Logs levels are the following: error > warn > info > verbose > debug > silly
 
 To use the logger do this:
 
@@ -271,7 +293,7 @@ const openPaths = [
 
 ## Linting
 
-You will have a better experience developing using **_.vscode_** features provided in this template. To do so, you must first install the following extensions in your vs-code:
+You will have a better experience developing using **_.vscode_** features provided in this repo. To do so, you must first install the following extensions in your vs-code:
 
 - Prettier - Code formatter
 - ESLint

@@ -15,12 +15,12 @@ services:
     volumes:
       - mongo-data:/data/db
 
-  template:
+  beats-interaction:
     restart: unless-stopped
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: template
+    container_name: beats-interaction
     environment:
       - MONGOURL=${MONGOURL}
       - MONGOADMIN=${MONGOADMIN}
