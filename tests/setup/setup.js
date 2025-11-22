@@ -10,5 +10,4 @@ afterAll(async () => {
   await disconnectDB();
 });
 
-// Export a ready-to-use Supertest instance
 export const api = request(app);
