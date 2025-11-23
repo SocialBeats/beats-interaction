@@ -175,6 +175,63 @@ paths:
           description: Validation error.
         '500':
           description: Internal server error.
+  /api/v1/playlists/{playlistId}/comments:
+    post:
+      tags:
+        - Comments
+      summary: Create a comment on a playlist
+      description: >-
+        Creates a new comment associated with the specified playlist for the
+        authenticated user.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: playlistId
+          required: true
+          schema:
+            type: string
+          description: ID of the playlist to comment on.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - text
+              properties:
+                text:
+                  type: string
+                  maxLength: 200
+                  example: Muy buena selección de temas.
+      responses:
+        '201':
+          description: Comment successfully created.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  playlistId:
+                    type: string
+                  authorId:
+                    type: string
+                  text:
+                    type: string
+                  createdAt:
+                    type: string
+                    format: date-time
+        '401':
+          description: Unauthorized. Token missing or invalid.
+        '404':
+          description: Playlist not found.
+        '422':
+          description: Validation error.
+        '500':
+          description: Internal server error.
   /api/v1/health:
     get:
       tags:

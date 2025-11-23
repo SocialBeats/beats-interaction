@@ -37,6 +37,41 @@ class CommentService {
       throw err;
     }
   }
+
+  async createPlaylistComment({ playlistId, authorId, text }) {
+    try {
+      if (!mongoose.Types.ObjectId.isValid(playlistId)) {
+        const status = 404;
+        const message = 'Playlist not found';
+        throw { status, message };
+      }
+
+      // Comment model validation will ensure to check if playlist exists and if playlist is public
+      const comment = new Comment({
+        playlistId,
+        authorId,
+        text,
+      });
+
+      await comment.validate();
+      await comment.save();
+      return comment;
+    } catch (err) {
+      if (err.name === 'ValidationError') {
+        const message = Object.values(err.errors)
+          .map((e) => e.message)
+          .join(', ');
+        const status = 422;
+        throw { status, message };
+      }
+
+      if (err.status) {
+        throw err;
+      }
+
+      throw err;
+    }
+  }
 }
 
 export default new CommentService();
