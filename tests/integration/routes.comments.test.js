@@ -166,3 +166,48 @@ describe('POST /api/v1/playlists/:playlistId/comments (integration)', () => {
     );
   });
 });
+
+describe('GET /api/v1/comments/:commentId (integration)', () => {
+  const withAuth = (req) =>
+    req.set('Authorization', `Bearer ${global.testToken}`);
+
+  it('should return 200 and the comment when it exists', async () => {
+    const authorId = new mongoose.Types.ObjectId();
+    const beatId = new mongoose.Types.ObjectId();
+
+    const created = await Comment.create({
+      beatId,
+      authorId,
+      text: 'Existing comment',
+    });
+
+    const response = await withAuth(
+      api.get(`/api/v1/comments/${created._id}`)
+    ).expect(200);
+
+    expect(response.body).toHaveProperty('id', created._id.toString());
+    expect(response.body).toHaveProperty('text', 'Existing comment');
+    expect(response.body).toHaveProperty('authorId', authorId.toString());
+    // optional fields but good to check they exist
+    expect(response.body).toHaveProperty('createdAt');
+    expect(response.body).toHaveProperty('updatedAt');
+  });
+
+  it('should return 404 if commentId is not a valid ObjectId', async () => {
+    const response = await withAuth(
+      api.get('/api/v1/comments/not-a-valid-id')
+    ).expect(404);
+
+    expect(response.body).toEqual({ message: 'Comment not found' });
+  });
+
+  it('should return 404 if comment does not exist', async () => {
+    const fakeId = new mongoose.Types.ObjectId().toString();
+
+    const response = await withAuth(
+      api.get(`/api/v1/comments/${fakeId}`)
+    ).expect(404);
+
+    expect(response.body).toEqual({ message: 'Comment not found' });
+  });
+});

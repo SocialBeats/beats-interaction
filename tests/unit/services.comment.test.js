@@ -224,3 +224,62 @@ describe('CommentService.createPlaylistComment', () => {
     Comment.prototype.save = originalSave;
   });
 });
+
+describe('CommentService.getCommentById', () => {
+  it('should return the comment when it exists', async () => {
+    const authorId = new mongoose.Types.ObjectId();
+    const beatId = new mongoose.Types.ObjectId();
+
+    const created = await Comment.create({
+      beatId,
+      authorId,
+      text: 'Comment to fetch',
+    });
+
+    const result = await commentService.getCommentById({
+      commentId: created._id.toString(),
+    });
+
+    expect(result).toBeDefined();
+    expect(result._id.toString()).toBe(created._id.toString());
+    expect(result.text).toBe('Comment to fetch');
+  });
+
+  it('should throw 404 if commentId is not a valid ObjectId', async () => {
+    await expect(
+      commentService.getCommentById({ commentId: 'not-a-valid-id' })
+    ).rejects.toMatchObject({
+      status: 404,
+      message: 'Comment not found',
+    });
+  });
+
+  it('should throw 404 if comment does not exist', async () => {
+    const fakeId = new mongoose.Types.ObjectId().toString();
+
+    await expect(
+      commentService.getCommentById({ commentId: fakeId })
+    ).rejects.toMatchObject({
+      status: 404,
+      message: 'Comment not found',
+    });
+  });
+
+  it('should rethrow unexpected errors (e.g. DB error on find)', async () => {
+    const originalFindById = Comment.findById;
+
+    Comment.findById = async () => {
+      const err = new Error('Simulated DB error on findById');
+      err.name = 'SomeOtherError';
+      throw err;
+    };
+
+    const someId = new mongoose.Types.ObjectId().toString();
+
+    await expect(
+      commentService.getCommentById({ commentId: someId })
+    ).rejects.toHaveProperty('message', 'Simulated DB error on findById');
+
+    Comment.findById = originalFindById;
+  });
+});
