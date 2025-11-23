@@ -182,7 +182,7 @@ describe('GET /api/v1/playlists/user/:userId (integration)', () => {
   });
 });
 
-describe('GET /api/v1/playlists/:id', () => {
+describe('GET /api/v1/playlists/:id (integration)', () => {
   let userId;
   let token;
 
@@ -279,5 +279,204 @@ describe('GET /api/v1/playlists/:id', () => {
 
     expect(res.status).toBe(422);
     expect(res.body.message).toBe('Invalid playlist ID format.');
+  });
+});
+
+describe('GET /api/v1/playlists/public (integration)', () => {
+  let userId;
+  let token;
+  let otherUserId;
+
+  beforeAll(() => {
+    userId = global.testUserId;
+    token = global.testToken;
+    otherUserId = new mongoose.Types.ObjectId();
+  });
+
+  afterEach(async () => {
+    await Playlist.deleteMany({});
+  });
+
+  test('should return all public playlists without filters', async () => {
+    await Playlist.create([
+      {
+        name: 'Public Playlist 1',
+        ownerId: userId,
+        isPublic: true,
+        collaborators: [],
+      },
+      {
+        name: 'Public Playlist 2',
+        ownerId: otherUserId,
+        isPublic: true,
+        collaborators: [],
+      },
+      {
+        name: 'Private Playlist',
+        ownerId: userId,
+        isPublic: false,
+        collaborators: [],
+      },
+    ]);
+
+    const res = await api
+      .get('/api/v1/playlists/public')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.playlists).toHaveLength(2);
+    expect(res.body.playlists.every((p) => p.isPublic)).toBe(true);
+  });
+
+  test('should filter playlists by name', async () => {
+    await Playlist.create([
+      {
+        name: 'Rock Classics',
+        ownerId: userId,
+        isPublic: true,
+        collaborators: [],
+      },
+      {
+        name: 'Jazz Vibes',
+        ownerId: otherUserId,
+        isPublic: true,
+        collaborators: [],
+      },
+    ]);
+
+    const res = await api
+      .get('/api/v1/playlists/public?name=Rock')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.playlists).toHaveLength(1);
+    expect(res.body.playlists[0].name).toContain('Rock');
+  });
+
+  test('should filter playlists by ownerId', async () => {
+    await Playlist.create([
+      {
+        name: 'My Public Playlist',
+        ownerId: userId,
+        isPublic: true,
+        collaborators: [],
+      },
+      {
+        name: 'Other Public Playlist',
+        ownerId: otherUserId,
+        isPublic: true,
+        collaborators: [],
+      },
+    ]);
+
+    const res = await api
+      .get(`/api/v1/playlists/public?ownerId=${userId}`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.playlists).toHaveLength(1);
+    expect(res.body.playlists[0].ownerId).toBe(String(userId));
+  });
+
+  test('should paginate results correctly', async () => {
+    const playlists = Array.from({ length: 25 }, (_, i) => ({
+      name: `Playlist ${i + 1}`,
+      ownerId: userId,
+      isPublic: true,
+      collaborators: [],
+    }));
+    await Playlist.create(playlists);
+
+    const res = await api
+      .get('/api/v1/playlists/public?page=1&limit=10')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.playlists).toHaveLength(10);
+    expect(res.body.totalPages).toBeGreaterThan(1);
+    expect(res.body.currentPage).toBe(1);
+  });
+
+  test('should return second page of results', async () => {
+    const playlists = Array.from({ length: 25 }, (_, i) => ({
+      name: `Playlist ${i + 1}`,
+      ownerId: userId,
+      isPublic: true,
+      collaborators: [],
+    }));
+    await Playlist.create(playlists);
+
+    const res = await api
+      .get('/api/v1/playlists/public?page=2&limit=10')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.playlists).toHaveLength(10);
+    expect(res.body.currentPage).toBe(2);
+  });
+
+  test('should use default pagination values when not provided', async () => {
+    const playlists = Array.from({ length: 5 }, (_, i) => ({
+      name: `Playlist ${i + 1}`,
+      ownerId: userId,
+      isPublic: true,
+      collaborators: [],
+    }));
+    await Playlist.create(playlists);
+
+    const res = await api
+      .get('/api/v1/playlists/public')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.playlists).toHaveLength(5);
+    expect(res.body.currentPage).toBe(1);
+  });
+
+  test('should return empty array when no public playlists exist', async () => {
+    await Playlist.create({
+      name: 'Private Only',
+      ownerId: userId,
+      isPublic: false,
+      collaborators: [],
+    });
+
+    const res = await api
+      .get('/api/v1/playlists/public')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.playlists).toHaveLength(0);
+  });
+
+  test('should combine multiple filters', async () => {
+    await Playlist.create([
+      {
+        name: 'Rock Classics',
+        ownerId: userId,
+        isPublic: true,
+        collaborators: [],
+      },
+      {
+        name: 'Rock Modern',
+        ownerId: otherUserId,
+        isPublic: true,
+        collaborators: [],
+      },
+      {
+        name: 'Jazz Classics',
+        ownerId: userId,
+        isPublic: true,
+        collaborators: [],
+      },
+    ]);
+
+    const res = await api
+      .get(`/api/v1/playlists/public?name=Rock&ownerId=${userId}`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.playlists).toHaveLength(1);
+    expect(res.body.playlists[0].name).toBe('Rock Classics');
   });
 });

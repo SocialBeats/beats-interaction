@@ -60,6 +60,35 @@ export default function playlistRoutes(app) {
     }
   });
 
+  app.get(`${basAPIURL}/playlists/public`, async (req, res) => {
+    try {
+      const filters = {
+        page: parseInt(req.query.page, 10) || 1,
+        limit: parseInt(req.query.limit, 10) || 20,
+      };
+
+      if (req.query.name) {
+        filters.name = req.query.name;
+      }
+
+      if (req.query.ownerId) {
+        filters.ownerId = req.query.ownerId;
+      }
+
+      const publicPlaylists = await playlistService.getPublicPlaylists(filters);
+      return res.status(200).send(publicPlaylists);
+    } catch (err) {
+      if (err.status) {
+        return res.status(err.status).send({ message: err.message });
+      }
+
+      logger.error(`Error retrieving public playlists: ${err}`);
+      return res.status(500).send({
+        message: 'Internal server error while retrieving public playlists',
+      });
+    }
+  });
+
   app.get(`${basAPIURL}/playlists/:id`, async (req, res) => {
     try {
       const playlistId = req.params.id;
@@ -79,30 +108,6 @@ export default function playlistRoutes(app) {
       logger.error(`Error getting playlist: ${err}`);
       return res.status(500).send({
         message: 'Internal server error while getting playlist',
-      });
-    }
-  });
-
-  app.get(`${basAPIURL}/playlists/public`, async (req, res) => {
-    try {
-      const filters = {
-        name: req.query.name,
-        ownerId: req.query.ownerId,
-        page: parseInt(req.query.page, 10) || 1,
-        limit: parseInt(req.query.limit, 10) || 20,
-      };
-
-      const publicPlaylists = await playlistService.getPublicPlaylists(filters);
-
-      return res.status(200).send(publicPlaylists);
-    } catch (err) {
-      if (err.status) {
-        return res.status(err.status).send({ message: err.message });
-      }
-
-      logger.error(`Error retrieving public playlists: ${err}`);
-      return res.status(500).send({
-        message: 'Internal server error while retrieving public playlists',
       });
     }
   });

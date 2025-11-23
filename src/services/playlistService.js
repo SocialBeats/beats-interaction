@@ -1,4 +1,4 @@
-import { Playlist } from '../models/models';
+import { Playlist } from '../models/models.js';
 import mongoose from 'mongoose';
 
 class PlaylistService {
@@ -532,10 +532,14 @@ class PlaylistService {
       }
 
       if (ownerId) {
-        if (!mongoose.Types.ObjectId.isValid(ownerId)) {
-          throw { status: 422, message: 'Invalid ownerId format.' };
+        const ownerIdStr =
+          typeof ownerId === 'string' ? ownerId : String(ownerId);
+        if (ownerIdStr.trim()) {
+          if (!mongoose.Types.ObjectId.isValid(ownerIdStr)) {
+            throw { status: 422, message: 'Invalid ownerId format.' };
+          }
+          query.ownerId = ownerIdStr;
         }
-        query.ownerId = ownerId;
       }
 
       const skip = (page - 1) * limit;
