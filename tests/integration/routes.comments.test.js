@@ -211,3 +211,133 @@ describe('GET /api/v1/comments/:commentId (integration)', () => {
     expect(response.body).toEqual({ message: 'Comment not found' });
   });
 });
+
+describe('GET /api/v1/beats/:beatId/comments (integration)', () => {
+  const withAuth = (req) =>
+    req.set('Authorization', `Bearer ${global.testToken}`);
+
+  it('should return comments with default pagination', async () => {
+    const beatId = new mongoose.Types.ObjectId();
+    const authorId = new mongoose.Types.ObjectId();
+
+    await Comment.insertMany(
+      Array.from({ length: 3 }, (_, i) => ({
+        beatId,
+        authorId,
+        text: `Beat comment ${i + 1}`,
+      }))
+    );
+
+    const response = await withAuth(
+      api.get(`/api/v1/beats/${beatId}/comments`)
+    ).expect(200);
+
+    expect(response.body.page).toBe(1);
+    expect(response.body.limit).toBe(20);
+    expect(response.body.total).toBe(3);
+    expect(response.body.data).toHaveLength(3);
+
+    response.body.data.forEach((c) => {
+      expect(c).toHaveProperty('id');
+      expect(c).toHaveProperty('authorId');
+      expect(c).toHaveProperty('text');
+      expect(c).toHaveProperty('createdAt');
+    });
+  });
+
+  it('should clamp page below 1 to 1', async () => {
+    const beatId = new mongoose.Types.ObjectId();
+    const authorId = new mongoose.Types.ObjectId();
+
+    await Comment.insertMany(
+      Array.from({ length: 3 }, (_, i) => ({
+        beatId,
+        authorId,
+        text: `Page test ${i + 1}`,
+      }))
+    );
+
+    const response = await withAuth(
+      api.get(`/api/v1/beats/${beatId}/comments?page=0&limit=2`)
+    ).expect(200);
+
+    expect(response.body.page).toBe(1);
+    expect(response.body.limit).toBe(2);
+    expect(response.body.data).toHaveLength(2);
+  });
+
+  it('should clamp page above maxPage to the last page', async () => {
+    const beatId = new mongoose.Types.ObjectId();
+    const authorId = new mongoose.Types.ObjectId();
+
+    await Comment.insertMany(
+      Array.from({ length: 5 }, (_, i) => ({
+        beatId,
+        authorId,
+        text: `Page high ${i + 1}`,
+      }))
+    );
+
+    // total = 5, limit = 2, maxPage = 3
+    const response = await withAuth(
+      api.get(`/api/v1/beats/${beatId}/comments?page=999&limit=2`)
+    ).expect(200);
+
+    expect(response.body.page).toBe(3);
+    expect(response.body.limit).toBe(2);
+    expect(response.body.total).toBe(5);
+    expect(response.body.data).toHaveLength(1);
+  });
+
+  it('should normalize limit < 1 to default 20', async () => {
+    const beatId = new mongoose.Types.ObjectId();
+    const authorId = new mongoose.Types.ObjectId();
+
+    await Comment.insertMany(
+      Array.from({ length: 3 }, (_, i) => ({
+        beatId,
+        authorId,
+        text: `Limit low ${i + 1}`,
+      }))
+    );
+
+    const response = await withAuth(
+      api.get(`/api/v1/beats/${beatId}/comments?page=1&limit=0`)
+    ).expect(200);
+
+    expect(response.body.page).toBe(1);
+    expect(response.body.limit).toBe(20);
+    expect(response.body.total).toBe(3);
+    expect(response.body.data).toHaveLength(3);
+  });
+
+  it('should clamp limit above max to 100', async () => {
+    const beatId = new mongoose.Types.ObjectId();
+    const authorId = new mongoose.Types.ObjectId();
+
+    await Comment.insertMany(
+      Array.from({ length: 10 }, (_, i) => ({
+        beatId,
+        authorId,
+        text: `Limit high ${i + 1}`,
+      }))
+    );
+
+    const response = await withAuth(
+      api.get(`/api/v1/beats/${beatId}/comments?page=1&limit=1000`)
+    ).expect(200);
+
+    expect(response.body.page).toBe(1);
+    expect(response.body.limit).toBe(100);
+    expect(response.body.total).toBe(10);
+    expect(response.body.data).toHaveLength(10);
+  });
+
+  it('should return 404 if beatId is not a valid ObjectId', async () => {
+    const response = await withAuth(
+      api.get('/api/v1/beats/not-a-valid-id/comments')
+    ).expect(404);
+
+    expect(response.body).toEqual({ message: 'Beat not found' });
+  });
+});

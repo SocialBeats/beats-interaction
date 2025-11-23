@@ -46,7 +46,7 @@ class CommentService {
         throw { status, message };
       }
 
-      // Comment model validation will ensure to check if playlist exists and if playlist is public
+      // comment model validation will ensure to check if playlist exists and if playlist is public
       const comment = new Comment({
         playlistId,
         authorId,

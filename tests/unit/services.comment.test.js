@@ -283,3 +283,169 @@ describe('CommentService.getCommentById', () => {
     Comment.findById = originalFindById;
   });
 });
+
+describe('CommentService.listBeatComments', () => {
+  it('should list comments for a beat with default pagination', async () => {
+    const beatId = new mongoose.Types.ObjectId();
+    const otherBeatId = new mongoose.Types.ObjectId();
+    const authorId = new mongoose.Types.ObjectId();
+
+    // create 5 comments for beatId
+    const commentsToCreate = Array.from({ length: 5 }, (_, i) => ({
+      beatId,
+      authorId,
+      text: `Comment ${i + 1}`,
+    }));
+    await Comment.insertMany(commentsToCreate);
+
+    // and 2 comments for another beat (should not appear)
+    await Comment.insertMany([
+      { beatId: otherBeatId, authorId, text: 'Other 1' },
+      { beatId: otherBeatId, authorId, text: 'Other 2' },
+    ]);
+
+    const result = await commentService.listBeatComments({
+      beatId,
+      // page and limit default: 1, 20
+    });
+
+    expect(result.page).toBe(1);
+    expect(result.limit).toBe(20);
+    expect(result.total).toBe(5);
+    expect(result.data).toHaveLength(5);
+    result.data.forEach((c) => {
+      expect(c.beatId.toString()).toBe(beatId.toString());
+    });
+  });
+
+  it('should clamp page below 1 to 1', async () => {
+    const beatId = new mongoose.Types.ObjectId();
+    const authorId = new mongoose.Types.ObjectId();
+
+    await Comment.insertMany(
+      Array.from({ length: 3 }, (_, i) => ({
+        beatId,
+        authorId,
+        text: `Comment P${i + 1}`,
+      }))
+    );
+
+    const result = await commentService.listBeatComments({
+      beatId,
+      page: 0, // invalid, expected to use 1
+      limit: 2,
+    });
+
+    expect(result.page).toBe(1);
+    expect(result.limit).toBe(2);
+    expect(result.data).toHaveLength(2);
+  });
+
+  it('should clamp page above maxPage to the last page', async () => {
+    const beatId = new mongoose.Types.ObjectId();
+    const authorId = new mongoose.Types.ObjectId();
+
+    await Comment.insertMany(
+      Array.from({ length: 5 }, (_, i) => ({
+        beatId,
+        authorId,
+        text: `Comment C${i + 1}`,
+      }))
+    );
+
+    // total = 5, limit = 2: maxPage = 3
+    const result = await commentService.listBeatComments({
+      beatId,
+      page: 10, // way too high
+      limit: 2,
+    });
+
+    expect(result.page).toBe(3);
+    expect(result.limit).toBe(2);
+    expect(result.total).toBe(5);
+    expect(result.data).toHaveLength(1); // last page only has 1
+  });
+
+  it('should normalize limit < 1 to default (20)', async () => {
+    const beatId = new mongoose.Types.ObjectId();
+    const authorId = new mongoose.Types.ObjectId();
+
+    await Comment.insertMany(
+      Array.from({ length: 3 }, (_, i) => ({
+        beatId,
+        authorId,
+        text: `Comment L${i + 1}`,
+      }))
+    );
+
+    const result = await commentService.listBeatComments({
+      beatId,
+      page: 1,
+      limit: 0, // invalid
+    });
+
+    expect(result.page).toBe(1);
+    expect(result.limit).toBe(20);
+    expect(result.total).toBe(3);
+    expect(result.data).toHaveLength(3);
+  });
+
+  it('should clamp limit above max to 100', async () => {
+    const beatId = new mongoose.Types.ObjectId();
+    const authorId = new mongoose.Types.ObjectId();
+
+    await Comment.insertMany(
+      Array.from({ length: 10 }, (_, i) => ({
+        beatId,
+        authorId,
+        text: `Comment XL${i + 1}`,
+      }))
+    );
+
+    const result = await commentService.listBeatComments({
+      beatId,
+      page: 1,
+      limit: 1000, // way too high, 100
+    });
+
+    expect(result.page).toBe(1);
+    expect(result.limit).toBe(100);
+    expect(result.total).toBe(10);
+    expect(result.data).toHaveLength(10); // only 10 in total
+  });
+
+  it('should throw 404 if beatId is not a valid ObjectId', async () => {
+    await expect(
+      commentService.listBeatComments({
+        beatId: 'not-a-valid-id',
+        page: 1,
+        limit: 10,
+      })
+    ).rejects.toMatchObject({
+      status: 404,
+      message: 'Beat not found',
+    });
+  });
+
+  it('should rethrow unexpected errors (e.g. DB error in countDocuments)', async () => {
+    const beatId = new mongoose.Types.ObjectId();
+
+    const originalCountDocuments = Comment.countDocuments;
+
+    Comment.countDocuments = async () => {
+      const err = new Error('Simulated countDocuments error');
+      err.name = 'SomeOtherError';
+      throw err;
+    };
+
+    await expect(
+      commentService.listBeatComments({
+        beatId,
+        page: 1,
+        limit: 10,
+      })
+    ).rejects.toHaveProperty('message', 'Simulated countDocuments error');
+
+    Comment.countDocuments = originalCountDocuments;
+  });
+});
