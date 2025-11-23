@@ -1,5 +1,6 @@
 import request from 'supertest';
 import app from '../../main.js';
+import jwt from 'jsonwebtoken';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
 
@@ -9,6 +10,11 @@ beforeAll(async () => {
   mongoServer = await MongoMemoryServer.create();
   const uri = mongoServer.getUri();
   await mongoose.connect(uri);
+  global.testToken = jwt.sign(
+    { id: '66f0bacbb6c946d88c40e123' },
+    process.env.JWT_SECRET,
+    { expiresIn: '1h' }
+  );
 });
 
 afterAll(async () => {

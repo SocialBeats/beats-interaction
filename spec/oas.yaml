@@ -118,6 +118,231 @@ paths:
                 example: >-
                   There was an error retrieving API release notes: ENOENT: no
                   such file or directory, open 'CHANGELOG.md'
+  /api/v1/beats/{beatId}/comments:
+    post:
+      tags:
+        - Comments
+      summary: Create a comment on a beat
+      description: >-
+        Creates a new comment associated with the specified beat for the
+        authenticated user.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: beatId
+          required: true
+          schema:
+            type: string
+          description: ID of the beat to comment on.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - text
+              properties:
+                text:
+                  type: string
+                  maxLength: 200
+                  example: La caja entra tarde, yo la adelantaría un poco.
+      responses:
+        '201':
+          description: Comment successfully created.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  beatId:
+                    type: string
+                  authorId:
+                    type: string
+                  text:
+                    type: string
+                  createdAt:
+                    type: string
+                    format: date-time
+        '401':
+          description: Unauthorized. Token missing or invalid.
+        '404':
+          description: Beat not found.
+        '422':
+          description: Validation error.
+        '500':
+          description: Internal server error.
+    get:
+      tags:
+        - Comments
+      summary: List comments for a beat
+      description: Returns a paginated list of comments associated with a given beat.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: beatId
+          required: true
+          schema:
+            type: string
+          description: ID of the beat whose comments are being requested.
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number for pagination.
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            default: 20
+          description: Number of comments per page.
+      responses:
+        '200':
+          description: List of comments for the beat.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        authorId:
+                          type: string
+                        text:
+                          type: string
+                        createdAt:
+                          type: string
+                          format: date-time
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+                  total:
+                    type: integer
+        '400':
+          description: Invalid pagination parameters.
+        '401':
+          description: Unauthorized. Token missing or invalid.
+        '404':
+          description: Beat not found.
+        '500':
+          description: Internal server error.
+  /api/v1/playlists/{playlistId}/comments:
+    post:
+      tags:
+        - Comments
+      summary: Create a comment on a playlist
+      description: >-
+        Creates a new comment associated with the specified playlist for the
+        authenticated user.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: playlistId
+          required: true
+          schema:
+            type: string
+          description: ID of the playlist to comment on.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - text
+              properties:
+                text:
+                  type: string
+                  maxLength: 200
+                  example: Muy buena selección de temas.
+      responses:
+        '201':
+          description: Comment successfully created.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  playlistId:
+                    type: string
+                  authorId:
+                    type: string
+                  text:
+                    type: string
+                  createdAt:
+                    type: string
+                    format: date-time
+        '401':
+          description: Unauthorized. Token missing or invalid.
+        '404':
+          description: Playlist not found.
+        '422':
+          description: Validation error.
+        '500':
+          description: Internal server error.
+  /api/v1/comments/{commentId}:
+    get:
+      tags:
+        - Comments
+      summary: Get a specific comment
+      description: Retrieves a single comment by its ID. Useful for moderation tools.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: commentId
+          required: true
+          schema:
+            type: string
+          description: ID of the comment to retrieve.
+      responses:
+        '200':
+          description: Comment successfully retrieved.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  beatId:
+                    type: string
+                    nullable: true
+                  playlistId:
+                    type: string
+                    nullable: true
+                  authorId:
+                    type: string
+                  text:
+                    type: string
+                  createdAt:
+                    type: string
+                    format: date-time
+                  updatedAt:
+                    type: string
+                    format: date-time
+        '401':
+          description: Unauthorized. Token missing or invalid.
+        '404':
+          description: Comment not found.
+        '500':
+          description: Internal server error.
   /api/v1/health:
     get:
       tags:
