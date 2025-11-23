@@ -20,6 +20,7 @@ export default defineConfig({
         'vitest.config.js',
         'scripts/**',
         'src/db.js',
+        'commitlint.config.cjs',
       ],
     },
   },
