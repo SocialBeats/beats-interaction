@@ -461,4 +461,50 @@ export default function commentRoutes(app) {
       });
     }
   });
+
+  /**
+   * @swagger
+   * /api/v1/comments/{commentId}:
+   *   delete:
+   *     tags:
+   *       - Comments
+   *     summary: Delete a comment
+   *     description: Deletes a comment if it belongs to the authenticated user.
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: commentId
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: ID of the comment to delete.
+   *     responses:
+   *       200:
+   *         description: Comment deleted or did not exist.
+   *       401:
+   *         description: Unauthorized. Comment does not belong to user.
+   *       500:
+   *         description: Internal server error.
+   */
+  app.delete(`${baseAPIURL}/comments/:commentId`, async (req, res) => {
+    try {
+      const { commentId } = req.params;
+      const userId = req.user.id;
+
+      const result = await commentService.deleteCommentById(commentId, userId);
+
+      return res.status(200).send(result);
+    } catch (err) {
+      if (err.status) {
+        return res.status(err.status).send({ message: err.message });
+      }
+
+      logger.error(`Internal server error while deleting comment: ${err}`);
+
+      return res.status(500).send({
+        message: 'Internal server error while deleting comment',
+      });
+    }
+  });
 }

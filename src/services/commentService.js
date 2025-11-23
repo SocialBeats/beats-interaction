@@ -200,6 +200,35 @@ class CommentService {
       throw err;
     }
   }
+
+  async deleteCommentById(commentId, userId) {
+    try {
+      if (!mongoose.Types.ObjectId.isValid(commentId)) {
+        return { deleted: false }; // idempotente
+      }
+
+      const comment = await Comment.findById(commentId);
+
+      if (!comment) {
+        return { deleted: false }; // idempotente
+      }
+
+      if (comment.authorId.toString() !== userId.toString()) {
+        const status = 401;
+        const message = 'You are not allowed to delete this comment.';
+        throw { status, message };
+      }
+
+      await Comment.deleteOne({ _id: commentId });
+
+      return { deleted: true };
+    } catch (err) {
+      if (err.status) {
+        throw err;
+      }
+      throw err;
+    }
+  }
 }
 
 export default new CommentService();

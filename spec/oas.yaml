@@ -405,6 +405,27 @@ paths:
           description: Comment not found.
         '500':
           description: Internal server error.
+    delete:
+      tags:
+        - Comments
+      summary: Delete a comment
+      description: Deletes a comment if it belongs to the authenticated user.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: commentId
+          required: true
+          schema:
+            type: string
+          description: ID of the comment to delete.
+      responses:
+        '200':
+          description: Comment deleted or did not exist.
+        '401':
+          description: Unauthorized. Comment does not belong to user.
+        '500':
+          description: Internal server error.
   /api/v1/health:
     get:
       tags:
