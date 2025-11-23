@@ -491,3 +491,71 @@ describe('GET /api/v1/playlists/:playlistId/comments (integration)', () => {
     expect(response.body).toEqual({ message: 'Playlist not found' });
   });
 });
+
+describe('DELETE /api/v1/comments/:commentId (integration)', () => {
+  const withAuth = (req) =>
+    req.set('Authorization', `Bearer ${global.testToken}`);
+
+  it('should delete an existing comment of the authenticated user and return 200', async () => {
+    const beatId = new mongoose.Types.ObjectId();
+
+    // first, create a comment to delete
+    const createResponse = await withAuth(
+      api.post(`/api/v1/beats/${beatId}/comments`)
+    )
+      .send({ text: 'Comment to delete' })
+      .expect(201);
+
+    const commentId = createResponse.body.id;
+
+    const deleteResponse = await withAuth(
+      api.delete(`/api/v1/comments/${commentId}`)
+    ).expect(200);
+
+    expect(deleteResponse.body).toEqual({ deleted: true });
+
+    const inDb = await Comment.findById(commentId);
+    expect(inDb).toBeNull();
+  });
+
+  it('should return 200 and deleted:false if comment does not exist', async () => {
+    const nonExistingId = new mongoose.Types.ObjectId().toString();
+
+    const response = await withAuth(
+      api.delete(`/api/v1/comments/${nonExistingId}`)
+    ).expect(200);
+
+    expect(response.body).toEqual({ deleted: false });
+  });
+
+  it('should return 200 and deleted:false if commentId is not a valid ObjectId', async () => {
+    const response = await withAuth(
+      api.delete('/api/v1/comments/not-a-valid-id')
+    ).expect(200);
+
+    expect(response.body).toEqual({ deleted: false });
+  });
+
+  it('should return 401 if the comment belongs to another user', async () => {
+    const beatId = new mongoose.Types.ObjectId();
+    const otherAuthorId = new mongoose.Types.ObjectId();
+
+    const foreignComment = await Comment.create({
+      beatId,
+      authorId: otherAuthorId,
+      text: 'Not your comment',
+    });
+
+    const response = await withAuth(
+      api.delete(`/api/v1/comments/${foreignComment._id}`)
+    ).expect(401);
+
+    expect(response.body).toHaveProperty(
+      'message',
+      'You are not allowed to delete this comment.'
+    );
+
+    const stillThere = await Comment.findById(foreignComment._id);
+    expect(stillThere).not.toBeNull();
+  });
+});

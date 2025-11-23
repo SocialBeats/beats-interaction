@@ -636,3 +636,102 @@ describe('CommentService.listPlaylistComments', () => {
     Comment.countDocuments = originalCountDocuments;
   });
 });
+
+describe('CommentService.deleteCommentById', () => {
+  it('should delete comment if it exists and belongs to the user', async () => {
+    const userId = new mongoose.Types.ObjectId();
+    const beatId = new mongoose.Types.ObjectId();
+
+    const created = await Comment.create({
+      beatId,
+      authorId: userId,
+      text: 'Comment to delete',
+    });
+
+    const result = await commentService.deleteCommentById(
+      created._id.toString(),
+      userId.toString()
+    );
+
+    expect(result).toEqual({ deleted: true });
+
+    const inDb = await Comment.findById(created._id);
+    expect(inDb).toBeNull();
+  });
+
+  it('should return deleted: false if commentId is not a valid ObjectId', async () => {
+    const userId = new mongoose.Types.ObjectId();
+
+    const result = await commentService.deleteCommentById(
+      'not-a-valid-id',
+      userId.toString()
+    );
+
+    expect(result).toEqual({ deleted: false });
+  });
+
+  it('should return deleted: false if comment does not exist', async () => {
+    const userId = new mongoose.Types.ObjectId();
+    const fakeId = new mongoose.Types.ObjectId().toString();
+
+    const result = await commentService.deleteCommentById(
+      fakeId,
+      userId.toString()
+    );
+
+    expect(result).toEqual({ deleted: false });
+  });
+
+  it('should throw 401 if comment exists but belongs to another user', async () => {
+    const authorId = new mongoose.Types.ObjectId();
+    const otherUserId = new mongoose.Types.ObjectId();
+    const beatId = new mongoose.Types.ObjectId();
+
+    const created = await Comment.create({
+      beatId,
+      authorId,
+      text: 'Not your comment',
+    });
+
+    await expect(
+      commentService.deleteCommentById(
+        created._id.toString(),
+        otherUserId.toString()
+      )
+    ).rejects.toMatchObject({
+      status: 401,
+      message: 'You are not allowed to delete this comment.',
+    });
+
+    const stillThere = await Comment.findById(created._id);
+    expect(stillThere).not.toBeNull();
+  });
+
+  it('should rethrow unexpected errors (e.g. DB error on deleteOne)', async () => {
+    const userId = new mongoose.Types.ObjectId();
+    const beatId = new mongoose.Types.ObjectId();
+
+    const created = await Comment.create({
+      beatId,
+      authorId: userId,
+      text: 'Comment to trigger delete error',
+    });
+
+    const originalDeleteOne = Comment.deleteOne;
+
+    Comment.deleteOne = async () => {
+      const err = new Error('Simulated deleteOne error');
+      err.name = 'SomeOtherError';
+      throw err;
+    };
+
+    await expect(
+      commentService.deleteCommentById(
+        created._id.toString(),
+        userId.toString()
+      )
+    ).rejects.toHaveProperty('message', 'Simulated deleteOne error');
+
+    Comment.deleteOne = originalDeleteOne;
+  });
+});
