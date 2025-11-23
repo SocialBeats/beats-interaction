@@ -65,6 +65,12 @@ class CommentService {
         throw { status, message };
       }
 
+      if (err.name === 'Error') {
+        const status = 422;
+        const message = err.message;
+        throw { status, message };
+      }
+
       if (err.status) {
         throw err;
       }
