@@ -229,6 +229,51 @@ class CommentService {
       throw err;
     }
   }
+
+  async updateCommentText({ commentId, userId, text }) {
+    try {
+      if (!mongoose.Types.ObjectId.isValid(commentId)) {
+        const status = 404;
+        const message = 'Comment not found';
+        throw { status, message };
+      }
+
+      const comment = await Comment.findById(commentId);
+
+      if (!comment) {
+        const status = 404;
+        const message = 'Comment not found';
+        throw { status, message };
+      }
+
+      if (comment.authorId.toString() !== userId.toString()) {
+        const status = 401;
+        const message = 'You are not allowed to edit this comment.';
+        throw { status, message };
+      }
+
+      comment.text = text;
+
+      await comment.validate();
+      await comment.save();
+
+      return comment;
+    } catch (err) {
+      if (err.name === 'ValidationError') {
+        const message = Object.values(err.errors)
+          .map((e) => e.message)
+          .join(', ');
+        const status = 422;
+        throw { status, message };
+      }
+
+      if (err.status) {
+        throw err;
+      }
+
+      throw err;
+    }
+  }
 }
 
 export default new CommentService();

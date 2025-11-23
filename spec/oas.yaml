@@ -426,6 +426,107 @@ paths:
           description: Unauthorized. Comment does not belong to user.
         '500':
           description: Internal server error.
+    put:
+      tags:
+        - Comments
+      summary: Update a comment
+      description: >-
+        Updates the text of a comment. Only the author can edit their own
+        comment.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: commentId
+          required: true
+          schema:
+            type: string
+          description: ID of the comment to edit.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - text
+              properties:
+                text:
+                  type: string
+                  maxLength: 200
+                  example: Lo he escuchado mejor, el bombo está OK.
+      responses:
+        '200':
+          description: Comment successfully updated.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  beatId:
+                    type: string
+                    nullable: true
+                  playlistId:
+                    type: string
+                    nullable: true
+                  authorId:
+                    type: string
+                  text:
+                    type: string
+                  createdAt:
+                    type: string
+                    format: date-time
+                  updatedAt:
+                    type: string
+                    format: date-time
+        '401':
+          description: Unauthorized. Comment does not belong to user.
+        '404':
+          description: Comment not found.
+        '422':
+          description: Validation error (e.g. text empty or too long).
+        '500':
+          description: Internal server error.
+    patch:
+      tags:
+        - Comments
+      summary: Partially update a comment
+      description: >-
+        Updates the text of a comment. Only the author can edit their own
+        comment.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: commentId
+          required: true
+          schema:
+            type: string
+          description: ID of the comment to edit.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+                  maxLength: 200
+                  example: Lo he escuchado mejor, el bombo está OK.
+      responses:
+        '200':
+          description: Comment successfully updated.
+        '401':
+          description: Unauthorized. Comment does not belong to user.
+        '404':
+          description: Comment not found.
+        '422':
+          description: Validation error.
+        '500':
+          description: Internal server error.
   /api/v1/health:
     get:
       tags:
