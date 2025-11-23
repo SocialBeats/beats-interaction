@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import logger from '../logger.js';
+import { Comment, Rating, Playlist } from './models/models.js';
 
 export const connectDB = async () => {
   try {
@@ -42,4 +43,12 @@ export const disconnectDB = async () => {
   } catch (err) {
     logger.error(`MongoDB disconnection error: ${err.message}`);
   }
+};
+
+export const purgeDB = async () => {
+  logger.info('Purging Database...');
+  await Comment.deleteMany({});
+  await Rating.deleteMany({});
+  await Playlist.deleteMany({});
+  logger.info('Database purged');
 };

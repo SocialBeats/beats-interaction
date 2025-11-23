@@ -8,6 +8,7 @@ export default defineConfig({
     setupFiles: ['./tests/setup/setup.js'],
     isolate: true,
     threads: false,
+    maxConcurrency: 1,
     coverage: {
       provider: 'istanbul',
       reporter: ['text', 'html'],

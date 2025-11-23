@@ -1,13 +1,19 @@
 import request from 'supertest';
 import app from '../../main.js';
-import { connectDB, disconnectDB } from '../../src/db.js';
+import { MongoMemoryServer } from 'mongodb-memory-server';
+import mongoose from 'mongoose';
+
+let mongoServer;
 
 beforeAll(async () => {
-  await connectDB();
+  mongoServer = await MongoMemoryServer.create();
+  const uri = mongoServer.getUri();
+  await mongoose.connect(uri);
 });
 
 afterAll(async () => {
-  await disconnectDB();
+  await mongoose.disconnect();
+  await mongoServer.stop();
 });
 
 export const api = request(app);

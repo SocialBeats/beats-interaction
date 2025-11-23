@@ -1,4 +1,4 @@
-import Playlist from '../models/models';
+import { Playlist } from '../models/models';
 
 class PlaylistService {
   async createPlaylist(data, userId) {
