@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import PlaylistService from '../../src/services/playlistService';
 import { Playlist } from '../../src/models/models';
 
-describe('Playlist service Test', () => {
+describe('create playlist Test', () => {
   const fakeUserId = new mongoose.Types.ObjectId();
   const fakeCollaboratorId = new mongoose.Types.ObjectId();
 
@@ -164,5 +164,79 @@ describe('Playlist service Test', () => {
       status: 422,
       message: 'A beat cannot be added twice.',
     });
+  });
+});
+
+describe('get user playlists Test', () => {
+  it('should throw 422 if targetUserId or askerUserId is missing', async () => {
+    const collaboratorId = new mongoose.Types.ObjectId();
+    const ownerId = new mongoose.Types.ObjectId();
+
+    await expect(
+      PlaylistService.getUserPlaylists({
+        targetUserId: null,
+        askerUserId: collaboratorId,
+      })
+    ).rejects.toMatchObject({ status: 422 });
+
+    await expect(
+      PlaylistService.getUserPlaylists({
+        targetUserId: ownerId,
+        askerUserId: null,
+      })
+    ).rejects.toMatchObject({ status: 422 });
+  });
+
+  it('should return all playlists for the user if targetUserId equals askerUserId', async () => {
+    const ownerId = new mongoose.Types.ObjectId();
+
+    await Playlist.create({
+      ownerId,
+      name: 'Public Playlist',
+      isPublic: true,
+    });
+    await Playlist.create({
+      ownerId,
+      name: 'Private Playlist',
+      isPublic: false,
+    });
+
+    const playlists = await PlaylistService.getUserPlaylists({
+      targetUserId: ownerId,
+      askerUserId: ownerId,
+    });
+
+    expect(playlists.length).toBeGreaterThanOrEqual(2);
+    const names = playlists.map((p) => p.name);
+    expect(names).toContain('Public Playlist');
+    expect(names).toContain('Private Playlist');
+  });
+
+  it('should return only public and collaborated playlists if targetUserId != askerUserId', async () => {
+    const ownerId = new mongoose.Types.ObjectId();
+    const collaboratorId = new mongoose.Types.ObjectId();
+
+    await Playlist.create({ ownerId, name: 'Public Playlist', isPublic: true });
+    await Playlist.create({
+      ownerId,
+      name: 'Private Playlist',
+      isPublic: false,
+    });
+    await Playlist.create({
+      ownerId,
+      name: 'Collaborated Playlist',
+      isPublic: true,
+      collaborators: [collaboratorId],
+    });
+
+    const playlists = await PlaylistService.getUserPlaylists({
+      targetUserId: ownerId,
+      askerUserId: collaboratorId,
+    });
+
+    const names = playlists.map((p) => p.name);
+    expect(names).toContain('Public Playlist');
+    expect(names).toContain('Collaborated Playlist');
+    expect(names).not.toContain('Private Playlist');
   });
 });
