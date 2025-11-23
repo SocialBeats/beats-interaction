@@ -341,3 +341,153 @@ describe('GET /api/v1/beats/:beatId/comments (integration)', () => {
     expect(response.body).toEqual({ message: 'Beat not found' });
   });
 });
+
+describe('GET /api/v1/playlists/:playlistId/comments (integration)', () => {
+  const withAuth = (req) =>
+    req.set('Authorization', `Bearer ${global.testToken}`);
+
+  it('should return comments with default pagination', async () => {
+    const playlist = await Playlist.create({
+      name: 'Playlist for listing',
+      ownerId: new mongoose.Types.ObjectId(),
+      isPublic: true,
+    });
+    const authorId = new mongoose.Types.ObjectId();
+
+    await Comment.insertMany(
+      Array.from({ length: 3 }, (_, i) => ({
+        playlistId: playlist._id,
+        authorId,
+        text: `Playlist comment ${i + 1}`,
+      }))
+    );
+
+    const response = await withAuth(
+      api.get(`/api/v1/playlists/${playlist._id}/comments`)
+    ).expect(200);
+
+    expect(response.body.page).toBe(1);
+    expect(response.body.limit).toBe(20);
+    expect(response.body.total).toBe(3);
+    expect(response.body.data).toHaveLength(3);
+
+    response.body.data.forEach((c) => {
+      expect(c).toHaveProperty('id');
+      expect(c).toHaveProperty('authorId');
+      expect(c).toHaveProperty('text');
+      expect(c).toHaveProperty('createdAt');
+    });
+  });
+
+  it('should clamp page below 1 to 1', async () => {
+    const playlist = await Playlist.create({
+      name: 'Playlist page low',
+      ownerId: new mongoose.Types.ObjectId(),
+      isPublic: true,
+    });
+    const authorId = new mongoose.Types.ObjectId();
+
+    await Comment.insertMany(
+      Array.from({ length: 3 }, (_, i) => ({
+        playlistId: playlist._id,
+        authorId,
+        text: `Page low ${i + 1}`,
+      }))
+    );
+
+    const response = await withAuth(
+      api.get(`/api/v1/playlists/${playlist._id}/comments?page=0&limit=2`)
+    ).expect(200);
+
+    expect(response.body.page).toBe(1);
+    expect(response.body.limit).toBe(2);
+    expect(response.body.data).toHaveLength(2);
+  });
+
+  it('should clamp page above maxPage to the last page', async () => {
+    const playlist = await Playlist.create({
+      name: 'Playlist page high',
+      ownerId: new mongoose.Types.ObjectId(),
+      isPublic: true,
+    });
+    const authorId = new mongoose.Types.ObjectId();
+
+    await Comment.insertMany(
+      Array.from({ length: 5 }, (_, i) => ({
+        playlistId: playlist._id,
+        authorId,
+        text: `Page high ${i + 1}`,
+      }))
+    );
+
+    // total = 5, limit = 2 → maxPage = 3
+    const response = await withAuth(
+      api.get(`/api/v1/playlists/${playlist._id}/comments?page=999&limit=2`)
+    ).expect(200);
+
+    expect(response.body.page).toBe(3);
+    expect(response.body.limit).toBe(2);
+    expect(response.body.total).toBe(5);
+    expect(response.body.data).toHaveLength(1);
+  });
+
+  it('should normalize limit < 1 to default 20', async () => {
+    const playlist = await Playlist.create({
+      name: 'Playlist limit low',
+      ownerId: new mongoose.Types.ObjectId(),
+      isPublic: true,
+    });
+    const authorId = new mongoose.Types.ObjectId();
+
+    await Comment.insertMany(
+      Array.from({ length: 3 }, (_, i) => ({
+        playlistId: playlist._id,
+        authorId,
+        text: `Limit low ${i + 1}`,
+      }))
+    );
+
+    const response = await withAuth(
+      api.get(`/api/v1/playlists/${playlist._id}/comments?page=1&limit=0`)
+    ).expect(200);
+
+    expect(response.body.page).toBe(1);
+    expect(response.body.limit).toBe(20);
+    expect(response.body.total).toBe(3);
+    expect(response.body.data).toHaveLength(3);
+  });
+
+  it('should clamp limit above max to 100', async () => {
+    const playlist = await Playlist.create({
+      name: 'Playlist limit high',
+      ownerId: new mongoose.Types.ObjectId(),
+      isPublic: true,
+    });
+    const authorId = new mongoose.Types.ObjectId();
+
+    await Comment.insertMany(
+      Array.from({ length: 10 }, (_, i) => ({
+        playlistId: playlist._id,
+        authorId,
+        text: `Limit high ${i + 1}`,
+      }))
+    );
+
+    const response = await withAuth(
+      api.get(`/api/v1/playlists/${playlist._id}/comments?page=1&limit=1000`)
+    ).expect(200);
+
+    expect(response.body.page).toBe(1);
+    expect(response.body.limit).toBe(100);
+    expect(response.body.total).toBe(10);
+    expect(response.body.data).toHaveLength(10);
+  });
+
+  it('should return 404 if playlistId is not a valid ObjectId', async () => {
+    const response = await withAuth(
+      api.get('/api/v1/playlists/not-a-valid-id/comments')
+    ).expect(404);
+
+    expect(response.body).toEqual({ message: 'Playlist not found' });
+  });
+});

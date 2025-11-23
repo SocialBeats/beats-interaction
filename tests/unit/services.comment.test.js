@@ -449,3 +449,190 @@ describe('CommentService.listBeatComments', () => {
     Comment.countDocuments = originalCountDocuments;
   });
 });
+
+describe('CommentService.listPlaylistComments', () => {
+  it('should list comments for a playlist with default pagination', async () => {
+    const playlist = await Playlist.create({
+      name: 'Test playlist',
+      ownerId: new mongoose.Types.ObjectId(),
+      isPublic: true,
+    });
+
+    const authorId = new mongoose.Types.ObjectId();
+
+    await Comment.insertMany(
+      Array.from({ length: 5 }, (_, i) => ({
+        playlistId: playlist._id,
+        authorId,
+        text: `Playlist comment ${i + 1}`,
+      }))
+    );
+
+    const result = await commentService.listPlaylistComments({
+      playlistId: playlist._id,
+      // default page and limit
+    });
+
+    expect(result.page).toBe(1);
+    expect(result.limit).toBe(20);
+    expect(result.total).toBe(5);
+    expect(result.data).toHaveLength(5);
+    result.data.forEach((c) => {
+      expect(c.playlistId.toString()).toBe(playlist._id.toString());
+    });
+  });
+
+  it('should clamp page below 1 to 1', async () => {
+    const playlist = await Playlist.create({
+      name: 'Page low playlist',
+      ownerId: new mongoose.Types.ObjectId(),
+      isPublic: true,
+    });
+
+    const authorId = new mongoose.Types.ObjectId();
+
+    await Comment.insertMany(
+      Array.from({ length: 3 }, (_, i) => ({
+        playlistId: playlist._id,
+        authorId,
+        text: `Page low ${i + 1}`,
+      }))
+    );
+
+    const result = await commentService.listPlaylistComments({
+      playlistId: playlist._id,
+      page: 0, // invalid, normalized to 1
+      limit: 2,
+    });
+
+    expect(result.page).toBe(1);
+    expect(result.limit).toBe(2);
+    expect(result.data).toHaveLength(2);
+  });
+
+  it('should clamp page above maxPage to the last page', async () => {
+    const playlist = await Playlist.create({
+      name: 'Page high playlist',
+      ownerId: new mongoose.Types.ObjectId(),
+      isPublic: true,
+    });
+
+    const authorId = new mongoose.Types.ObjectId();
+
+    await Comment.insertMany(
+      Array.from({ length: 5 }, (_, i) => ({
+        playlistId: playlist._id,
+        authorId,
+        text: `Page high ${i + 1}`,
+      }))
+    );
+
+    // total = 5, limit = 2 → maxPage = 3
+    const result = await commentService.listPlaylistComments({
+      playlistId: playlist._id,
+      page: 999, // very high, clamped to 3
+      limit: 2,
+    });
+
+    expect(result.page).toBe(3);
+    expect(result.limit).toBe(2);
+    expect(result.total).toBe(5);
+    expect(result.data).toHaveLength(1); // última página
+  });
+
+  it('should normalize limit < 1 to default (20)', async () => {
+    const playlist = await Playlist.create({
+      name: 'Limit low playlist',
+      ownerId: new mongoose.Types.ObjectId(),
+      isPublic: true,
+    });
+
+    const authorId = new mongoose.Types.ObjectId();
+
+    await Comment.insertMany(
+      Array.from({ length: 3 }, (_, i) => ({
+        playlistId: playlist._id,
+        authorId,
+        text: `Limit low ${i + 1}`,
+      }))
+    );
+
+    const result = await commentService.listPlaylistComments({
+      playlistId: playlist._id,
+      page: 1,
+      limit: 0, // invalid, normalized to 20
+    });
+
+    expect(result.page).toBe(1);
+    expect(result.limit).toBe(20);
+    expect(result.total).toBe(3);
+    expect(result.data).toHaveLength(3);
+  });
+
+  it('should clamp limit above max to 100', async () => {
+    const playlist = await Playlist.create({
+      name: 'Limit high playlist',
+      ownerId: new mongoose.Types.ObjectId(),
+      isPublic: true,
+    });
+
+    const authorId = new mongoose.Types.ObjectId();
+
+    await Comment.insertMany(
+      Array.from({ length: 10 }, (_, i) => ({
+        playlistId: playlist._id,
+        authorId,
+        text: `Limit high ${i + 1}`,
+      }))
+    );
+
+    const result = await commentService.listPlaylistComments({
+      playlistId: playlist._id,
+      page: 1,
+      limit: 1000, // too high, clamped to 100
+    });
+
+    expect(result.page).toBe(1);
+    expect(result.limit).toBe(100);
+    expect(result.total).toBe(10);
+    expect(result.data).toHaveLength(10);
+  });
+
+  it('should throw 404 if playlistId is not a valid ObjectId', async () => {
+    await expect(
+      commentService.listPlaylistComments({
+        playlistId: 'not-a-valid-id',
+        page: 1,
+        limit: 10,
+      })
+    ).rejects.toMatchObject({
+      status: 404,
+      message: 'Playlist not found',
+    });
+  });
+
+  it('should rethrow unexpected errors (e.g. DB error in countDocuments)', async () => {
+    const playlistId = new mongoose.Types.ObjectId();
+
+    const originalCountDocuments = Comment.countDocuments;
+
+    Comment.countDocuments = async () => {
+      const err = new Error('Simulated countDocuments error (playlist)');
+      err.name = 'SomeOtherError';
+      throw err;
+    };
+
+    await expect(
+      commentService.listPlaylistComments({
+        playlistId,
+        page: 1,
+        limit: 10,
+      })
+    ).rejects.toHaveProperty(
+      'message',
+      'Simulated countDocuments error (playlist)'
+    );
+
+    Comment.countDocuments = originalCountDocuments;
+  });
+});
