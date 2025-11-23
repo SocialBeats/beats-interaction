@@ -1,4 +1,5 @@
 import { Playlist } from '../models/models';
+import mongoose from 'mongoose';
 
 class PlaylistService {
   async createPlaylist(data, userId) {
