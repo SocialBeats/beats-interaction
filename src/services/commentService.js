@@ -104,6 +104,54 @@ class CommentService {
       throw err;
     }
   }
+
+  async listBeatComments({ beatId, page = 1, limit = 20 }) {
+    try {
+      if (!mongoose.Types.ObjectId.isValid(beatId)) {
+        const status = 404;
+        const message = 'Beat not found';
+        throw { status, message };
+      }
+
+      // parameter normalization
+      page = Number(page);
+      limit = Number(limit);
+
+      if (!Number.isInteger(page) || page < 1) page = 1;
+      if (!Number.isInteger(limit) || limit < 1) limit = 20;
+      if (limit > 100) limit = 100; // reasonable maximum
+
+      const filter = { beatId };
+
+      const total = await Comment.countDocuments(filter);
+
+      // if total is 0, maxPage should be 1
+      const maxPage = Math.max(1, Math.ceil(total / limit));
+
+      // if page > maxPage, use the last page
+      if (page > maxPage) page = maxPage;
+
+      const skip = (page - 1) * limit;
+
+      const comments = await Comment.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+
+      return {
+        data: comments,
+        page,
+        limit,
+        total,
+      };
+    } catch (err) {
+      if (err.status) {
+        throw err;
+      }
+
+      throw err;
+    }
+  }
 }
 
 export default new CommentService();

@@ -255,4 +255,108 @@ export default function commentRoutes(app) {
       });
     }
   });
+
+  /**
+   * @swagger
+   * /api/v1/beats/{beatId}/comments:
+   *   get:
+   *     tags:
+   *       - Comments
+   *     summary: List comments for a beat
+   *     description: Returns a paginated list of comments associated with a given beat.
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: beatId
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: ID of the beat whose comments are being requested.
+   *       - in: query
+   *         name: page
+   *         schema:
+   *           type: integer
+   *           minimum: 1
+   *           default: 1
+   *         description: Page number for pagination.
+   *       - in: query
+   *         name: limit
+   *         schema:
+   *           type: integer
+   *           minimum: 1
+   *           default: 20
+   *         description: Number of comments per page.
+   *     responses:
+   *       200:
+   *         description: List of comments for the beat.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 data:
+   *                   type: array
+   *                   items:
+   *                     type: object
+   *                     properties:
+   *                       id:
+   *                         type: string
+   *                       authorId:
+   *                         type: string
+   *                       text:
+   *                         type: string
+   *                       createdAt:
+   *                         type: string
+   *                         format: date-time
+   *                 page:
+   *                   type: integer
+   *                 limit:
+   *                   type: integer
+   *                 total:
+   *                   type: integer
+   *       400:
+   *         description: Invalid pagination parameters.
+   *       401:
+   *         description: Unauthorized. Token missing or invalid.
+   *       404:
+   *         description: Beat not found.
+   *       500:
+   *         description: Internal server error.
+   */
+  app.get(`${baseAPIURL}/beats/:beatId/comments`, async (req, res) => {
+    try {
+      const { beatId } = req.params;
+      const page = req.query.page ? Number(req.query.page) : 1;
+      const limit = req.query.limit ? Number(req.query.limit) : 20;
+
+      const result = await commentService.listBeatComments({
+        beatId,
+        page,
+        limit,
+      });
+
+      return res.status(200).send({
+        data: result.data.map((comment) => ({
+          id: comment._id,
+          authorId: comment.authorId,
+          text: comment.text,
+          createdAt: comment.createdAt,
+        })),
+        page: result.page,
+        limit: result.limit,
+        total: result.total,
+      });
+    } catch (err) {
+      if (err.status) {
+        return res.status(err.status).send({ message: err.message });
+      }
+      logger.error(
+        `Internal server error while listing comments for beat: ${err}`
+      );
+      return res.status(500).send({
+        message: 'Internal server error while listing comments for beat',
+      });
+    }
+  });
 }

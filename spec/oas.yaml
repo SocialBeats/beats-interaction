@@ -175,6 +175,70 @@ paths:
           description: Validation error.
         '500':
           description: Internal server error.
+    get:
+      tags:
+        - Comments
+      summary: List comments for a beat
+      description: Returns a paginated list of comments associated with a given beat.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: beatId
+          required: true
+          schema:
+            type: string
+          description: ID of the beat whose comments are being requested.
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number for pagination.
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            default: 20
+          description: Number of comments per page.
+      responses:
+        '200':
+          description: List of comments for the beat.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        authorId:
+                          type: string
+                        text:
+                          type: string
+                        createdAt:
+                          type: string
+                          format: date-time
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+                  total:
+                    type: integer
+        '400':
+          description: Invalid pagination parameters.
+        '401':
+          description: Unauthorized. Token missing or invalid.
+        '404':
+          description: Beat not found.
+        '500':
+          description: Internal server error.
   /api/v1/playlists/{playlistId}/comments:
     post:
       tags:
