@@ -188,7 +188,6 @@ describe('GET /api/v1/comments/:commentId (integration)', () => {
     expect(response.body).toHaveProperty('id', created._id.toString());
     expect(response.body).toHaveProperty('text', 'Existing comment');
     expect(response.body).toHaveProperty('authorId', authorId.toString());
-    // optional fields but good to check they exist
     expect(response.body).toHaveProperty('createdAt');
     expect(response.body).toHaveProperty('updatedAt');
   });
