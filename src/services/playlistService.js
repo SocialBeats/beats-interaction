@@ -159,6 +159,51 @@ class PlaylistService {
     }
   }
 
+  async getPublicPlaylists({ name, ownerId, page = 1, limit = 20 } = {}) {
+    try {
+      const query = { isPublic: true };
+
+      if (name) {
+        query.name = { $regex: name.trim(), $options: 'i' };
+      }
+
+      if (ownerId) {
+        const ownerIdStr =
+          typeof ownerId === 'string' ? ownerId : String(ownerId);
+        if (ownerIdStr.trim()) {
+          if (!mongoose.Types.ObjectId.isValid(ownerIdStr)) {
+            throw { status: 422, message: 'Invalid ownerId format.' };
+          }
+          query.ownerId = ownerIdStr;
+        }
+      }
+
+      const skip = (page - 1) * limit;
+
+      const [total, playlists] = await Promise.all([
+        Playlist.countDocuments(query),
+        Playlist.find(query)
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .lean(),
+      ]);
+
+      const totalPages = Math.ceil(total / limit);
+
+      return {
+        total,
+        totalPages,
+        currentPage: page,
+        pageSize: limit,
+        playlists,
+      };
+    } catch (err) {
+      if (err.status) throw err;
+      throw err;
+    }
+  }
+
   async getPlaylistById({ playlistId, requesterId }) {
     try {
       if (!playlistId) {
@@ -518,51 +563,6 @@ class PlaylistService {
         throw { status: 422, message };
       }
 
-      if (err.status) throw err;
-      throw err;
-    }
-  }
-
-  async getPublicPlaylists({ name, ownerId, page = 1, limit = 20 } = {}) {
-    try {
-      const query = { isPublic: true };
-
-      if (name) {
-        query.name = { $regex: name.trim(), $options: 'i' };
-      }
-
-      if (ownerId) {
-        const ownerIdStr =
-          typeof ownerId === 'string' ? ownerId : String(ownerId);
-        if (ownerIdStr.trim()) {
-          if (!mongoose.Types.ObjectId.isValid(ownerIdStr)) {
-            throw { status: 422, message: 'Invalid ownerId format.' };
-          }
-          query.ownerId = ownerIdStr;
-        }
-      }
-
-      const skip = (page - 1) * limit;
-
-      const [total, playlists] = await Promise.all([
-        Playlist.countDocuments(query),
-        Playlist.find(query)
-          .sort({ createdAt: -1 })
-          .skip(skip)
-          .limit(limit)
-          .lean(),
-      ]);
-
-      const totalPages = Math.ceil(total / limit);
-
-      return {
-        total,
-        totalPages,
-        currentPage: page,
-        pageSize: limit,
-        playlists,
-      };
-    } catch (err) {
       if (err.status) throw err;
       throw err;
     }
