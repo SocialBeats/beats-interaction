@@ -78,6 +78,32 @@ class CommentService {
       throw err;
     }
   }
+
+  async getCommentById({ commentId }) {
+    try {
+      if (!mongoose.Types.ObjectId.isValid(commentId)) {
+        const status = 404;
+        const message = 'Comment not found';
+        throw { status, message };
+      }
+
+      const comment = await Comment.findById(commentId);
+
+      if (!comment) {
+        const status = 404;
+        const message = 'Comment not found';
+        throw { status, message };
+      }
+
+      return comment;
+    } catch (err) {
+      if (err.status) {
+        throw err;
+      }
+
+      throw err;
+    }
+  }
 }
 
 export default new CommentService();

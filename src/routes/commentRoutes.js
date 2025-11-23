@@ -179,4 +179,80 @@ export default function commentRoutes(app) {
       });
     }
   });
+
+  /**
+   * @swagger
+   * /api/v1/comments/{commentId}:
+   *   get:
+   *     tags:
+   *       - Comments
+   *     summary: Get a specific comment
+   *     description: Retrieves a single comment by its ID. Useful for moderation tools.
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: commentId
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: ID of the comment to retrieve.
+   *     responses:
+   *       200:
+   *         description: Comment successfully retrieved.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 id:
+   *                   type: string
+   *                 beatId:
+   *                   type: string
+   *                   nullable: true
+   *                 playlistId:
+   *                   type: string
+   *                   nullable: true
+   *                 authorId:
+   *                   type: string
+   *                 text:
+   *                   type: string
+   *                 createdAt:
+   *                   type: string
+   *                   format: date-time
+   *                 updatedAt:
+   *                   type: string
+   *                   format: date-time
+   *       401:
+   *         description: Unauthorized. Token missing or invalid.
+   *       404:
+   *         description: Comment not found.
+   *       500:
+   *         description: Internal server error.
+   */
+  app.get(`${baseAPIURL}/comments/:commentId`, async (req, res) => {
+    try {
+      const { commentId } = req.params;
+
+      const comment = await commentService.getCommentById({ commentId });
+
+      return res.status(200).send({
+        id: comment._id,
+        beatId: comment.beatId ?? null,
+        playlistId: comment.playlistId ?? null,
+        authorId: comment.authorId,
+        text: comment.text,
+        createdAt: comment.createdAt,
+        updatedAt: comment.updatedAt,
+      });
+    } catch (err) {
+      if (err.status) {
+        return res.status(err.status).send({ message: err.message });
+      }
+      logger.error(`Internal server error while retrieving comment: ${err}`);
+      return res.status(500).send({
+        message: 'Internal server error while retrieving comment',
+      });
+    }
+  });
 }

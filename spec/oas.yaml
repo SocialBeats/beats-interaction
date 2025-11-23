@@ -232,6 +232,53 @@ paths:
           description: Validation error.
         '500':
           description: Internal server error.
+  /api/v1/comments/{commentId}:
+    get:
+      tags:
+        - Comments
+      summary: Get a specific comment
+      description: Retrieves a single comment by its ID. Useful for moderation tools.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: commentId
+          required: true
+          schema:
+            type: string
+          description: ID of the comment to retrieve.
+      responses:
+        '200':
+          description: Comment successfully retrieved.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  beatId:
+                    type: string
+                    nullable: true
+                  playlistId:
+                    type: string
+                    nullable: true
+                  authorId:
+                    type: string
+                  text:
+                    type: string
+                  createdAt:
+                    type: string
+                    format: date-time
+                  updatedAt:
+                    type: string
+                    format: date-time
+        '401':
+          description: Unauthorized. Token missing or invalid.
+        '404':
+          description: Comment not found.
+        '500':
+          description: Internal server error.
   /api/v1/health:
     get:
       tags:
