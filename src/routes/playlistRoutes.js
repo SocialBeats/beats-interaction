@@ -2,7 +2,7 @@ import logger from '../../logger.js';
 import playlistService from '../services/playlistService.js';
 
 export default function playlistRoutes(app) {
-  const basAPIURL = '/api/v1';
+  const baseAPIURL = '/api/v1';
 
   /**
    * @swagger
@@ -111,7 +111,7 @@ export default function playlistRoutes(app) {
    *                   type: string
    *                   example: Internal server error while creating playlist
    */
-  app.post(`${basAPIURL}/playlists`, async (req, res) => {
+  app.post(`${baseAPIURL}/playlists`, async (req, res) => {
     try {
       const newPlaylist = await playlistService.createPlaylist(
         req.body,
@@ -213,7 +213,7 @@ export default function playlistRoutes(app) {
    *                   type: string
    *                   example: Internal server error while getting user playlists
    */
-  app.get(`${basAPIURL}/playlists/me`, async (req, res) => {
+  app.get(`${baseAPIURL}/playlists/me`, async (req, res) => {
     try {
       const userId = req.user.id;
       const playlists = await playlistService.getUserPlaylists({
@@ -324,7 +324,7 @@ export default function playlistRoutes(app) {
    *                   type: string
    *                   example: Internal server error while getting user playlists
    */
-  app.get(`${basAPIURL}/playlists/user/:userId`, async (req, res) => {
+  app.get(`${baseAPIURL}/playlists/user/:userId`, async (req, res) => {
     try {
       const userId = req.user.id;
       const playlists = await playlistService.getUserPlaylists({
@@ -471,7 +471,7 @@ export default function playlistRoutes(app) {
    *                   type: string
    *                   example: Internal server error while retrieving public playlists
    */
-  app.get(`${basAPIURL}/playlists/public`, async (req, res) => {
+  app.get(`${baseAPIURL}/playlists/public`, async (req, res) => {
     try {
       const filters = {
         page: parseInt(req.query.page, 10) || 1,
@@ -610,7 +610,7 @@ export default function playlistRoutes(app) {
    *                   type: string
    *                   example: Internal server error while getting playlist
    */
-  app.get(`${basAPIURL}/playlists/:id`, async (req, res) => {
+  app.get(`${baseAPIURL}/playlists/:id`, async (req, res) => {
     try {
       const playlistId = req.params.id;
       const userId = req.user.id;
@@ -741,7 +741,7 @@ export default function playlistRoutes(app) {
    *                   type: string
    *                   example: Internal server error while updating playlist
    */
-  app.put(`${basAPIURL}/playlists/:id`, async (req, res) => {
+  app.put(`${baseAPIURL}/playlists/:id`, async (req, res) => {
     try {
       const playlistId = req.params.id;
       const userId = req.user.id;
@@ -871,7 +871,7 @@ export default function playlistRoutes(app) {
    *                   type: string
    *                   example: Internal server error while updating playlist
    */
-  app.patch(`${basAPIURL}/playlists/:id`, async (req, res) => {
+  app.patch(`${baseAPIURL}/playlists/:id`, async (req, res) => {
     try {
       const playlistId = req.params.id;
       const userId = req.user.id;
@@ -953,7 +953,7 @@ export default function playlistRoutes(app) {
    *                   type: string
    *                   example: Internal server error while deleting playlist
    */
-  app.delete(`${basAPIURL}/playlists/:id`, async (req, res) => {
+  app.delete(`${baseAPIURL}/playlists/:id`, async (req, res) => {
     try {
       const playlistId = req.params.id;
       const userId = req.user.id;
@@ -1057,7 +1057,7 @@ export default function playlistRoutes(app) {
    *                   type: string
    *                   example: Internal server error while adding beat to playlist
    */
-  app.post(`${basAPIURL}/playlists/:id/items`, async (req, res) => {
+  app.post(`${baseAPIURL}/playlists/:id/items`, async (req, res) => {
     try {
       const playlistId = req.params.id;
       const userId = req.user.id;
@@ -1155,7 +1155,7 @@ export default function playlistRoutes(app) {
    *                   type: string
    *                   example: Internal server error while deleting beat from playlist
    */
-  app.delete(`${basAPIURL}/playlists/:id/items/:beatId`, async (req, res) => {
+  app.delete(`${baseAPIURL}/playlists/:id/items/:beatId`, async (req, res) => {
     try {
       const playlistId = req.params.id;
       const beatId = req.params.beatId;
