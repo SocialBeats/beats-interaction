@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import mongoose from 'mongoose';
 import { api } from '../setup/setup.js';
-import { Comment } from '../../src/models/models.js';
+import { Comment, Playlist } from '../../src/models/models.js';
 
 describe('POST /api/v1/beats/:beatId/comments (integration)', () => {
   const withAuth = (req) =>
@@ -18,14 +18,12 @@ describe('POST /api/v1/beats/:beatId/comments (integration)', () => {
 
     const createdId = response.body.id;
 
-    // Respuesta API
     expect(response.body).toHaveProperty('id');
     expect(response.body).toHaveProperty('beatId', beatId);
     expect(response.body).toHaveProperty('authorId');
     expect(response.body).toHaveProperty('text', 'Nice beat bro!');
     expect(response.body).toHaveProperty('createdAt');
 
-    // Verificar directamente que existe el documento correcto
     const commentInDb = await Comment.findById(createdId).lean();
     expect(commentInDb).not.toBeNull();
     expect(commentInDb.text).toBe('Nice beat bro!');
@@ -43,7 +41,6 @@ describe('POST /api/v1/beats/:beatId/comments (integration)', () => {
       message: 'Beat not found',
     });
 
-    // No debería haberse creado ningún comentario con ese texto
     const comment = await Comment.findOne({ text: 'Test comment' });
     expect(comment).toBeNull();
   });
@@ -61,7 +58,6 @@ describe('POST /api/v1/beats/:beatId/comments (integration)', () => {
       'The comment cannot be empty or have only spaces.'
     );
 
-    // No se debe crear nada con ese text
     const comment = await Comment.findOne({ text: '   ' });
     expect(comment).toBeNull();
   });
@@ -78,8 +74,95 @@ describe('POST /api/v1/beats/:beatId/comments (integration)', () => {
 
     expect(response.body).toHaveProperty('message');
 
-    // Nada debería haberse guardado con ese texto
     const comment = await Comment.findOne({ text: longText });
     expect(comment).toBeNull();
+  });
+});
+
+describe('POST /api/v1/playlists/:playlistId/comments (integration)', () => {
+  const withAuth = (req) =>
+    req.set('Authorization', `Bearer ${global.testToken}`);
+
+  it('should create a comment on a public playlist', async () => {
+    const playlist = await Playlist.create({
+      name: 'Public test playlist',
+      ownerId: new mongoose.Types.ObjectId(),
+      isPublic: true,
+    });
+
+    const response = await withAuth(
+      api.post(`/api/v1/playlists/${playlist._id}/comments`)
+    )
+      .send({ text: 'Awesome playlist!' })
+      .expect(201);
+
+    const createdId = response.body.id;
+
+    expect(response.body).toHaveProperty('playlistId', playlist._id.toString());
+    expect(response.body).toHaveProperty('text', 'Awesome playlist!');
+
+    const saved = await Comment.findById(createdId);
+    expect(saved).not.toBeNull();
+    expect(saved.text).toBe('Awesome playlist!');
+  });
+
+  it('should return 404 if playlistId is invalid', async () => {
+    const response = await withAuth(
+      api.post('/api/v1/playlists/not-valid/comments')
+    )
+      .send({ text: 'Test' })
+      .expect(404);
+
+    expect(response.body).toEqual({ message: 'Playlist not found' });
+  });
+
+  it('should return 422 if playlist does not exist', async () => {
+    const fakeId = new mongoose.Types.ObjectId();
+
+    const response = await withAuth(
+      api.post(`/api/v1/playlists/${fakeId}/comments`)
+    )
+      .send({ text: 'Hello' })
+      .expect(422);
+
+    expect(response.body.message).toBe(
+      'The playlist being commented does not exist.'
+    );
+  });
+
+  it('should return 422 if playlist is private', async () => {
+    const playlist = await Playlist.create({
+      name: 'Private playlist',
+      ownerId: new mongoose.Types.ObjectId(),
+      isPublic: false,
+    });
+
+    const response = await withAuth(
+      api.post(`/api/v1/playlists/${playlist._id}/comments`)
+    )
+      .send({ text: 'Hello' })
+      .expect(422);
+
+    expect(response.body.message).toBe(
+      'You cannot comment on a private playlist.'
+    );
+  });
+
+  it('should return 422 if text is empty or only spaces', async () => {
+    const playlist = await Playlist.create({
+      name: 'Another public playlist',
+      ownerId: new mongoose.Types.ObjectId(),
+      isPublic: true,
+    });
+
+    const response = await withAuth(
+      api.post(`/api/v1/playlists/${playlist._id}/comments`)
+    )
+      .send({ text: '   ' })
+      .expect(422);
+
+    expect(response.body.message).toBe(
+      'The comment cannot be empty or have only spaces.'
+    );
   });
 });
