@@ -708,6 +708,55 @@ describe('PATCH /api/v1/comments/:commentId (integration)', () => {
     expect(inDb.text).toBe('New text from PATCH');
   });
 
+  it('should return 404 if commentId is invalid (PATCH)', async () => {
+    const response = await withAuth(
+      api.patch('/api/v1/comments/not-a-valid-id')
+    )
+      .send({ text: 'New text' })
+      .expect(404);
+
+    expect(response.body).toEqual({
+      message: 'Comment not found',
+    });
+  });
+
+  it('should return 404 if comment does not exist (PATCH)', async () => {
+    const fakeId = new mongoose.Types.ObjectId().toString();
+
+    const response = await withAuth(api.patch(`/api/v1/comments/${fakeId}`))
+      .send({ text: 'New text' })
+      .expect(404);
+
+    expect(response.body).toEqual({
+      message: 'Comment not found',
+    });
+  });
+
+  it('should return 401 if the comment belongs to another user (PATCH)', async () => {
+    const beatId = new mongoose.Types.ObjectId();
+    const otherUserId = new mongoose.Types.ObjectId();
+
+    const foreignComment = await Comment.create({
+      beatId,
+      authorId: otherUserId,
+      text: 'Not yours',
+    });
+
+    const response = await withAuth(
+      api.patch(`/api/v1/comments/${foreignComment._id}`)
+    )
+      .send({ text: 'Attempt to edit' })
+      .expect(401);
+
+    expect(response.body).toHaveProperty(
+      'message',
+      'You are not allowed to edit this comment.'
+    );
+
+    const stillThere = await Comment.findById(foreignComment._id);
+    expect(stillThere.text).toBe('Not yours');
+  });
+
   it('should return 422 when PATCH text is invalid (empty)', async () => {
     const beatId = new mongoose.Types.ObjectId();
 
