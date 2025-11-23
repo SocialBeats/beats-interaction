@@ -14,6 +14,13 @@ export default defineConfig({
       reporter: ['text', 'html'],
       all: true,
       reportsDirectory: path.resolve('./coverage'),
+      exclude: [
+        'tests/**',
+        'node_modules/**',
+        'vitest.config.js',
+        'scripts/**',
+        'src/db.js',
+      ],
     },
   },
 });
