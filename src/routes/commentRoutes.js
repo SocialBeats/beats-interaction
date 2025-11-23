@@ -12,6 +12,7 @@ export default function commentRoutes(app) {
    *       - Comments
    *     summary: Create a comment on a beat
    *     description: Creates a new comment associated with the specified beat for the authenticated user.
+   *                  `beatId` must be a valid MongoDB ObjectId.
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -40,27 +41,47 @@ export default function commentRoutes(app) {
    *         content:
    *           application/json:
    *             schema:
-   *               type: object
-   *               properties:
-   *                 id:
-   *                   type: string
-   *                 beatId:
-   *                   type: string
-   *                 authorId:
-   *                   type: string
-   *                 text:
-   *                   type: string
-   *                 createdAt:
-   *                   type: string
-   *                   format: date-time
+   *               $ref: '#/components/schemas/Comment'
    *       401:
    *         description: Unauthorized. Token missing or invalid.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Unauthorized access.
    *       404:
-   *         description: Beat not found.
+   *         description: Beat not found (invalid or non-existent `beatId`).
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Beat not found.
    *       422:
-   *         description: Validation error.
+   *         description: Validation error (e.g., text empty or too long).
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Comment text cannot exceed 200 characters.
    *       500:
-   *         description: Internal server error.
+   *         description: Internal server error while creating comment.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Internal server error while creating comment.
    */
   app.post(`${baseAPIURL}/beats/:beatId/comments`, async (req, res) => {
     try {
@@ -100,6 +121,7 @@ export default function commentRoutes(app) {
    *       - Comments
    *     summary: Create a comment on a playlist
    *     description: Creates a new comment associated with the specified playlist for the authenticated user.
+   *                  `playlistId` must be a valid MongoDB ObjectId.
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -128,27 +150,47 @@ export default function commentRoutes(app) {
    *         content:
    *           application/json:
    *             schema:
-   *               type: object
-   *               properties:
-   *                 id:
-   *                   type: string
-   *                 playlistId:
-   *                   type: string
-   *                 authorId:
-   *                   type: string
-   *                 text:
-   *                   type: string
-   *                 createdAt:
-   *                   type: string
-   *                   format: date-time
+   *               $ref: '#/components/schemas/Comment'
    *       401:
    *         description: Unauthorized. Token missing or invalid.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Unauthorized access.
    *       404:
-   *         description: Playlist not found.
+   *         description: Playlist not found (invalid or non-existent `playlistId`).
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Playlist not found.
    *       422:
-   *         description: Validation error.
+   *         description: Validation error (e.g., text empty, too long, or playlist private).
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Comment text cannot exceed 200 characters.
    *       500:
-   *         description: Internal server error.
+   *         description: Internal server error while creating comment.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Internal server error while creating comment.
    */
   app.post(`${baseAPIURL}/playlists/:playlistId/comments`, async (req, res) => {
     try {
@@ -188,6 +230,7 @@ export default function commentRoutes(app) {
    *       - Comments
    *     summary: Get a specific comment
    *     description: Retrieves a single comment by its ID. Useful for moderation tools.
+   *                  `commentId` must be a valid MongoDB ObjectId.
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -203,32 +246,37 @@ export default function commentRoutes(app) {
    *         content:
    *           application/json:
    *             schema:
-   *               type: object
-   *               properties:
-   *                 id:
-   *                   type: string
-   *                 beatId:
-   *                   type: string
-   *                   nullable: true
-   *                 playlistId:
-   *                   type: string
-   *                   nullable: true
-   *                 authorId:
-   *                   type: string
-   *                 text:
-   *                   type: string
-   *                 createdAt:
-   *                   type: string
-   *                   format: date-time
-   *                 updatedAt:
-   *                   type: string
-   *                   format: date-time
+   *               $ref: '#/components/schemas/Comment'
    *       401:
    *         description: Unauthorized. Token missing or invalid.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Unauthorized access.
    *       404:
-   *         description: Comment not found.
+   *         description: Comment not found (invalid or non-existent `commentId`).
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Comment not found.
    *       500:
-   *         description: Internal server error.
+   *         description: Internal server error while retrieving comment.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Internal server error while retrieving comment.
    */
   app.get(`${baseAPIURL}/comments/:commentId`, async (req, res) => {
     try {
@@ -263,7 +311,10 @@ export default function commentRoutes(app) {
    *     tags:
    *       - Comments
    *     summary: List comments for a beat
-   *     description: Returns a paginated list of comments associated with a given beat.
+   *     description: >
+   *       Returns a paginated list of comments associated with a given beat.
+   *       Supports `page` and `limit` query parameters. Maximum `limit` is 100.
+   *       Sorted by `createdAt` descending.
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -272,24 +323,25 @@ export default function commentRoutes(app) {
    *         required: true
    *         schema:
    *           type: string
-   *         description: ID of the beat whose comments are being requested.
+   *         description: ID of the beat whose comments are being requested. Must be a valid MongoDB ObjectId.
    *       - in: query
    *         name: page
    *         schema:
    *           type: integer
    *           minimum: 1
    *           default: 1
-   *         description: Page number for pagination.
+   *         description: Page number for pagination. Defaults to 1 if invalid or not provided.
    *       - in: query
    *         name: limit
    *         schema:
    *           type: integer
    *           minimum: 1
+   *           maximum: 100
    *           default: 20
-   *         description: Number of comments per page.
+   *         description: Number of comments per page. Defaults to 20 if invalid or not provided.
    *     responses:
    *       200:
-   *         description: List of comments for the beat.
+   *         description: Paginated list of comments for the beat.
    *         content:
    *           application/json:
    *             schema:
@@ -298,31 +350,46 @@ export default function commentRoutes(app) {
    *                 data:
    *                   type: array
    *                   items:
-   *                     type: object
-   *                     properties:
-   *                       id:
-   *                         type: string
-   *                       authorId:
-   *                         type: string
-   *                       text:
-   *                         type: string
-   *                       createdAt:
-   *                         type: string
-   *                         format: date-time
+   *                     $ref: '#/components/schemas/Comment'
    *                 page:
    *                   type: integer
+   *                   example: 1
    *                 limit:
    *                   type: integer
+   *                   example: 20
    *                 total:
    *                   type: integer
-   *       400:
-   *         description: Invalid pagination parameters.
+   *                   example: 42
    *       401:
    *         description: Unauthorized. Token missing or invalid.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Unauthorized access.
    *       404:
-   *         description: Beat not found.
+   *         description: Beat not found (invalid `beatId`).
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Beat not found.
    *       500:
-   *         description: Internal server error.
+   *         description: Internal server error while listing comments.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Internal server error while listing comments for beat.
    */
   app.get(`${baseAPIURL}/beats/:beatId/comments`, async (req, res) => {
     try {
@@ -367,7 +434,10 @@ export default function commentRoutes(app) {
    *     tags:
    *       - Comments
    *     summary: List comments for a playlist
-   *     description: Returns a paginated list of comments associated with a given playlist.
+   *     description: >
+   *       Returns a paginated list of comments associated with a given playlist.
+   *       Supports `page` and `limit` query parameters. Maximum `limit` is 100.
+   *       Sorted by `createdAt` descending.
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -376,24 +446,25 @@ export default function commentRoutes(app) {
    *         required: true
    *         schema:
    *           type: string
-   *         description: ID of the playlist whose comments are being requested.
+   *         description: ID of the playlist whose comments are being requested. Must be a valid MongoDB ObjectId.
    *       - in: query
    *         name: page
    *         schema:
    *           type: integer
    *           minimum: 1
    *           default: 1
-   *         description: Page number for pagination.
+   *         description: Page number for pagination. Defaults to 1 if invalid or not provided.
    *       - in: query
    *         name: limit
    *         schema:
    *           type: integer
    *           minimum: 1
+   *           maximum: 100
    *           default: 20
-   *         description: Number of comments per page.
+   *         description: Number of comments per page. Defaults to 20 if invalid or not provided.
    *     responses:
    *       200:
-   *         description: List of comments for the playlist.
+   *         description: Paginated list of comments for the playlist.
    *         content:
    *           application/json:
    *             schema:
@@ -402,29 +473,46 @@ export default function commentRoutes(app) {
    *                 data:
    *                   type: array
    *                   items:
-   *                     type: object
-   *                     properties:
-   *                       id:
-   *                         type: string
-   *                       authorId:
-   *                         type: string
-   *                       text:
-   *                         type: string
-   *                       createdAt:
-   *                         type: string
-   *                         format: date-time
+   *                     $ref: '#/components/schemas/Comment'
    *                 page:
    *                   type: integer
+   *                   example: 1
    *                 limit:
    *                   type: integer
+   *                   example: 20
    *                 total:
    *                   type: integer
+   *                   example: 42
    *       401:
    *         description: Unauthorized. Token missing or invalid.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Unauthorized access.
    *       404:
-   *         description: Playlist not found.
+   *         description: Playlist not found (invalid `playlistId`).
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Playlist not found.
    *       500:
-   *         description: Internal server error.
+   *         description: Internal server error while listing comments.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Internal server error while listing comments for playlist.
    */
   app.get(`${baseAPIURL}/playlists/:playlistId/comments`, async (req, res) => {
     try {
@@ -469,7 +557,9 @@ export default function commentRoutes(app) {
    *     tags:
    *       - Comments
    *     summary: Delete a comment
-   *     description: Deletes a comment if it belongs to the authenticated user.
+   *     description: >
+   *       Deletes a comment if it belongs to the authenticated user.
+   *       The operation is idempotent: returns success even if the comment does not exist or the ID is invalid.
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -478,14 +568,38 @@ export default function commentRoutes(app) {
    *         required: true
    *         schema:
    *           type: string
-   *         description: ID of the comment to delete.
+   *         description: ID of the comment to delete. Must be a valid MongoDB ObjectId.
    *     responses:
    *       200:
-   *         description: Comment deleted or did not exist.
+   *         description: Comment deletion result. `deleted` is true if the comment was deleted, false otherwise.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 deleted:
+   *                   type: boolean
+   *                   example: true
    *       401:
-   *         description: Unauthorized. Comment does not belong to user.
+   *         description: Unauthorized. Comment exists but does not belong to the authenticated user.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: You are not allowed to delete this comment.
    *       500:
-   *         description: Internal server error.
+   *         description: Internal server error while deleting comment.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Internal server error while deleting comment.
    */
   app.delete(`${baseAPIURL}/comments/:commentId`, async (req, res) => {
     try {
@@ -524,7 +638,7 @@ export default function commentRoutes(app) {
    *         required: true
    *         schema:
    *           type: string
-   *         description: ID of the comment to edit.
+   *         description: ID of the comment to edit. Must be a valid Mongo ObjectId.
    *     requestBody:
    *       required: true
    *       content:
@@ -544,34 +658,47 @@ export default function commentRoutes(app) {
    *         content:
    *           application/json:
    *             schema:
+   *               $ref: '#/components/schemas/Comment'
+   *       401:
+   *         description: Unauthorized. The authenticated user is not the author of the comment.
+   *         content:
+   *           application/json:
+   *             schema:
    *               type: object
    *               properties:
-   *                 id:
+   *                 message:
    *                   type: string
-   *                 beatId:
-   *                   type: string
-   *                   nullable: true
-   *                 playlistId:
-   *                   type: string
-   *                   nullable: true
-   *                 authorId:
-   *                   type: string
-   *                 text:
-   *                   type: string
-   *                 createdAt:
-   *                   type: string
-   *                   format: date-time
-   *                 updatedAt:
-   *                   type: string
-   *                   format: date-time
-   *       401:
-   *         description: Unauthorized. Comment does not belong to user.
+   *                   example: You are not allowed to edit this comment.
    *       404:
-   *         description: Comment not found.
+   *         description: Comment not found. Either invalid ID or comment does not exist.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Comment not found.
    *       422:
-   *         description: Validation error (e.g. text empty or too long).
+   *         description: Validation error. For example, text is empty or exceeds 200 characters.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Comment text cannot be empty or exceed 200 characters.
    *       500:
-   *         description: Internal server error.
+   *         description: Internal server error while updating comment.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Internal server error while updating comment.
    */
   app.put(`${baseAPIURL}/comments/:commentId`, async (req, res) => {
     try {
@@ -610,8 +737,8 @@ export default function commentRoutes(app) {
    * /api/v1/comments/{commentId}:
    *   patch:
    *     tags:
-   *       - Comments
-   *     summary: Partially update a comment
+   *      - Comments
+   *     summary: Update a comment
    *     description: Updates the text of a comment. Only the author can edit their own comment.
    *     security:
    *       - bearerAuth: []
@@ -621,13 +748,15 @@ export default function commentRoutes(app) {
    *         required: true
    *         schema:
    *           type: string
-   *         description: ID of the comment to edit.
+   *         description: ID of the comment to edit. Must be a valid Mongo ObjectId.
    *     requestBody:
    *       required: true
    *       content:
    *         application/json:
    *           schema:
    *             type: object
+   *             required:
+   *               - text
    *             properties:
    *               text:
    *                 type: string
@@ -636,14 +765,50 @@ export default function commentRoutes(app) {
    *     responses:
    *       200:
    *         description: Comment successfully updated.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Comment'
    *       401:
-   *         description: Unauthorized. Comment does not belong to user.
+   *         description: Unauthorized. The authenticated user is not the author of the comment.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: You are not allowed to edit this comment.
    *       404:
-   *         description: Comment not found.
+   *         description: Comment not found. Either invalid ID or comment does not exist.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Comment not found.
    *       422:
-   *         description: Validation error.
+   *         description: Validation error. For example, text is empty or exceeds 200 characters.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Comment text cannot be empty or exceed 200 characters.
    *       500:
-   *         description: Internal server error.
+   *         description: Internal server error while updating comment.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Internal server error while updating comment.
    */
   app.patch(`${baseAPIURL}/comments/:commentId`, async (req, res) => {
     try {

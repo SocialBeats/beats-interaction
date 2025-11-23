@@ -261,7 +261,7 @@ paths:
       summary: Create a comment on a beat
       description: >-
         Creates a new comment associated with the specified beat for the
-        authenticated user.
+        authenticated user. `beatId` must be a valid MongoDB ObjectId.
       security:
         - bearerAuth: []
       parameters:
@@ -290,32 +290,55 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  id:
-                    type: string
-                  beatId:
-                    type: string
-                  authorId:
-                    type: string
-                  text:
-                    type: string
-                  createdAt:
-                    type: string
-                    format: date-time
+                $ref: '#/components/schemas/Comment'
         '401':
           description: Unauthorized. Token missing or invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Unauthorized access.
         '404':
-          description: Beat not found.
+          description: Beat not found (invalid or non-existent `beatId`).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Beat not found.
         '422':
-          description: Validation error.
+          description: Validation error (e.g., text empty or too long).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Comment text cannot exceed 200 characters.
         '500':
-          description: Internal server error.
+          description: Internal server error while creating comment.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while creating comment.
     get:
       tags:
         - Comments
       summary: List comments for a beat
-      description: Returns a paginated list of comments associated with a given beat.
+      description: >
+        Returns a paginated list of comments associated with a given beat.
+        Supports `page` and `limit` query parameters. Maximum `limit` is 100.
+        Sorted by `createdAt` descending.
       security:
         - bearerAuth: []
       parameters:
@@ -324,24 +347,31 @@ paths:
           required: true
           schema:
             type: string
-          description: ID of the beat whose comments are being requested.
+          description: >-
+            ID of the beat whose comments are being requested. Must be a valid
+            MongoDB ObjectId.
         - in: query
           name: page
           schema:
             type: integer
             minimum: 1
             default: 1
-          description: Page number for pagination.
+          description: >-
+            Page number for pagination. Defaults to 1 if invalid or not
+            provided.
         - in: query
           name: limit
           schema:
             type: integer
             minimum: 1
+            maximum: 100
             default: 20
-          description: Number of comments per page.
+          description: >-
+            Number of comments per page. Defaults to 20 if invalid or not
+            provided.
       responses:
         '200':
-          description: List of comments for the beat.
+          description: Paginated list of comments for the beat.
           content:
             application/json:
               schema:
@@ -350,31 +380,46 @@ paths:
                   data:
                     type: array
                     items:
-                      type: object
-                      properties:
-                        id:
-                          type: string
-                        authorId:
-                          type: string
-                        text:
-                          type: string
-                        createdAt:
-                          type: string
-                          format: date-time
+                      $ref: '#/components/schemas/Comment'
                   page:
                     type: integer
+                    example: 1
                   limit:
                     type: integer
+                    example: 20
                   total:
                     type: integer
-        '400':
-          description: Invalid pagination parameters.
+                    example: 42
         '401':
           description: Unauthorized. Token missing or invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Unauthorized access.
         '404':
-          description: Beat not found.
+          description: Beat not found (invalid `beatId`).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Beat not found.
         '500':
-          description: Internal server error.
+          description: Internal server error while listing comments.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while listing comments for beat.
   /api/v1/playlists/{playlistId}/comments:
     post:
       tags:
@@ -382,7 +427,7 @@ paths:
       summary: Create a comment on a playlist
       description: >-
         Creates a new comment associated with the specified playlist for the
-        authenticated user.
+        authenticated user. `playlistId` must be a valid MongoDB ObjectId.
       security:
         - bearerAuth: []
       parameters:
@@ -411,32 +456,55 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  id:
-                    type: string
-                  playlistId:
-                    type: string
-                  authorId:
-                    type: string
-                  text:
-                    type: string
-                  createdAt:
-                    type: string
-                    format: date-time
+                $ref: '#/components/schemas/Comment'
         '401':
           description: Unauthorized. Token missing or invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Unauthorized access.
         '404':
-          description: Playlist not found.
+          description: Playlist not found (invalid or non-existent `playlistId`).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Playlist not found.
         '422':
-          description: Validation error.
+          description: Validation error (e.g., text empty, too long, or playlist private).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Comment text cannot exceed 200 characters.
         '500':
-          description: Internal server error.
+          description: Internal server error while creating comment.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while creating comment.
     get:
       tags:
         - Comments
       summary: List comments for a playlist
-      description: Returns a paginated list of comments associated with a given playlist.
+      description: >
+        Returns a paginated list of comments associated with a given playlist.
+        Supports `page` and `limit` query parameters. Maximum `limit` is 100.
+        Sorted by `createdAt` descending.
       security:
         - bearerAuth: []
       parameters:
@@ -445,24 +513,31 @@ paths:
           required: true
           schema:
             type: string
-          description: ID of the playlist whose comments are being requested.
+          description: >-
+            ID of the playlist whose comments are being requested. Must be a
+            valid MongoDB ObjectId.
         - in: query
           name: page
           schema:
             type: integer
             minimum: 1
             default: 1
-          description: Page number for pagination.
+          description: >-
+            Page number for pagination. Defaults to 1 if invalid or not
+            provided.
         - in: query
           name: limit
           schema:
             type: integer
             minimum: 1
+            maximum: 100
             default: 20
-          description: Number of comments per page.
+          description: >-
+            Number of comments per page. Defaults to 20 if invalid or not
+            provided.
       responses:
         '200':
-          description: List of comments for the playlist.
+          description: Paginated list of comments for the playlist.
           content:
             application/json:
               schema:
@@ -471,35 +546,54 @@ paths:
                   data:
                     type: array
                     items:
-                      type: object
-                      properties:
-                        id:
-                          type: string
-                        authorId:
-                          type: string
-                        text:
-                          type: string
-                        createdAt:
-                          type: string
-                          format: date-time
+                      $ref: '#/components/schemas/Comment'
                   page:
                     type: integer
+                    example: 1
                   limit:
                     type: integer
+                    example: 20
                   total:
                     type: integer
+                    example: 42
         '401':
           description: Unauthorized. Token missing or invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Unauthorized access.
         '404':
-          description: Playlist not found.
+          description: Playlist not found (invalid `playlistId`).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Playlist not found.
         '500':
-          description: Internal server error.
+          description: Internal server error while listing comments.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while listing comments for playlist.
   /api/v1/comments/{commentId}:
     get:
       tags:
         - Comments
       summary: Get a specific comment
-      description: Retrieves a single comment by its ID. Useful for moderation tools.
+      description: >-
+        Retrieves a single comment by its ID. Useful for moderation tools.
+        `commentId` must be a valid MongoDB ObjectId.
       security:
         - bearerAuth: []
       parameters:
@@ -515,37 +609,45 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  id:
-                    type: string
-                  beatId:
-                    type: string
-                    nullable: true
-                  playlistId:
-                    type: string
-                    nullable: true
-                  authorId:
-                    type: string
-                  text:
-                    type: string
-                  createdAt:
-                    type: string
-                    format: date-time
-                  updatedAt:
-                    type: string
-                    format: date-time
+                $ref: '#/components/schemas/Comment'
         '401':
           description: Unauthorized. Token missing or invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Unauthorized access.
         '404':
-          description: Comment not found.
+          description: Comment not found (invalid or non-existent `commentId`).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Comment not found.
         '500':
-          description: Internal server error.
+          description: Internal server error while retrieving comment.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while retrieving comment.
     delete:
       tags:
         - Comments
       summary: Delete a comment
-      description: Deletes a comment if it belongs to the authenticated user.
+      description: >
+        Deletes a comment if it belongs to the authenticated user. The operation
+        is idempotent: returns success even if the comment does not exist or the
+        ID is invalid.
       security:
         - bearerAuth: []
       parameters:
@@ -554,14 +656,42 @@ paths:
           required: true
           schema:
             type: string
-          description: ID of the comment to delete.
+          description: ID of the comment to delete. Must be a valid MongoDB ObjectId.
       responses:
         '200':
-          description: Comment deleted or did not exist.
+          description: >-
+            Comment deletion result. `deleted` is true if the comment was
+            deleted, false otherwise.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted:
+                    type: boolean
+                    example: true
         '401':
-          description: Unauthorized. Comment does not belong to user.
+          description: >-
+            Unauthorized. Comment exists but does not belong to the
+            authenticated user.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: You are not allowed to delete this comment.
         '500':
-          description: Internal server error.
+          description: Internal server error while deleting comment.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while deleting comment.
     put:
       tags:
         - Comments
@@ -577,7 +707,7 @@ paths:
           required: true
           schema:
             type: string
-          description: ID of the comment to edit.
+          description: ID of the comment to edit. Must be a valid Mongo ObjectId.
       requestBody:
         required: true
         content:
@@ -597,38 +727,55 @@ paths:
           content:
             application/json:
               schema:
+                $ref: '#/components/schemas/Comment'
+        '401':
+          description: >-
+            Unauthorized. The authenticated user is not the author of the
+            comment.
+          content:
+            application/json:
+              schema:
                 type: object
                 properties:
-                  id:
+                  message:
                     type: string
-                  beatId:
-                    type: string
-                    nullable: true
-                  playlistId:
-                    type: string
-                    nullable: true
-                  authorId:
-                    type: string
-                  text:
-                    type: string
-                  createdAt:
-                    type: string
-                    format: date-time
-                  updatedAt:
-                    type: string
-                    format: date-time
-        '401':
-          description: Unauthorized. Comment does not belong to user.
+                    example: You are not allowed to edit this comment.
         '404':
-          description: Comment not found.
+          description: Comment not found. Either invalid ID or comment does not exist.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Comment not found.
         '422':
-          description: Validation error (e.g. text empty or too long).
+          description: >-
+            Validation error. For example, text is empty or exceeds 200
+            characters.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Comment text cannot be empty or exceed 200 characters.
         '500':
-          description: Internal server error.
+          description: Internal server error while updating comment.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while updating comment.
     patch:
       tags:
         - Comments
-      summary: Partially update a comment
+      summary: Update a comment
       description: >-
         Updates the text of a comment. Only the author can edit their own
         comment.
@@ -640,13 +787,15 @@ paths:
           required: true
           schema:
             type: string
-          description: ID of the comment to edit.
+          description: ID of the comment to edit. Must be a valid Mongo ObjectId.
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+              required:
+                - text
               properties:
                 text:
                   type: string
@@ -655,14 +804,54 @@ paths:
       responses:
         '200':
           description: Comment successfully updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
         '401':
-          description: Unauthorized. Comment does not belong to user.
+          description: >-
+            Unauthorized. The authenticated user is not the author of the
+            comment.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: You are not allowed to edit this comment.
         '404':
-          description: Comment not found.
+          description: Comment not found. Either invalid ID or comment does not exist.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Comment not found.
         '422':
-          description: Validation error.
+          description: >-
+            Validation error. For example, text is empty or exceeds 200
+            characters.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Comment text cannot be empty or exceed 200 characters.
         '500':
-          description: Internal server error.
+          description: Internal server error while updating comment.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while updating comment.
   /api/v1/health:
     get:
       tags:
@@ -756,45 +945,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  _id:
-                    type: string
-                    example: 654321abcdef
-                  name:
-                    type: string
-                    example: My Awesome Playlist
-                  description:
-                    type: string
-                    example: A playlist with my favorite beats
-                  ownerId:
-                    type: string
-                    example: 123456abcdef
-                  isPublic:
-                    type: boolean
-                    example: true
-                  collaborators:
-                    type: array
-                    items:
-                      type: string
-                    example:
-                      - userId1
-                      - userId2
-                  items:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        beatId:
-                          type: string
-                          example: beatId1
-                        addedBy:
-                          type: string
-                          example: 123456abcdef
-                        addedAt:
-                          type: string
-                          format: date-time
-                          example: '2025-11-23T12:00:00.000Z'
+                $ref: '#/components/schemas/Playlist'
         '422':
           description: Validation error due to invalid input.
           content:
@@ -833,53 +984,7 @@ paths:
               schema:
                 type: array
                 items:
-                  type: object
-                  properties:
-                    _id:
-                      type: string
-                      example: 654321abcdef
-                    name:
-                      type: string
-                      example: My Awesome Playlist
-                    description:
-                      type: string
-                      example: A playlist with my favorite beats
-                    ownerId:
-                      type: string
-                      example: 123456abcdef
-                    isPublic:
-                      type: boolean
-                      example: true
-                    collaborators:
-                      type: array
-                      items:
-                        type: string
-                      example:
-                        - userId1
-                        - userId2
-                    items:
-                      type: array
-                      items:
-                        type: object
-                        properties:
-                          beatId:
-                            type: string
-                            example: beatId1
-                          addedBy:
-                            type: string
-                            example: 123456abcdef
-                          addedAt:
-                            type: string
-                            format: date-time
-                            example: '2025-11-23T12:00:00.000Z'
-                    createdAt:
-                      type: string
-                      format: date-time
-                      example: '2025-11-23T10:00:00.000Z'
-                    updatedAt:
-                      type: string
-                      format: date-time
-                      example: '2025-11-23T11:00:00.000Z'
+                  $ref: '#/components/schemas/Playlist'
         '422':
           description: Validation error due to invalid userId or missing parameters.
           content:
@@ -927,53 +1032,7 @@ paths:
               schema:
                 type: array
                 items:
-                  type: object
-                  properties:
-                    _id:
-                      type: string
-                      example: 654321abcdef
-                    name:
-                      type: string
-                      example: My Awesome Playlist
-                    description:
-                      type: string
-                      example: A playlist with my favorite beats
-                    ownerId:
-                      type: string
-                      example: 123456abcdef
-                    isPublic:
-                      type: boolean
-                      example: true
-                    collaborators:
-                      type: array
-                      items:
-                        type: string
-                      example:
-                        - userId1
-                        - userId2
-                    items:
-                      type: array
-                      items:
-                        type: object
-                        properties:
-                          beatId:
-                            type: string
-                            example: beatId1
-                          addedBy:
-                            type: string
-                            example: 123456abcdef
-                          addedAt:
-                            type: string
-                            format: date-time
-                            example: '2025-11-23T12:00:00.000Z'
-                    createdAt:
-                      type: string
-                      format: date-time
-                      example: '2025-11-23T10:00:00.000Z'
-                    updatedAt:
-                      type: string
-                      format: date-time
-                      example: '2025-11-23T11:00:00.000Z'
+                  $ref: '#/components/schemas/Playlist'
         '422':
           description: Validation error due to invalid or missing userId.
           content:
@@ -1056,53 +1115,7 @@ paths:
                   playlists:
                     type: array
                     items:
-                      type: object
-                      properties:
-                        _id:
-                          type: string
-                          example: 654321abcdef
-                        name:
-                          type: string
-                          example: Public Playlist 1
-                        description:
-                          type: string
-                          example: A playlist with public beats
-                        ownerId:
-                          type: string
-                          example: 123456abcdef
-                        isPublic:
-                          type: boolean
-                          example: true
-                        collaborators:
-                          type: array
-                          items:
-                            type: string
-                          example:
-                            - userId1
-                            - userId2
-                        items:
-                          type: array
-                          items:
-                            type: object
-                            properties:
-                              beatId:
-                                type: string
-                                example: beatId1
-                              addedBy:
-                                type: string
-                                example: 123456abcdef
-                              addedAt:
-                                type: string
-                                format: date-time
-                                example: '2025-11-23T12:00:00.000Z'
-                        createdAt:
-                          type: string
-                          format: date-time
-                          example: '2025-11-23T10:00:00.000Z'
-                        updatedAt:
-                          type: string
-                          format: date-time
-                          example: '2025-11-23T11:00:00.000Z'
+                      $ref: '#/components/schemas/Playlist'
         '422':
           description: Invalid ownerId format.
           content:
@@ -1147,53 +1160,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  _id:
-                    type: string
-                    example: 654321abcdef
-                  name:
-                    type: string
-                    example: My Awesome Playlist
-                  description:
-                    type: string
-                    example: A playlist with my favorite beats
-                  ownerId:
-                    type: string
-                    example: 123456abcdef
-                  isPublic:
-                    type: boolean
-                    example: true
-                  collaborators:
-                    type: array
-                    items:
-                      type: string
-                    example:
-                      - userId1
-                      - userId2
-                  items:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        beatId:
-                          type: string
-                          example: beatId1
-                        addedBy:
-                          type: string
-                          example: 123456abcdef
-                        addedAt:
-                          type: string
-                          format: date-time
-                          example: '2025-11-23T12:00:00.000Z'
-                  createdAt:
-                    type: string
-                    format: date-time
-                    example: '2025-11-23T10:00:00.000Z'
-                  updatedAt:
-                    type: string
-                    format: date-time
-                    example: '2025-11-23T11:00:00.000Z'
+                $ref: '#/components/schemas/Playlist'
         '403':
           description: Access denied to view this playlist
           content:

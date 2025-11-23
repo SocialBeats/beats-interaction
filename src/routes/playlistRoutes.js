@@ -53,43 +53,7 @@ export default function playlistRoutes(app) {
    *         content:
    *           application/json:
    *             schema:
-   *               type: object
-   *               properties:
-   *                 _id:
-   *                   type: string
-   *                   example: 654321abcdef
-   *                 name:
-   *                   type: string
-   *                   example: My Awesome Playlist
-   *                 description:
-   *                   type: string
-   *                   example: A playlist with my favorite beats
-   *                 ownerId:
-   *                   type: string
-   *                   example: 123456abcdef
-   *                 isPublic:
-   *                   type: boolean
-   *                   example: true
-   *                 collaborators:
-   *                   type: array
-   *                   items:
-   *                     type: string
-   *                   example: ["userId1", "userId2"]
-   *                 items:
-   *                   type: array
-   *                   items:
-   *                     type: object
-   *                     properties:
-   *                       beatId:
-   *                         type: string
-   *                         example: beatId1
-   *                       addedBy:
-   *                         type: string
-   *                         example: 123456abcdef
-   *                       addedAt:
-   *                         type: string
-   *                         format: date-time
-   *                         example: "2025-11-23T12:00:00.000Z"
+   *               $ref: '#/components/schemas/Playlist'
    *       422:
    *         description: Validation error due to invalid input.
    *         content:
@@ -147,51 +111,7 @@ export default function playlistRoutes(app) {
    *             schema:
    *               type: array
    *               items:
-   *                 type: object
-   *                 properties:
-   *                   _id:
-   *                     type: string
-   *                     example: 654321abcdef
-   *                   name:
-   *                     type: string
-   *                     example: My Awesome Playlist
-   *                   description:
-   *                     type: string
-   *                     example: A playlist with my favorite beats
-   *                   ownerId:
-   *                     type: string
-   *                     example: 123456abcdef
-   *                   isPublic:
-   *                     type: boolean
-   *                     example: true
-   *                   collaborators:
-   *                     type: array
-   *                     items:
-   *                       type: string
-   *                     example: ["userId1", "userId2"]
-   *                   items:
-   *                     type: array
-   *                     items:
-   *                       type: object
-   *                       properties:
-   *                         beatId:
-   *                           type: string
-   *                           example: beatId1
-   *                         addedBy:
-   *                           type: string
-   *                           example: 123456abcdef
-   *                         addedAt:
-   *                           type: string
-   *                           format: date-time
-   *                           example: "2025-11-23T12:00:00.000Z"
-   *                   createdAt:
-   *                     type: string
-   *                     format: date-time
-   *                     example: "2025-11-23T10:00:00.000Z"
-   *                   updatedAt:
-   *                     type: string
-   *                     format: date-time
-   *                     example: "2025-11-23T11:00:00.000Z"
+   *                 $ref: '#/components/schemas/Playlist'
    *       422:
    *         description: Validation error due to invalid userId or missing parameters.
    *         content:
@@ -258,51 +178,7 @@ export default function playlistRoutes(app) {
    *             schema:
    *               type: array
    *               items:
-   *                 type: object
-   *                 properties:
-   *                   _id:
-   *                     type: string
-   *                     example: 654321abcdef
-   *                   name:
-   *                     type: string
-   *                     example: My Awesome Playlist
-   *                   description:
-   *                     type: string
-   *                     example: A playlist with my favorite beats
-   *                   ownerId:
-   *                     type: string
-   *                     example: 123456abcdef
-   *                   isPublic:
-   *                     type: boolean
-   *                     example: true
-   *                   collaborators:
-   *                     type: array
-   *                     items:
-   *                       type: string
-   *                     example: ["userId1", "userId2"]
-   *                   items:
-   *                     type: array
-   *                     items:
-   *                       type: object
-   *                       properties:
-   *                         beatId:
-   *                           type: string
-   *                           example: beatId1
-   *                         addedBy:
-   *                           type: string
-   *                           example: 123456abcdef
-   *                         addedAt:
-   *                           type: string
-   *                           format: date-time
-   *                           example: "2025-11-23T12:00:00.000Z"
-   *                   createdAt:
-   *                     type: string
-   *                     format: date-time
-   *                     example: "2025-11-23T10:00:00.000Z"
-   *                   updatedAt:
-   *                     type: string
-   *                     format: date-time
-   *                     example: "2025-11-23T11:00:00.000Z"
+   *                 $ref: '#/components/schemas/Playlist'
    *       422:
    *         description: Validation error due to invalid or missing userId.
    *         content:
@@ -405,51 +281,7 @@ export default function playlistRoutes(app) {
    *                 playlists:
    *                   type: array
    *                   items:
-   *                     type: object
-   *                     properties:
-   *                       _id:
-   *                         type: string
-   *                         example: 654321abcdef
-   *                       name:
-   *                         type: string
-   *                         example: Public Playlist 1
-   *                       description:
-   *                         type: string
-   *                         example: A playlist with public beats
-   *                       ownerId:
-   *                         type: string
-   *                         example: 123456abcdef
-   *                       isPublic:
-   *                         type: boolean
-   *                         example: true
-   *                       collaborators:
-   *                         type: array
-   *                         items:
-   *                           type: string
-   *                         example: ["userId1", "userId2"]
-   *                       items:
-   *                         type: array
-   *                         items:
-   *                           type: object
-   *                           properties:
-   *                             beatId:
-   *                               type: string
-   *                               example: beatId1
-   *                             addedBy:
-   *                               type: string
-   *                               example: 123456abcdef
-   *                             addedAt:
-   *                               type: string
-   *                               format: date-time
-   *                               example: "2025-11-23T12:00:00.000Z"
-   *                       createdAt:
-   *                         type: string
-   *                         format: date-time
-   *                         example: "2025-11-23T10:00:00.000Z"
-   *                       updatedAt:
-   *                         type: string
-   *                         format: date-time
-   *                         example: "2025-11-23T11:00:00.000Z"
+   *                     $ref: '#/components/schemas/Playlist'
    *       422:
    *         description: Invalid ownerId format.
    *         content:
@@ -524,51 +356,7 @@ export default function playlistRoutes(app) {
    *         content:
    *           application/json:
    *             schema:
-   *               type: object
-   *               properties:
-   *                 _id:
-   *                   type: string
-   *                   example: 654321abcdef
-   *                 name:
-   *                   type: string
-   *                   example: My Awesome Playlist
-   *                 description:
-   *                   type: string
-   *                   example: A playlist with my favorite beats
-   *                 ownerId:
-   *                   type: string
-   *                   example: 123456abcdef
-   *                 isPublic:
-   *                   type: boolean
-   *                   example: true
-   *                 collaborators:
-   *                   type: array
-   *                   items:
-   *                     type: string
-   *                   example: ["userId1", "userId2"]
-   *                 items:
-   *                   type: array
-   *                   items:
-   *                     type: object
-   *                     properties:
-   *                       beatId:
-   *                         type: string
-   *                         example: beatId1
-   *                       addedBy:
-   *                         type: string
-   *                         example: 123456abcdef
-   *                       addedAt:
-   *                         type: string
-   *                         format: date-time
-   *                         example: "2025-11-23T12:00:00.000Z"
-   *                 createdAt:
-   *                   type: string
-   *                   format: date-time
-   *                   example: "2025-11-23T10:00:00.000Z"
-   *                 updatedAt:
-   *                   type: string
-   *                   format: date-time
-   *                   example: "2025-11-23T11:00:00.000Z"
+   *               $ref: '#/components/schemas/Playlist'
    *       403:
    *         description: Access denied to view this playlist
    *         content:
