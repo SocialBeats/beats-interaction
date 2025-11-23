@@ -559,3 +559,176 @@ describe('DELETE /api/v1/comments/:commentId (integration)', () => {
     expect(stillThere).not.toBeNull();
   });
 });
+
+describe('PUT /api/v1/comments/:commentId (integration)', () => {
+  const withAuth = (req) =>
+    req.set('Authorization', `Bearer ${global.testToken}`);
+
+  it('should update the text of an existing comment of the authenticated user and return 200', async () => {
+    const beatId = new mongoose.Types.ObjectId();
+
+    // create a comment to update
+    const createResponse = await withAuth(
+      api.post(`/api/v1/beats/${beatId}/comments`)
+    )
+      .send({ text: 'Old text' })
+      .expect(201);
+
+    const commentId = createResponse.body.id;
+
+    const updateResponse = await withAuth(
+      api.put(`/api/v1/comments/${commentId}`)
+    )
+      .send({ text: 'New text from PUT' })
+      .expect(200);
+
+    expect(updateResponse.body).toHaveProperty('id', commentId);
+    expect(updateResponse.body).toHaveProperty('text', 'New text from PUT');
+    expect(updateResponse.body).toHaveProperty('updatedAt');
+
+    const inDb = await Comment.findById(commentId);
+    expect(inDb.text).toBe('New text from PUT');
+  });
+
+  it('should return 404 if commentId is not a valid ObjectId', async () => {
+    const response = await withAuth(api.put('/api/v1/comments/not-a-valid-id'))
+      .send({ text: 'Whatever' })
+      .expect(404);
+
+    expect(response.body).toEqual({ message: 'Comment not found' });
+  });
+
+  it('should return 404 if comment does not exist', async () => {
+    const fakeId = new mongoose.Types.ObjectId().toString();
+
+    const response = await withAuth(api.put(`/api/v1/comments/${fakeId}`))
+      .send({ text: 'Whatever' })
+      .expect(404);
+
+    expect(response.body).toEqual({ message: 'Comment not found' });
+  });
+
+  it('should return 401 if the comment belongs to another user', async () => {
+    const beatId = new mongoose.Types.ObjectId();
+    const otherAuthorId = new mongoose.Types.ObjectId();
+
+    const foreignComment = await Comment.create({
+      beatId,
+      authorId: otherAuthorId,
+      text: 'Not your comment',
+    });
+
+    const response = await withAuth(
+      api.put(`/api/v1/comments/${foreignComment._id}`)
+    )
+      .send({ text: 'Trying to edit' })
+      .expect(401);
+
+    expect(response.body).toHaveProperty(
+      'message',
+      'You are not allowed to edit this comment.'
+    );
+
+    const stillThere = await Comment.findById(foreignComment._id);
+    expect(stillThere.text).toBe('Not your comment');
+  });
+
+  it('should return 422 if text is empty or only spaces', async () => {
+    const beatId = new mongoose.Types.ObjectId();
+
+    const createResponse = await withAuth(
+      api.post(`/api/v1/beats/${beatId}/comments`)
+    )
+      .send({ text: 'Initial text' })
+      .expect(201);
+
+    const commentId = createResponse.body.id;
+
+    const response = await withAuth(api.put(`/api/v1/comments/${commentId}`))
+      .send({ text: '   ' })
+      .expect(422);
+
+    expect(response.body).toHaveProperty(
+      'message',
+      'The comment cannot be empty or have only spaces.'
+    );
+
+    const inDb = await Comment.findById(commentId);
+    expect(inDb.text).toBe('Initial text');
+  });
+
+  it('should return 422 if text exceeds maxlength', async () => {
+    const beatId = new mongoose.Types.ObjectId();
+    const longText = 'a'.repeat(201);
+
+    const createResponse = await withAuth(
+      api.post(`/api/v1/beats/${beatId}/comments`)
+    )
+      .send({ text: 'Initial text' })
+      .expect(201);
+
+    const commentId = createResponse.body.id;
+
+    const response = await withAuth(api.put(`/api/v1/comments/${commentId}`))
+      .send({ text: longText })
+      .expect(422);
+
+    expect(response.body).toHaveProperty('message');
+
+    const inDb = await Comment.findById(commentId);
+    expect(inDb.text).toBe('Initial text');
+  });
+});
+
+describe('PATCH /api/v1/comments/:commentId (integration)', () => {
+  const withAuth = (req) =>
+    req.set('Authorization', `Bearer ${global.testToken}`);
+
+  it('should update the text of an existing comment using PATCH and return 200', async () => {
+    const beatId = new mongoose.Types.ObjectId();
+
+    const createResponse = await withAuth(
+      api.post(`/api/v1/beats/${beatId}/comments`)
+    )
+      .send({ text: 'Old text (patch)' })
+      .expect(201);
+
+    const commentId = createResponse.body.id;
+
+    const patchResponse = await withAuth(
+      api.patch(`/api/v1/comments/${commentId}`)
+    )
+      .send({ text: 'New text from PATCH' })
+      .expect(200);
+
+    expect(patchResponse.body).toHaveProperty('id', commentId);
+    expect(patchResponse.body).toHaveProperty('text', 'New text from PATCH');
+
+    const inDb = await Comment.findById(commentId);
+    expect(inDb.text).toBe('New text from PATCH');
+  });
+
+  it('should return 422 when PATCH text is invalid (empty)', async () => {
+    const beatId = new mongoose.Types.ObjectId();
+
+    const createResponse = await withAuth(
+      api.post(`/api/v1/beats/${beatId}/comments`)
+    )
+      .send({ text: 'Initial patch text' })
+      .expect(201);
+
+    const commentId = createResponse.body.id;
+
+    const response = await withAuth(api.patch(`/api/v1/comments/${commentId}`))
+      .send({ text: '   ' })
+      .expect(422);
+
+    expect(response.body).toHaveProperty(
+      'message',
+      'The comment cannot be empty or have only spaces.'
+    );
+
+    const inDb = await Comment.findById(commentId);
+    expect(inDb.text).toBe('Initial patch text');
+  });
+});

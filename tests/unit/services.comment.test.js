@@ -735,3 +735,165 @@ describe('CommentService.deleteCommentById', () => {
     Comment.deleteOne = originalDeleteOne;
   });
 });
+
+describe('CommentService.updateCommentText', () => {
+  it('should update the text of a comment if it exists and belongs to the user', async () => {
+    const userId = new mongoose.Types.ObjectId();
+    const beatId = new mongoose.Types.ObjectId();
+
+    const created = await Comment.create({
+      beatId,
+      authorId: userId,
+      text: 'Old text',
+    });
+
+    const updated = await commentService.updateCommentText({
+      commentId: created._id.toString(),
+      userId: userId.toString(),
+      text: 'New updated text',
+    });
+
+    expect(updated).toBeDefined();
+    expect(updated._id.toString()).toBe(created._id.toString());
+    expect(updated.text).toBe('New updated text');
+
+    const inDb = await Comment.findById(created._id);
+    expect(inDb.text).toBe('New updated text');
+  });
+
+  it('should throw 404 if commentId is not a valid ObjectId', async () => {
+    const userId = new mongoose.Types.ObjectId();
+
+    await expect(
+      commentService.updateCommentText({
+        commentId: 'not-a-valid-id',
+        userId: userId.toString(),
+        text: 'Whatever',
+      })
+    ).rejects.toMatchObject({
+      status: 404,
+      message: 'Comment not found',
+    });
+  });
+
+  it('should throw 404 if comment does not exist', async () => {
+    const userId = new mongoose.Types.ObjectId();
+    const fakeId = new mongoose.Types.ObjectId().toString();
+
+    await expect(
+      commentService.updateCommentText({
+        commentId: fakeId,
+        userId: userId.toString(),
+        text: 'Whatever',
+      })
+    ).rejects.toMatchObject({
+      status: 404,
+      message: 'Comment not found',
+    });
+  });
+
+  it('should throw 401 if the comment belongs to another user', async () => {
+    const authorId = new mongoose.Types.ObjectId();
+    const otherUserId = new mongoose.Types.ObjectId();
+    const beatId = new mongoose.Types.ObjectId();
+
+    const created = await Comment.create({
+      beatId,
+      authorId,
+      text: 'Original text',
+    });
+
+    await expect(
+      commentService.updateCommentText({
+        commentId: created._id.toString(),
+        userId: otherUserId.toString(),
+        text: 'Hacked text',
+      })
+    ).rejects.toMatchObject({
+      status: 401,
+      message: 'You are not allowed to edit this comment.',
+    });
+
+    const stillInDb = await Comment.findById(created._id);
+    expect(stillInDb.text).toBe('Original text');
+  });
+
+  it('should throw 422 if text is empty or only spaces', async () => {
+    const userId = new mongoose.Types.ObjectId();
+    const beatId = new mongoose.Types.ObjectId();
+
+    const created = await Comment.create({
+      beatId,
+      authorId: userId,
+      text: 'Some text',
+    });
+
+    await expect(
+      commentService.updateCommentText({
+        commentId: created._id.toString(),
+        userId: userId.toString(),
+        text: '   ',
+      })
+    ).rejects.toMatchObject({
+      status: 422,
+      message: 'The comment cannot be empty or have only spaces.',
+    });
+
+    const stillInDb = await Comment.findById(created._id);
+    expect(stillInDb.text).toBe('Some text');
+  });
+
+  it('should throw 422 if text exceeds maxlength', async () => {
+    const userId = new mongoose.Types.ObjectId();
+    const beatId = new mongoose.Types.ObjectId();
+    const longText = 'a'.repeat(201); // maxlength 200
+
+    const created = await Comment.create({
+      beatId,
+      authorId: userId,
+      text: 'Some text',
+    });
+
+    await expect(
+      commentService.updateCommentText({
+        commentId: created._id.toString(),
+        userId: userId.toString(),
+        text: longText,
+      })
+    ).rejects.toMatchObject({
+      status: 422,
+    });
+
+    const stillInDb = await Comment.findById(created._id);
+    expect(stillInDb.text).toBe('Some text');
+  });
+
+  it('should rethrow unexpected errors (e.g. DB error on save)', async () => {
+    const userId = new mongoose.Types.ObjectId();
+    const beatId = new mongoose.Types.ObjectId();
+
+    const created = await Comment.create({
+      beatId,
+      authorId: userId,
+      text: 'Original',
+    });
+
+    const originalSave = Comment.prototype.save;
+
+    Comment.prototype.save = async function () {
+      const err = new Error('Simulated save error on update');
+      err.name = 'SomeOtherError';
+      throw err;
+    };
+
+    await expect(
+      commentService.updateCommentText({
+        commentId: created._id.toString(),
+        userId: userId.toString(),
+        text: 'Trying to update',
+      })
+    ).rejects.toHaveProperty('message', 'Simulated save error on update');
+
+    Comment.prototype.save = originalSave;
+  });
+});
