@@ -359,4 +359,106 @@ export default function commentRoutes(app) {
       });
     }
   });
+
+  /**
+   * @swagger
+   * /api/v1/playlists/{playlistId}/comments:
+   *   get:
+   *     tags:
+   *       - Comments
+   *     summary: List comments for a playlist
+   *     description: Returns a paginated list of comments associated with a given playlist.
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: playlistId
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: ID of the playlist whose comments are being requested.
+   *       - in: query
+   *         name: page
+   *         schema:
+   *           type: integer
+   *           minimum: 1
+   *           default: 1
+   *         description: Page number for pagination.
+   *       - in: query
+   *         name: limit
+   *         schema:
+   *           type: integer
+   *           minimum: 1
+   *           default: 20
+   *         description: Number of comments per page.
+   *     responses:
+   *       200:
+   *         description: List of comments for the playlist.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 data:
+   *                   type: array
+   *                   items:
+   *                     type: object
+   *                     properties:
+   *                       id:
+   *                         type: string
+   *                       authorId:
+   *                         type: string
+   *                       text:
+   *                         type: string
+   *                       createdAt:
+   *                         type: string
+   *                         format: date-time
+   *                 page:
+   *                   type: integer
+   *                 limit:
+   *                   type: integer
+   *                 total:
+   *                   type: integer
+   *       401:
+   *         description: Unauthorized. Token missing or invalid.
+   *       404:
+   *         description: Playlist not found.
+   *       500:
+   *         description: Internal server error.
+   */
+  app.get(`${baseAPIURL}/playlists/:playlistId/comments`, async (req, res) => {
+    try {
+      const { playlistId } = req.params;
+      const page = req.query.page ? Number(req.query.page) : 1;
+      const limit = req.query.limit ? Number(req.query.limit) : 20;
+
+      const result = await commentService.listPlaylistComments({
+        playlistId,
+        page,
+        limit,
+      });
+
+      return res.status(200).send({
+        data: result.data.map((comment) => ({
+          id: comment._id,
+          authorId: comment.authorId,
+          text: comment.text,
+          createdAt: comment.createdAt,
+        })),
+        page: result.page,
+        limit: result.limit,
+        total: result.total,
+      });
+    } catch (err) {
+      if (err.status) {
+        return res.status(err.status).send({ message: err.message });
+      }
+      logger.error(
+        `Internal server error while listing comments for playlist: ${err}`
+      );
+      return res.status(500).send({
+        message: 'Internal server error while listing comments for playlist',
+      });
+    }
+  });
 }
