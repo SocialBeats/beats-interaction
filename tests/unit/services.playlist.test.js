@@ -508,7 +508,7 @@ describe('update playlist test', () => {
       collaborators: [],
     });
 
-    const data = { items: [{ beatId }] }; // <-- PASAMOS UN OBJETO con beatId
+    const data = { items: [{ beatId }] };
     const updated = await PlaylistService.updatePlaylist({
       playlistId: playlist._id,
       data,

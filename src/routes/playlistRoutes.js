@@ -10,7 +10,7 @@ export default function playlistRoutes(app) {
         req.body,
         req.user.id
       );
-      return res.status(201).send(newPlaylist);
+      return res.status(201).send(newPlaylist.toObject());
     } catch (err) {
       if (err.status) {
         return res.status(err.status).send({ message: err.message });

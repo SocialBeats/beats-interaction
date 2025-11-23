@@ -6,10 +6,6 @@ import { Comment, Playlist } from '../../src/models/models.js';
 describe('CommentService.createBeatComment', () => {
   const fakeAuthorId = new mongoose.Types.ObjectId();
 
-  //   beforeEach(async () => {
-  //     await Comment.deleteMany({});
-  //   });
-
   it('should create a comment with valid beatId, authorId and text', async () => {
     const beatId = new mongoose.Types.ObjectId();
 
@@ -86,7 +82,6 @@ describe('CommentService.createBeatComment', () => {
 
   it('should rethrow non-validation, non-status errors (e.g. DB error on save)', async () => {
     const beatId = new mongoose.Types.ObjectId();
-    // mock the save method to throw a generic error
     const originalSave = Comment.prototype.save;
 
     Comment.prototype.save = async function () {
@@ -103,7 +98,6 @@ describe('CommentService.createBeatComment', () => {
       })
     ).rejects.toHaveProperty('message', 'Simulated DB error');
 
-    // restore the original save method to avoid affecting other tests
     Comment.prototype.save = originalSave;
   });
 });

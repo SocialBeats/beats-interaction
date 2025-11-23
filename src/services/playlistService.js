@@ -120,6 +120,12 @@ class PlaylistService {
 
   async getUserPlaylists({ targetUserId, askerUserId }) {
     try {
+      if (!mongoose.Types.ObjectId.isValid(targetUserId)) {
+        throw {
+          status: 422,
+          message: 'Invalid userId.',
+        };
+      }
       if (!targetUserId || !askerUserId) {
         throw {
           status: 422,
@@ -174,15 +180,28 @@ class PlaylistService {
       }
 
       const isOwner = String(playlist.ownerId) === String(requesterId);
-      const isCollaborator = playlist.collaborators?.some(
-        (id) => String(id) === String(requesterId)
+
+      const collaborators = (playlist.collaborators || []).map((id) =>
+        String(id)
       );
 
+      const isCollaborator = collaborators.includes(String(requesterId));
+
       if (playlist.isPublic === true) {
-        return playlist;
+        return {
+          ...playlist,
+          ownerId: String(playlist.ownerId),
+          collaborators,
+        };
       }
 
-      if (isOwner || isCollaborator) return playlist;
+      if (isOwner || isCollaborator) {
+        return {
+          ...playlist,
+          ownerId: String(playlist.ownerId),
+          collaborators,
+        };
+      }
 
       throw {
         status: 403,

@@ -10,8 +10,9 @@ beforeAll(async () => {
   mongoServer = await MongoMemoryServer.create();
   const uri = mongoServer.getUri();
   await mongoose.connect(uri);
+  global.testUserId = '66f0bacbb6c946d88c40e123';
   global.testToken = jwt.sign(
-    { id: '66f0bacbb6c946d88c40e123' },
+    { id: global.testUserId },
     process.env.JWT_SECRET,
     { expiresIn: '1h' }
   );
