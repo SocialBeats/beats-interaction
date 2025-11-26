@@ -574,4 +574,110 @@ export default function ratingRoutes(app) {
       }
     }
   );
+
+  /**
+   * @swagger
+   * /api/v1/beats/{beatId}/ratings:
+   *   get:
+   *     tags:
+   *       - Ratings
+   *     summary: List ratings for a beat
+   *     description: >
+   *       Returns all ratings associated with a given beat, along with the average score
+   *       and total number of ratings.
+   *       `beatId` must be a valid MongoDB ObjectId.
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: beatId
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: ID of the beat whose ratings are being requested.
+   *     responses:
+   *       200:
+   *         description: List of ratings for the beat with average and total count.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 data:
+   *                   type: array
+   *                   items:
+   *                     type: object
+   *                     properties:
+   *                       userId:
+   *                         type: string
+   *                       score:
+   *                         type: integer
+   *                       comment:
+   *                         type: string
+   *                 average:
+   *                   type: number
+   *                   example: 4.5
+   *                 count:
+   *                   type: integer
+   *                   example: 12
+   *       401:
+   *         description: Unauthorized. Token missing or invalid.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Unauthorized access.
+   *       404:
+   *         description: Beat not found (invalid `beatId`).
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Beat not found.
+   *       500:
+   *         description: Internal server error while listing ratings for beat.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Internal server error while listing ratings for beat.
+   */
+  app.get(`${baseAPIURL}/beats/:beatId/ratings`, async (req, res) => {
+    try {
+      const { beatId } = req.params;
+
+      const result = await ratingService.listBeatRatings({ beatId });
+
+      return res.status(200).send({
+        data: result.data.map((rating) => ({
+          userId: rating.userId,
+          score: rating.score,
+          comment: rating.comment,
+        })),
+        average: result.average,
+        count: result.count,
+      });
+    } catch (err) {
+      if (err.status) {
+        return res.status(err.status).send({ message: err.message });
+      }
+
+      logger.error(
+        `Internal server error while listing ratings for beat: ${err}`
+      );
+
+      return res.status(500).send({
+        message: 'Internal server error while listing ratings for beat',
+      });
+    }
+  });
 }

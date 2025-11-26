@@ -175,6 +175,36 @@ class RatingService {
       throw err;
     }
   }
+
+  async listBeatRatings({ beatId }) {
+    try {
+      if (!mongoose.Types.ObjectId.isValid(beatId)) {
+        const status = 404;
+        const message = 'Beat not found';
+        throw { status, message };
+      }
+
+      // TODO: check if beat exists in Beats microservice (404 if not found)
+
+      const ratings = await Rating.find({ beatId });
+
+      const count = ratings.length;
+      const average =
+        count === 0 ? 0 : ratings.reduce((sum, r) => sum + r.score, 0) / count;
+
+      return {
+        data: ratings,
+        average,
+        count,
+      };
+    } catch (err) {
+      if (err.status) {
+        throw err;
+      }
+
+      throw err;
+    }
+  }
 }
 
 export default new RatingService();
