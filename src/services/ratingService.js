@@ -123,6 +123,32 @@ class RatingService {
       throw err;
     }
   }
+
+  async getMyPlaylistRating({ playlistId, userId }) {
+    try {
+      if (!mongoose.Types.ObjectId.isValid(playlistId)) {
+        const status = 404;
+        const message = 'Playlist not found';
+        throw { status, message };
+      }
+
+      const rating = await Rating.findOne({ playlistId, userId });
+
+      if (!rating) {
+        const status = 404;
+        const message = 'Rating not found';
+        throw { status, message };
+      }
+
+      return rating;
+    } catch (err) {
+      if (err.status) {
+        throw err;
+      }
+
+      throw err;
+    }
+  }
 }
 
 export default new RatingService();

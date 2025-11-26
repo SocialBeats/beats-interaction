@@ -360,4 +360,111 @@ export default function ratingRoutes(app) {
       });
     }
   });
+
+  /**
+   * @swagger
+   * /api/v1/playlists/{playlistId}/ratings/me:
+   *   get:
+   *     tags:
+   *       - Ratings
+   *     summary: Get the current user's rating for a playlist
+   *     description: >
+   *       Returns the rating of the authenticated user for the specified playlist.
+   *       If the user has not rated this playlist yet, a 404 is returned.
+   *       `playlistId` must be a valid MongoDB ObjectId.
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: playlistId
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: ID of the playlist whose rating is being requested.
+   *     responses:
+   *       200:
+   *         description: Rating found for this playlist and user.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 playlistId:
+   *                   type: string
+   *                 userId:
+   *                   type: string
+   *                 score:
+   *                   type: integer
+   *                 comment:
+   *                   type: string
+   *                 createdAt:
+   *                   type: string
+   *                   format: date-time
+   *                 updatedAt:
+   *                   type: string
+   *                   format: date-time
+   *       401:
+   *         description: Unauthorized. Token missing or invalid.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Unauthorized access.
+   *       404:
+   *         description: Playlist not found or user has no rating for this playlist.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Rating not found.
+   *       500:
+   *         description: Internal server error while retrieving playlist rating.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Internal server error while retrieving playlist rating.
+   */
+  app.get(
+    `${baseAPIURL}/playlists/:playlistId/ratings/me`,
+    async (req, res) => {
+      try {
+        const { playlistId } = req.params;
+        const userId = req.user.id;
+
+        const rating = await ratingService.getMyPlaylistRating({
+          playlistId,
+          userId,
+        });
+
+        return res.status(200).send({
+          playlistId: rating.playlistId,
+          userId: rating.userId,
+          score: rating.score,
+          comment: rating.comment,
+          createdAt: rating.createdAt,
+          updatedAt: rating.updatedAt,
+        });
+      } catch (err) {
+        if (err.status) {
+          return res.status(err.status).send({ message: err.message });
+        }
+        logger.error(
+          `Internal server error while retrieving playlist rating: ${err}`
+        );
+        return res.status(500).send({
+          message: 'Internal server error while retrieving playlist rating',
+        });
+      }
+    }
+  );
 }
