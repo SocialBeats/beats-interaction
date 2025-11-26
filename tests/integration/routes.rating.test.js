@@ -1,4 +1,3 @@
-// tests/integration/routes.rating.test.js
 import { describe, it, expect } from 'vitest';
 import mongoose from 'mongoose';
 import { api } from '../setup/setup.js';
@@ -383,6 +382,63 @@ describe('GET /api/v1/beats/:beatId/ratings/me (integration)', () => {
 
     const response = await withAuth(
       api.get(`/api/v1/beats/${beatId}/ratings/me`)
+    ).expect(404);
+
+    expect(response.body).toEqual({ message: 'Rating not found' });
+  });
+});
+
+describe('GET /api/v1/playlists/:playlistId/ratings/me (integration)', () => {
+  const withAuth = (req) =>
+    req.set('Authorization', `Bearer ${global.testToken}`);
+
+  it('should return the rating when it exists for this playlist and user', async () => {
+    const playlist = await Playlist.create({
+      name: 'Playlist for my rating',
+      ownerId: new mongoose.Types.ObjectId(),
+      isPublic: true,
+    });
+
+    const createResponse = await withAuth(
+      api.post(`/api/v1/playlists/${playlist._id}/ratings`)
+    )
+      .send({
+        score: 5,
+        comment: 'My playlist rating',
+      })
+      .expect(201);
+
+    expect(createResponse.body).toHaveProperty('id');
+
+    const response = await withAuth(
+      api.get(`/api/v1/playlists/${playlist._id}/ratings/me`)
+    ).expect(200);
+
+    expect(response.body).toHaveProperty('playlistId', playlist._id.toString());
+    expect(response.body).toHaveProperty('userId');
+    expect(response.body).toHaveProperty('score', 5);
+    expect(response.body).toHaveProperty('comment', 'My playlist rating');
+    expect(response.body).toHaveProperty('createdAt');
+    expect(response.body).toHaveProperty('updatedAt');
+  });
+
+  it('should return 404 if playlistId is not a valid ObjectId', async () => {
+    const response = await withAuth(
+      api.get('/api/v1/playlists/not-a-valid-id/ratings/me')
+    ).expect(404);
+
+    expect(response.body).toEqual({ message: 'Playlist not found' });
+  });
+
+  it('should return 404 if the user has not rated this playlist', async () => {
+    const playlist = await Playlist.create({
+      name: 'Playlist without rating',
+      ownerId: new mongoose.Types.ObjectId(),
+      isPublic: true,
+    });
+
+    const response = await withAuth(
+      api.get(`/api/v1/playlists/${playlist._id}/ratings/me`)
     ).expect(404);
 
     expect(response.body).toEqual({ message: 'Rating not found' });

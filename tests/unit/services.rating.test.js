@@ -420,3 +420,92 @@ describe('RatingService.getMyBeatRating', () => {
     Rating.findOne = originalFindOne;
   });
 });
+
+describe('RatingService.getMyPlaylistRating', () => {
+  it('should return the rating when it exists for this playlist and user', async () => {
+    const playlistId = new mongoose.Types.ObjectId();
+    const userId = new mongoose.Types.ObjectId();
+
+    await Playlist.create({
+      _id: playlistId,
+      name: 'Playlist for getMyPlaylistRating',
+      ownerId: new mongoose.Types.ObjectId(),
+      isPublic: true,
+    });
+
+    const insertResult = await Rating.collection.insertOne({
+      playlistId,
+      userId,
+      score: 4,
+      comment: 'Existing playlist rating',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const result = await ratingService.getMyPlaylistRating({
+      playlistId: playlistId.toString(),
+      userId: userId.toString(),
+    });
+
+    expect(result).toBeDefined();
+    expect(result._id.toString()).toBe(insertResult.insertedId.toString());
+    expect(result.playlistId.toString()).toBe(playlistId.toString());
+    expect(result.userId.toString()).toBe(userId.toString());
+    expect(result.score).toBe(4);
+    expect(result.comment).toBe('Existing playlist rating');
+  });
+
+  it('should throw 404 if playlistId is not a valid ObjectId', async () => {
+    const someUserId = new mongoose.Types.ObjectId().toString();
+
+    await expect(
+      ratingService.getMyPlaylistRating({
+        playlistId: 'not-a-valid-id',
+        userId: someUserId,
+      })
+    ).rejects.toMatchObject({
+      status: 404,
+      message: 'Playlist not found',
+    });
+  });
+
+  it('should throw 404 if rating does not exist for this playlist and user', async () => {
+    const playlistId = new mongoose.Types.ObjectId().toString();
+    const userId = new mongoose.Types.ObjectId().toString();
+
+    await expect(
+      ratingService.getMyPlaylistRating({
+        playlistId,
+        userId,
+      })
+    ).rejects.toMatchObject({
+      status: 404,
+      message: 'Rating not found',
+    });
+  });
+
+  it('should rethrow unexpected errors (e.g. DB error on findOne)', async () => {
+    const playlistId = new mongoose.Types.ObjectId().toString();
+    const userId = new mongoose.Types.ObjectId().toString();
+
+    const originalFindOne = Rating.findOne;
+
+    Rating.findOne = async () => {
+      const err = new Error('Simulated DB error on findOne (playlist)');
+      err.name = 'SomeOtherError';
+      throw err;
+    };
+
+    await expect(
+      ratingService.getMyPlaylistRating({
+        playlistId,
+        userId,
+      })
+    ).rejects.toHaveProperty(
+      'message',
+      'Simulated DB error on findOne (playlist)'
+    );
+
+    Rating.findOne = originalFindOne;
+  });
+});
