@@ -343,3 +343,80 @@ describe('RatingService.createPlaylistRating', () => {
     Rating.prototype.save = originalSave;
   });
 });
+
+describe('RatingService.getMyBeatRating', () => {
+  it('should return the rating when it exists for this beat and user', async () => {
+    const beatId = new mongoose.Types.ObjectId();
+    const userId = new mongoose.Types.ObjectId();
+
+    const created = await Rating.create({
+      beatId,
+      userId,
+      score: 4,
+      comment: 'Existing rating',
+    });
+
+    const result = await ratingService.getMyBeatRating({
+      beatId: beatId.toString(),
+      userId: userId.toString(),
+    });
+
+    expect(result).toBeDefined();
+    expect(result._id.toString()).toBe(created._id.toString());
+    expect(result.beatId.toString()).toBe(beatId.toString());
+    expect(result.userId.toString()).toBe(userId.toString());
+    expect(result.score).toBe(4);
+    expect(result.comment).toBe('Existing rating');
+  });
+
+  it('should throw 404 if beatId is not a valid ObjectId', async () => {
+    const someUserId = new mongoose.Types.ObjectId().toString();
+
+    await expect(
+      ratingService.getMyBeatRating({
+        beatId: 'not-a-valid-id',
+        userId: someUserId,
+      })
+    ).rejects.toMatchObject({
+      status: 404,
+      message: 'Beat not found',
+    });
+  });
+
+  it('should throw 404 if rating does not exist for this beat and user', async () => {
+    const beatId = new mongoose.Types.ObjectId().toString();
+    const userId = new mongoose.Types.ObjectId().toString();
+
+    await expect(
+      ratingService.getMyBeatRating({
+        beatId,
+        userId,
+      })
+    ).rejects.toMatchObject({
+      status: 404,
+      message: 'Rating not found',
+    });
+  });
+
+  it('should rethrow unexpected errors (e.g. DB error on findOne)', async () => {
+    const beatId = new mongoose.Types.ObjectId().toString();
+    const userId = new mongoose.Types.ObjectId().toString();
+
+    const originalFindOne = Rating.findOne;
+
+    Rating.findOne = async () => {
+      const err = new Error('Simulated DB error on findOne');
+      err.name = 'SomeOtherError';
+      throw err;
+    };
+
+    await expect(
+      ratingService.getMyBeatRating({
+        beatId,
+        userId,
+      })
+    ).rejects.toHaveProperty('message', 'Simulated DB error on findOne');
+
+    Rating.findOne = originalFindOne;
+  });
+});

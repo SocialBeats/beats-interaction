@@ -339,3 +339,52 @@ describe('POST /api/v1/playlists/:playlistId/ratings (integration)', () => {
     expect(ratingsForPlaylist[0].comment).toBe('First playlist rating');
   });
 });
+
+describe('GET /api/v1/beats/:beatId/ratings/me (integration)', () => {
+  const withAuth = (req) =>
+    req.set('Authorization', `Bearer ${global.testToken}`);
+
+  it('should return 200 and the rating of the authenticated user for the beat', async () => {
+    const beatId = new mongoose.Types.ObjectId().toString();
+
+    const createResponse = await withAuth(
+      api.post(`/api/v1/beats/${beatId}/ratings`)
+    )
+      .send({
+        score: 5,
+        comment: 'My personal rating',
+      })
+      .expect(201);
+
+    expect(createResponse.body).toHaveProperty('id');
+
+    const response = await withAuth(
+      api.get(`/api/v1/beats/${beatId}/ratings/me`)
+    ).expect(200);
+
+    expect(response.body).toHaveProperty('beatId', beatId);
+    expect(response.body).toHaveProperty('userId');
+    expect(response.body).toHaveProperty('score', 5);
+    expect(response.body).toHaveProperty('comment', 'My personal rating');
+    expect(response.body).toHaveProperty('createdAt');
+    expect(response.body).toHaveProperty('updatedAt');
+  });
+
+  it('should return 404 if beatId is not a valid ObjectId', async () => {
+    const response = await withAuth(
+      api.get('/api/v1/beats/not-a-valid-id/ratings/me')
+    ).expect(404);
+
+    expect(response.body).toEqual({ message: 'Beat not found' });
+  });
+
+  it('should return 404 if the user has not rated this beat', async () => {
+    const beatId = new mongoose.Types.ObjectId().toString();
+
+    const response = await withAuth(
+      api.get(`/api/v1/beats/${beatId}/ratings/me`)
+    ).expect(404);
+
+    expect(response.body).toEqual({ message: 'Rating not found' });
+  });
+});
