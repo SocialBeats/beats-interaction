@@ -199,8 +199,24 @@ export default function ratingRoutes(app) {
    *                   format: date-time
    *       401:
    *         description: Unauthorized. Token missing or invalid.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Unauthorized access.
    *       404:
-   *         description: Playlist not found (invalid `playlistId`).
+   *         description: Playlist not found (invalid or non-existent `playlistId`).
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Playlist not found.
    *       422:
    *         description: >
    *           Validation error. For example:
@@ -242,6 +258,105 @@ export default function ratingRoutes(app) {
       );
       return res.status(500).send({
         message: 'Internal server error while creating playlist rating',
+      });
+    }
+  });
+
+  /**
+   * @swagger
+   * /api/v1/beats/{beatId}/ratings/me:
+   *   get:
+   *     tags:
+   *       - Ratings
+   *     summary: Get the current user's rating for a beat
+   *     description: >
+   *       Returns the rating of the authenticated user for the specified beat.
+   *       If the user has not rated this beat yet, a 404 is returned.
+   *       `beatId` must be a valid MongoDB ObjectId.
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: beatId
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: ID of the beat whose rating is being requested.
+   *     responses:
+   *       200:
+   *         description: Rating found for this beat and user.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 beatId:
+   *                   type: string
+   *                 userId:
+   *                   type: string
+   *                 score:
+   *                   type: integer
+   *                 comment:
+   *                   type: string
+   *                 createdAt:
+   *                   type: string
+   *                   format: date-time
+   *                 updatedAt:
+   *                   type: string
+   *                   format: date-time
+   *       401:
+   *         description: Unauthorized. Token missing or invalid.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Unauthorized access.
+   *       404:
+   *         description: Beat not found or user has no rating for this beat.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Rating not found.
+   *       500:
+   *         description: Internal server error while retrieving rating.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Internal server error while retrieving rating.
+   */
+  app.get(`${baseAPIURL}/beats/:beatId/ratings/me`, async (req, res) => {
+    try {
+      const { beatId } = req.params;
+      const userId = req.user.id;
+
+      const rating = await ratingService.getMyBeatRating({ beatId, userId });
+
+      return res.status(200).send({
+        beatId: rating.beatId,
+        userId: rating.userId,
+        score: rating.score,
+        comment: rating.comment,
+        createdAt: rating.createdAt,
+        updatedAt: rating.updatedAt,
+      });
+    } catch (err) {
+      if (err.status) {
+        return res.status(err.status).send({ message: err.message });
+      }
+      logger.error(`Internal server error while retrieving rating: ${err}`);
+      return res.status(500).send({
+        message: 'Internal server error while retrieving rating',
       });
     }
   });
