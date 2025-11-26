@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { describe, it, expect } from 'vitest';
 import ratingService from '../../src/services/ratingService.js';
-import { Rating } from '../../src/models/models.js';
+import { Rating, Playlist } from '../../src/models/models.js';
 
 describe('RatingService.createBeatRating', () => {
   const fakeUserId = new mongoose.Types.ObjectId();
@@ -144,6 +144,201 @@ describe('RatingService.createBeatRating', () => {
         comment: 'This will fail on save',
       })
     ).rejects.toHaveProperty('message', 'Simulated DB error on Rating.save');
+
+    Rating.prototype.save = originalSave;
+  });
+});
+
+describe('RatingService.createPlaylistRating', () => {
+  const fakeUserId = new mongoose.Types.ObjectId();
+
+  it('should create a rating on a public playlist', async () => {
+    const playlist = await Playlist.create({
+      name: 'Public playlist for ratings',
+      ownerId: new mongoose.Types.ObjectId(),
+      isPublic: true,
+    });
+
+    const rating = await ratingService.createPlaylistRating({
+      playlistId: playlist._id,
+      userId: fakeUserId,
+      score: 5,
+      comment: 'Great playlist!',
+    });
+
+    expect(rating).toBeDefined();
+    expect(rating._id).toBeDefined();
+    expect(rating.playlistId.toString()).toBe(playlist._id.toString());
+    expect(rating.userId.toString()).toBe(fakeUserId.toString());
+    expect(rating.score).toBe(5);
+    expect(rating.comment).toBe('Great playlist!');
+
+    const saved = await Rating.findById(rating._id);
+    expect(saved).not.toBeNull();
+  });
+
+  it('should throw 404 if playlistId is invalid', async () => {
+    await expect(
+      ratingService.createPlaylistRating({
+        playlistId: 'invalid-id',
+        userId: fakeUserId,
+        score: 4,
+        comment: 'Test',
+      })
+    ).rejects.toMatchObject({
+      status: 404,
+      message: 'Playlist not found',
+    });
+  });
+
+  it('should fail with 422 if playlist does not exist', async () => {
+    const fakePlaylistId = new mongoose.Types.ObjectId();
+
+    await expect(
+      ratingService.createPlaylistRating({
+        playlistId: fakePlaylistId,
+        userId: fakeUserId,
+        score: 4,
+        comment: 'Hello',
+      })
+    ).rejects.toMatchObject({
+      status: 422,
+      message: 'The playlist being rated does not exist.',
+    });
+  });
+
+  it('should fail with 422 if playlist is private', async () => {
+    const playlist = await Playlist.create({
+      name: 'Private playlist',
+      ownerId: new mongoose.Types.ObjectId(),
+      isPublic: false,
+    });
+
+    await expect(
+      ratingService.createPlaylistRating({
+        playlistId: playlist._id,
+        userId: fakeUserId,
+        score: 4,
+        comment: 'Hello',
+      })
+    ).rejects.toMatchObject({
+      status: 422,
+      message: 'You cannot rate a private playlist.',
+    });
+  });
+
+  it('should throw 422 if the user has already rated this playlist', async () => {
+    const playlist = await Playlist.create({
+      name: 'Already rated playlist',
+      ownerId: new mongoose.Types.ObjectId(),
+      isPublic: true,
+    });
+
+    await Rating.create({
+      playlistId: playlist._id,
+      userId: fakeUserId,
+      score: 3,
+      comment: 'Existing rating',
+    });
+
+    await expect(
+      ratingService.createPlaylistRating({
+        playlistId: playlist._id,
+        userId: fakeUserId,
+        score: 5,
+        comment: 'Trying to rate again',
+      })
+    ).rejects.toMatchObject({
+      status: 422,
+      message: 'User has already rated this playlist',
+    });
+  });
+
+  it('should throw 422 if score is below minimum (1)', async () => {
+    const playlist = await Playlist.create({
+      name: 'Score low playlist',
+      ownerId: new mongoose.Types.ObjectId(),
+      isPublic: true,
+    });
+
+    await expect(
+      ratingService.createPlaylistRating({
+        playlistId: playlist._id,
+        userId: fakeUserId,
+        score: 0,
+        comment: 'Too low score',
+      })
+    ).rejects.toMatchObject({
+      status: 422,
+    });
+  });
+
+  it('should throw 422 if score is above maximum (5)', async () => {
+    const playlist = await Playlist.create({
+      name: 'Score high playlist',
+      ownerId: new mongoose.Types.ObjectId(),
+      isPublic: true,
+    });
+
+    await expect(
+      ratingService.createPlaylistRating({
+        playlistId: playlist._id,
+        userId: fakeUserId,
+        score: 6,
+        comment: 'Too high score',
+      })
+    ).rejects.toMatchObject({
+      status: 422,
+    });
+  });
+
+  it('should throw 422 if comment exceeds maxlength', async () => {
+    const playlist = await Playlist.create({
+      name: 'Long comment playlist',
+      ownerId: new mongoose.Types.ObjectId(),
+      isPublic: true,
+    });
+
+    const longComment = 'a'.repeat(201); // maxlength 200
+
+    await expect(
+      ratingService.createPlaylistRating({
+        playlistId: playlist._id,
+        userId: fakeUserId,
+        score: 4,
+        comment: longComment,
+      })
+    ).rejects.toMatchObject({
+      status: 422,
+    });
+  });
+
+  it('should rethrow non-validation, non-status errors (e.g. DB error on save)', async () => {
+    const playlist = await Playlist.create({
+      name: 'Error playlist',
+      ownerId: new mongoose.Types.ObjectId(),
+      isPublic: true,
+    });
+
+    const originalSave = Rating.prototype.save;
+
+    Rating.prototype.save = async function () {
+      const error = new Error('Simulated DB error for playlist rating');
+      error.name = 'SomeOtherError';
+      throw error;
+    };
+
+    await expect(
+      ratingService.createPlaylistRating({
+        playlistId: playlist._id,
+        userId: fakeUserId,
+        score: 5,
+        comment: 'This will fail on save',
+      })
+    ).rejects.toHaveProperty(
+      'message',
+      'Simulated DB error for playlist rating'
+    );
 
     Rating.prototype.save = originalSave;
   });
