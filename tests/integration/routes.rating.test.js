@@ -570,3 +570,97 @@ describe('GET /api/v1/beats/:beatId/ratings (integration)', () => {
     expect(response.body).toEqual({ message: 'Beat not found' });
   });
 });
+
+describe('GET /api/v1/playlists/:playlistId/ratings (integration)', () => {
+  const withAuth = (req) =>
+    req.set('Authorization', `Bearer ${global.testToken}`);
+
+  it('should return ratings with average and count for a playlist', async () => {
+    const playlist = await Playlist.create({
+      name: 'Playlist for ratings (integration)',
+      ownerId: new mongoose.Types.ObjectId(),
+      isPublic: true,
+    });
+
+    const otherPlaylist = await Playlist.create({
+      name: 'Other playlist (integration)',
+      ownerId: new mongoose.Types.ObjectId(),
+      isPublic: true,
+    });
+
+    const user1 = new mongoose.Types.ObjectId();
+    const user2 = new mongoose.Types.ObjectId();
+    const otherUser = new mongoose.Types.ObjectId();
+
+    await Rating.insertMany([
+      {
+        playlistId: playlist._id,
+        userId: user1,
+        score: 4,
+        comment: 'El bajo tapa la voz',
+      },
+      {
+        playlistId: playlist._id,
+        userId: user2,
+        score: 5,
+        comment: 'Muy pro',
+      },
+      {
+        playlistId: otherPlaylist._id,
+        userId: otherUser,
+        score: 2,
+        comment: 'Other playlist',
+      },
+    ]);
+
+    const response = await withAuth(
+      api.get(`/api/v1/playlists/${playlist._id}/ratings`)
+    ).expect(200);
+
+    expect(response.body).toHaveProperty('count', 2);
+    expect(response.body).toHaveProperty('average');
+    expect(response.body.average).toBeCloseTo(4.5);
+
+    expect(response.body.data).toHaveLength(2);
+
+    const userIdsFromResponse = response.body.data.map((r) => r.userId);
+    expect(userIdsFromResponse).toEqual(
+      expect.arrayContaining([user1.toString(), user2.toString()])
+    );
+
+    response.body.data.forEach((r) => {
+      expect(r).toHaveProperty('userId');
+      expect(r).toHaveProperty('score');
+      // comment is optional we only check its value if present
+      if (r.userId === user1.toString()) {
+        expect(r.comment).toBe('El bajo tapa la voz');
+      }
+    });
+  });
+
+  it('should return empty data, average 0 and count 0 when there are no ratings for the playlist', async () => {
+    const playlist = await Playlist.create({
+      name: 'Playlist without ratings',
+      ownerId: new mongoose.Types.ObjectId(),
+      isPublic: true,
+    });
+
+    const response = await withAuth(
+      api.get(`/api/v1/playlists/${playlist._id}/ratings`)
+    ).expect(200);
+
+    expect(response.body).toEqual({
+      data: [],
+      average: 0,
+      count: 0,
+    });
+  });
+
+  it('should return 404 if playlistId is not a valid ObjectId', async () => {
+    const response = await withAuth(
+      api.get('/api/v1/playlists/not-a-valid-id/ratings')
+    ).expect(404);
+
+    expect(response.body).toEqual({ message: 'Playlist not found' });
+  });
+});

@@ -661,3 +661,101 @@ describe('RatingService.listBeatRatings', () => {
     Rating.find = originalFind;
   });
 });
+
+describe('RatingService.listPlaylistRatings', () => {
+  it('should list ratings for a playlist with correct average and count', async () => {
+    const playlist = await Playlist.create({
+      name: 'Playlist for ratings',
+      ownerId: new mongoose.Types.ObjectId(),
+      isPublic: true,
+    });
+
+    const otherPlaylist = await Playlist.create({
+      name: 'Other playlist',
+      ownerId: new mongoose.Types.ObjectId(),
+      isPublic: true,
+    });
+
+    const user1 = new mongoose.Types.ObjectId();
+    const user2 = new mongoose.Types.ObjectId();
+    const otherUser = new mongoose.Types.ObjectId();
+
+    await Rating.insertMany([
+      {
+        playlistId: playlist._id,
+        userId: user1,
+        score: 4,
+        comment: 'Muy buena selección',
+      },
+      {
+        playlistId: playlist._id,
+        userId: user2,
+        score: 5,
+        comment: 'Top playlist',
+      },
+      {
+        playlistId: otherPlaylist._id,
+        userId: otherUser,
+        score: 1,
+        comment: 'Other playlist rating',
+      },
+    ]);
+
+    const result = await ratingService.listPlaylistRatings({
+      playlistId: playlist._id.toString(),
+    });
+
+    expect(result.count).toBe(2);
+    expect(result.average).toBeCloseTo(4.5);
+    expect(result.data).toHaveLength(2);
+
+    result.data.forEach((r) => {
+      expect(r.playlistId.toString()).toBe(playlist._id.toString());
+      expect([user1.toString(), user2.toString()]).toContain(
+        r.userId.toString()
+      );
+    });
+  });
+
+  it('should return empty array, average 0 and count 0 when there are no ratings', async () => {
+    const playlistId = new mongoose.Types.ObjectId().toString();
+
+    const result = await ratingService.listPlaylistRatings({
+      playlistId,
+    });
+
+    expect(result.count).toBe(0);
+    expect(result.average).toBe(0);
+    expect(result.data).toEqual([]);
+  });
+
+  it('should throw 404 if playlistId is not a valid ObjectId', async () => {
+    await expect(
+      ratingService.listPlaylistRatings({ playlistId: 'not-a-valid-id' })
+    ).rejects.toMatchObject({
+      status: 404,
+      message: 'Playlist not found',
+    });
+  });
+
+  it('should rethrow unexpected errors (e.g. DB error in Rating.find)', async () => {
+    const playlistId = new mongoose.Types.ObjectId().toString();
+
+    const originalFind = Rating.find;
+
+    Rating.find = async () => {
+      const err = new Error('Simulated Rating.find error (playlist)');
+      err.name = 'SomeOtherError';
+      throw err;
+    };
+
+    await expect(
+      ratingService.listPlaylistRatings({ playlistId })
+    ).rejects.toHaveProperty(
+      'message',
+      'Simulated Rating.find error (playlist)'
+    );
+
+    Rating.find = originalFind;
+  });
+});
