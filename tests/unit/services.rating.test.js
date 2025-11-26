@@ -344,6 +344,72 @@ describe('RatingService.createPlaylistRating', () => {
   });
 });
 
+describe('RatingService.getRatingById', () => {
+  it('should return the rating when it exists', async () => {
+    const beatId = new mongoose.Types.ObjectId();
+    const userId = new mongoose.Types.ObjectId();
+
+    const created = await Rating.create({
+      beatId,
+      userId,
+      score: 4,
+      comment: 'Rating to fetch',
+    });
+
+    const result = await ratingService.getRatingById({
+      ratingId: created._id.toString(),
+    });
+
+    expect(result).toBeDefined();
+    expect(result._id.toString()).toBe(created._id.toString());
+    expect(result.beatId.toString()).toBe(beatId.toString());
+    expect(result.userId.toString()).toBe(userId.toString());
+    expect(result.score).toBe(4);
+    expect(result.comment).toBe('Rating to fetch');
+  });
+
+  it('should throw 404 if ratingId is not a valid ObjectId', async () => {
+    await expect(
+      ratingService.getRatingById({ ratingId: 'not-a-valid-id' })
+    ).rejects.toMatchObject({
+      status: 404,
+      message: 'Rating not found',
+    });
+  });
+
+  it('should throw 404 if rating does not exist', async () => {
+    const fakeId = new mongoose.Types.ObjectId().toString();
+
+    await expect(
+      ratingService.getRatingById({ ratingId: fakeId })
+    ).rejects.toMatchObject({
+      status: 404,
+      message: 'Rating not found',
+    });
+  });
+
+  it('should rethrow unexpected errors (e.g. DB error on findById)', async () => {
+    const originalFindById = Rating.findById;
+
+    Rating.findById = async () => {
+      const err = new Error('Simulated DB error on Rating.findById');
+      err.name = 'SomeOtherError';
+      throw err;
+    };
+
+    const someId = new mongoose.Types.ObjectId().toString();
+
+    await expect(
+      ratingService.getRatingById({ ratingId: someId })
+    ).rejects.toHaveProperty(
+      'message',
+      'Simulated DB error on Rating.findById'
+    );
+
+    Rating.findById = originalFindById;
+  });
+});
+
 describe('RatingService.getMyBeatRating', () => {
   it('should return the rating when it exists for this beat and user', async () => {
     const beatId = new mongoose.Types.ObjectId();

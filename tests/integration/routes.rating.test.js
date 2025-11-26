@@ -339,6 +339,52 @@ describe('POST /api/v1/playlists/:playlistId/ratings (integration)', () => {
   });
 });
 
+describe('GET /api/v1/ratings/:ratingId (integration)', () => {
+  const withAuth = (req) =>
+    req.set('Authorization', `Bearer ${global.testToken}`);
+
+  it('should return 200 and the rating when it exists', async () => {
+    const beatId = new mongoose.Types.ObjectId();
+    const userId = new mongoose.Types.ObjectId();
+
+    const created = await Rating.create({
+      beatId,
+      userId,
+      score: 5,
+      comment: 'Existing rating',
+    });
+
+    const response = await withAuth(
+      api.get(`/api/v1/ratings/${created._id}`)
+    ).expect(200);
+
+    expect(response.body).toHaveProperty('id', created._id.toString());
+    expect(response.body).toHaveProperty('userId', userId.toString());
+    expect(response.body).toHaveProperty('score', 5);
+    expect(response.body).toHaveProperty('comment', 'Existing rating');
+    expect(response.body).toHaveProperty('createdAt');
+    expect(response.body).toHaveProperty('updatedAt');
+  });
+
+  it('should return 404 if ratingId is not a valid ObjectId', async () => {
+    const response = await withAuth(
+      api.get('/api/v1/ratings/not-a-valid-id')
+    ).expect(404);
+
+    expect(response.body).toEqual({ message: 'Rating not found' });
+  });
+
+  it('should return 404 if rating does not exist', async () => {
+    const fakeId = new mongoose.Types.ObjectId().toString();
+
+    const response = await withAuth(
+      api.get(`/api/v1/ratings/${fakeId}`)
+    ).expect(404);
+
+    expect(response.body).toEqual({ message: 'Rating not found' });
+  });
+});
+
 describe('GET /api/v1/beats/:beatId/ratings/me (integration)', () => {
   const withAuth = (req) =>
     req.set('Authorization', `Bearer ${global.testToken}`);
