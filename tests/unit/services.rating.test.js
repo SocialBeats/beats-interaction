@@ -575,3 +575,89 @@ describe('RatingService.getMyPlaylistRating', () => {
     Rating.findOne = originalFindOne;
   });
 });
+
+describe('RatingService.listBeatRatings', () => {
+  it('should list ratings for a beat with correct average and count', async () => {
+    const beatId = new mongoose.Types.ObjectId();
+    const otherBeatId = new mongoose.Types.ObjectId();
+
+    const user1 = new mongoose.Types.ObjectId();
+    const user2 = new mongoose.Types.ObjectId();
+    const otherUser = new mongoose.Types.ObjectId();
+
+    await Rating.insertMany([
+      {
+        beatId,
+        userId: user1,
+        score: 4,
+        comment: 'Good but bassy',
+      },
+      {
+        beatId,
+        userId: user2,
+        score: 5,
+        comment: 'Perfect',
+      },
+      {
+        beatId: otherBeatId,
+        userId: otherUser,
+        score: 1,
+        comment: 'Other beat rating',
+      },
+    ]);
+
+    const result = await ratingService.listBeatRatings({
+      beatId: beatId.toString(),
+    });
+
+    expect(result.count).toBe(2);
+    expect(result.average).toBeCloseTo(4.5);
+
+    expect(result.data).toHaveLength(2);
+    result.data.forEach((r) => {
+      expect(r.beatId.toString()).toBe(beatId.toString());
+      expect([user1.toString(), user2.toString()]).toContain(
+        r.userId.toString()
+      );
+    });
+  });
+
+  it('should return empty array, average 0 and count 0 when there are no ratings', async () => {
+    const beatId = new mongoose.Types.ObjectId();
+
+    const result = await ratingService.listBeatRatings({
+      beatId: beatId.toString(),
+    });
+
+    expect(result.count).toBe(0);
+    expect(result.average).toBe(0);
+    expect(result.data).toEqual([]);
+  });
+
+  it('should throw 404 if beatId is not a valid ObjectId', async () => {
+    await expect(
+      ratingService.listBeatRatings({ beatId: 'not-a-valid-id' })
+    ).rejects.toMatchObject({
+      status: 404,
+      message: 'Beat not found',
+    });
+  });
+
+  it('should rethrow unexpected errors (e.g. DB error in Rating.find)', async () => {
+    const beatId = new mongoose.Types.ObjectId().toString();
+
+    const originalFind = Rating.find;
+
+    Rating.find = async () => {
+      const err = new Error('Simulated Rating.find error');
+      err.name = 'SomeOtherError';
+      throw err;
+    };
+
+    await expect(
+      ratingService.listBeatRatings({ beatId })
+    ).rejects.toHaveProperty('message', 'Simulated Rating.find error');
+
+    Rating.find = originalFind;
+  });
+});
