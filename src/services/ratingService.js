@@ -96,6 +96,32 @@ class RatingService {
     }
   }
 
+  async getRatingById({ ratingId }) {
+    try {
+      if (!mongoose.Types.ObjectId.isValid(ratingId)) {
+        const status = 404;
+        const message = 'Rating not found';
+        throw { status, message };
+      }
+
+      const rating = await Rating.findById(ratingId);
+
+      if (!rating) {
+        const status = 404;
+        const message = 'Rating not found';
+        throw { status, message };
+      }
+
+      return rating;
+    } catch (err) {
+      if (err.status) {
+        throw err;
+      }
+
+      throw err;
+    }
+  }
+
   async getMyBeatRating({ beatId, userId }) {
     try {
       if (!mongoose.Types.ObjectId.isValid(beatId)) {

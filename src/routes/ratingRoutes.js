@@ -264,6 +264,113 @@ export default function ratingRoutes(app) {
 
   /**
    * @swagger
+   * /api/v1/ratings/{ratingId}:
+   *   get:
+   *     tags:
+   *       - Ratings
+   *     summary: Get a specific rating by its ID
+   *     description: >
+   *       Retrieves a single rating by its ID. Useful for moderation or admin tools.
+   *       `ratingId` must be a valid MongoDB ObjectId.
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: ratingId
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: ID of the rating to retrieve.
+   *     responses:
+   *       200:
+   *         description: Rating successfully retrieved.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 id:
+   *                   type: string
+   *                 beatId:
+   *                   type: string
+   *                   nullable: true
+   *                 playlistId:
+   *                   type: string
+   *                   nullable: true
+   *                 userId:
+   *                   type: string
+   *                 score:
+   *                   type: integer
+   *                 comment:
+   *                   type: string
+   *                 createdAt:
+   *                   type: string
+   *                   format: date-time
+   *                 updatedAt:
+   *                   type: string
+   *                   format: date-time
+   *       401:
+   *         description: Unauthorized. Token missing or invalid.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Unauthorized access.
+   *       404:
+   *         description: Rating not found (invalid or non-existent `ratingId`).
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Rating not found.
+   *       500:
+   *         description: Internal server error while retrieving rating.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Internal server error while retrieving rating.
+   */
+  app.get(`${baseAPIURL}/ratings/:ratingId`, async (req, res) => {
+    try {
+      const { ratingId } = req.params;
+
+      const rating = await ratingService.getRatingById({ ratingId });
+
+      return res.status(200).send({
+        id: rating._id,
+        beatId: rating.beatId ?? null,
+        playlistId: rating.playlistId ?? null,
+        userId: rating.userId,
+        score: rating.score,
+        comment: rating.comment,
+        createdAt: rating.createdAt,
+        updatedAt: rating.updatedAt,
+      });
+    } catch (err) {
+      if (err.status) {
+        return res.status(err.status).send({ message: err.message });
+      }
+
+      logger.error(`Internal server error while retrieving rating: ${err}`);
+
+      return res.status(500).send({
+        message: 'Internal server error while retrieving rating',
+      });
+    }
+  });
+
+  /**
+   * @swagger
    * /api/v1/beats/{beatId}/ratings/me:
    *   get:
    *     tags:
