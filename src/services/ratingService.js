@@ -46,6 +46,55 @@ class RatingService {
       throw err;
     }
   }
+
+  async createPlaylistRating({ playlistId, userId, score, comment }) {
+    try {
+      if (!mongoose.Types.ObjectId.isValid(playlistId)) {
+        const status = 404;
+        const message = 'Playlist not found';
+        throw { status, message };
+      }
+
+      const existing = await Rating.findOne({ playlistId, userId });
+      if (existing) {
+        const status = 422;
+        const message = 'User has already rated this playlist';
+        throw { status, message };
+      }
+
+      const rating = new Rating({
+        playlistId,
+        userId,
+        score,
+        comment,
+      });
+
+      await rating.validate();
+      await rating.save();
+      return rating;
+    } catch (err) {
+      if (err.name === 'ValidationError') {
+        const message = Object.values(err.errors)
+          .map((e) => e.message)
+          .join(', ');
+        const status = 422;
+        throw { status, message };
+      }
+
+      // errors thrown from pre-validate hooks (e.g., playlist not found or not public)
+      if (err.name === 'Error') {
+        const status = 422;
+        const message = err.message;
+        throw { status, message };
+      }
+
+      if (err.status) {
+        throw err;
+      }
+
+      throw err;
+    }
+  }
 }
 
 export default new RatingService();
