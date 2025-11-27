@@ -30,40 +30,29 @@ export default function ratingRoutes(app) {
    *       content:
    *         application/json:
    *           schema:
-   *             type: object
+   *             allOf:
+   *               - $ref: '#/components/schemas/Rating'
    *             required:
    *               - score
    *             properties:
-   *               score:
-   *                 type: integer
-   *                 minimum: 1
-   *                 maximum: 5
-   *                 example: 5
-   *               comment:
-   *                 type: string
-   *                 maxLength: 200
-   *                 example: "Muy pro, master limpio."
+   *               beatId:
+   *                 readOnly: true
+   *               playlistId:
+   *                 readOnly: true
+   *               userId:
+   *                 readOnly: true
+   *               createdAt:
+   *                 readOnly: true
+   *               updatedAt:
+   *                 readOnly: true
+   *             description: Only `score` and optional `comment` are accepted in the request.
    *     responses:
    *       201:
    *         description: Rating successfully created.
    *         content:
    *           application/json:
    *             schema:
-   *               type: object
-   *               properties:
-   *                 id:
-   *                   type: string
-   *                 beatId:
-   *                   type: string
-   *                 userId:
-   *                   type: string
-   *                 score:
-   *                   type: integer
-   *                 comment:
-   *                   type: string
-   *                 createdAt:
-   *                   type: string
-   *                   format: date-time
+   *               $ref: '#/components/schemas/Rating'
    *       401:
    *         description: Unauthorized. Token missing or invalid.
    *         content:
@@ -163,40 +152,29 @@ export default function ratingRoutes(app) {
    *       content:
    *         application/json:
    *           schema:
-   *             type: object
+   *             allOf:
+   *               - $ref: '#/components/schemas/Rating'
    *             required:
    *               - score
    *             properties:
-   *               score:
-   *                 type: integer
-   *                 minimum: 1
-   *                 maximum: 5
-   *                 example: 5
-   *               comment:
-   *                 type: string
-   *                 maxLength: 200
-   *                 example: "Muy buena selección de beats."
+   *               playlistId:
+   *                 readOnly: true
+   *               beatId:
+   *                 readOnly: true
+   *               userId:
+   *                 readOnly: true
+   *               createdAt:
+   *                 readOnly: true
+   *               updatedAt:
+   *                 readOnly: true
+   *             description: Only `score` and optional `comment` are accepted in the request.
    *     responses:
    *       201:
    *         description: Rating successfully created for the playlist.
    *         content:
    *           application/json:
    *             schema:
-   *               type: object
-   *               properties:
-   *                 id:
-   *                   type: string
-   *                 playlistId:
-   *                   type: string
-   *                 userId:
-   *                   type: string
-   *                 score:
-   *                   type: integer
-   *                 comment:
-   *                   type: string
-   *                 createdAt:
-   *                   type: string
-   *                   format: date-time
+   *               $ref: '#/components/schemas/Rating'
    *       401:
    *         description: Unauthorized. Token missing or invalid.
    *         content:
@@ -225,8 +203,24 @@ export default function ratingRoutes(app) {
    *           - playlist does not exist
    *           - playlist is private
    *           - user has already rated this playlist
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: User has already rated this playlist.
    *       500:
    *         description: Internal server error while creating playlist rating.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Internal server error while creating playlist rating.
    */
   app.post(`${baseAPIURL}/playlists/:playlistId/ratings`, async (req, res) => {
     try {
@@ -287,28 +281,7 @@ export default function ratingRoutes(app) {
    *         content:
    *           application/json:
    *             schema:
-   *               type: object
-   *               properties:
-   *                 id:
-   *                   type: string
-   *                 beatId:
-   *                   type: string
-   *                   nullable: true
-   *                 playlistId:
-   *                   type: string
-   *                   nullable: true
-   *                 userId:
-   *                   type: string
-   *                 score:
-   *                   type: integer
-   *                 comment:
-   *                   type: string
-   *                 createdAt:
-   *                   type: string
-   *                   format: date-time
-   *                 updatedAt:
-   *                   type: string
-   *                   format: date-time
+   *               $ref: '#/components/schemas/Rating'
    *       401:
    *         description: Unauthorized. Token missing or invalid.
    *         content:
@@ -395,22 +368,7 @@ export default function ratingRoutes(app) {
    *         content:
    *           application/json:
    *             schema:
-   *               type: object
-   *               properties:
-   *                 beatId:
-   *                   type: string
-   *                 userId:
-   *                   type: string
-   *                 score:
-   *                   type: integer
-   *                 comment:
-   *                   type: string
-   *                 createdAt:
-   *                   type: string
-   *                   format: date-time
-   *                 updatedAt:
-   *                   type: string
-   *                   format: date-time
+   *               $ref: '#/components/schemas/Rating'
    *       401:
    *         description: Unauthorized. Token missing or invalid.
    *         content:
@@ -494,22 +452,7 @@ export default function ratingRoutes(app) {
    *         content:
    *           application/json:
    *             schema:
-   *               type: object
-   *               properties:
-   *                 playlistId:
-   *                   type: string
-   *                 userId:
-   *                   type: string
-   *                 score:
-   *                   type: integer
-   *                 comment:
-   *                   type: string
-   *                 createdAt:
-   *                   type: string
-   *                   format: date-time
-   *                 updatedAt:
-   *                   type: string
-   *                   format: date-time
+   *               $ref: '#/components/schemas/Rating'
    *       401:
    *         description: Unauthorized. Token missing or invalid.
    *         content:
@@ -607,13 +550,19 @@ export default function ratingRoutes(app) {
    *                   type: array
    *                   items:
    *                     type: object
+   *                     allOf:
+   *                       - $ref: '#/components/schemas/Rating'
    *                     properties:
+   *                       beatId:
+   *                         readOnly: true
+   *                       playlistId:
+   *                         readOnly: true
    *                       userId:
-   *                         type: string
-   *                       score:
-   *                         type: integer
-   *                       comment:
-   *                         type: string
+   *                         readOnly: true
+   *                       createdAt:
+   *                         readOnly: true
+   *                       updatedAt:
+   *                         readOnly: true
    *                 average:
    *                   type: number
    *                   example: 4.5
@@ -711,13 +660,19 @@ export default function ratingRoutes(app) {
    *                   type: array
    *                   items:
    *                     type: object
+   *                     allOf:
+   *                       - $ref: '#/components/schemas/Rating'
    *                     properties:
+   *                       playlistId:
+   *                         readOnly: true
+   *                       beatId:
+   *                         readOnly: true
    *                       userId:
-   *                         type: string
-   *                       score:
-   *                         type: integer
-   *                       comment:
-   *                         type: string
+   *                         readOnly: true
+   *                       createdAt:
+   *                         readOnly: true
+   *                       updatedAt:
+   *                         readOnly: true
    *                 average:
    *                   type: number
    *                   example: 4.5
@@ -901,28 +856,7 @@ export default function ratingRoutes(app) {
    *         content:
    *           application/json:
    *             schema:
-   *               type: object
-   *               properties:
-   *                 id:
-   *                   type: string
-   *                 beatId:
-   *                   type: string
-   *                   nullable: true
-   *                 playlistId:
-   *                   type: string
-   *                   nullable: true
-   *                 userId:
-   *                   type: string
-   *                 score:
-   *                   type: integer
-   *                 comment:
-   *                   type: string
-   *                 createdAt:
-   *                   type: string
-   *                   format: date-time
-   *                 updatedAt:
-   *                   type: string
-   *                   format: date-time
+   *               $ref: '#/components/schemas/Rating'
    *       401:
    *         description: Unauthorized. The authenticated user is not the owner of the rating.
    *         content:
@@ -1042,28 +976,7 @@ export default function ratingRoutes(app) {
    *         content:
    *           application/json:
    *             schema:
-   *               type: object
-   *               properties:
-   *                 id:
-   *                   type: string
-   *                 beatId:
-   *                   type: string
-   *                   nullable: true
-   *                 playlistId:
-   *                   type: string
-   *                   nullable: true
-   *                 userId:
-   *                   type: string
-   *                 score:
-   *                   type: integer
-   *                 comment:
-   *                   type: string
-   *                 createdAt:
-   *                   type: string
-   *                   format: date-time
-   *                 updatedAt:
-   *                   type: string
-   *                   format: date-time
+   *               $ref: '#/components/schemas/Rating'
    *       401:
    *         description: Unauthorized. The authenticated user is not the owner of the rating.
    *         content:
