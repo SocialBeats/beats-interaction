@@ -857,4 +857,286 @@ export default function ratingRoutes(app) {
       });
     }
   });
+
+  /**
+   * @swagger
+   * /api/v1/ratings/{ratingId}:
+   *   put:
+   *     tags:
+   *       - Ratings
+   *     summary: Update a rating
+   *     description: >
+   *       Updates the score (and optionally the comment) of a rating identified by its ID.
+   *       Only the user who created the rating can update it.
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: ratingId
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: ID of the rating to edit. Must be a valid MongoDB ObjectId.
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - score
+   *             properties:
+   *               score:
+   *                 type: integer
+   *                 minimum: 1
+   *                 maximum: 5
+   *                 example: 5
+   *               comment:
+   *                 type: string
+   *                 maxLength: 200
+   *                 example: "Muy pro, master limpio."
+   *     responses:
+   *       200:
+   *         description: Rating successfully updated.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 id:
+   *                   type: string
+   *                 beatId:
+   *                   type: string
+   *                   nullable: true
+   *                 playlistId:
+   *                   type: string
+   *                   nullable: true
+   *                 userId:
+   *                   type: string
+   *                 score:
+   *                   type: integer
+   *                 comment:
+   *                   type: string
+   *                 createdAt:
+   *                   type: string
+   *                   format: date-time
+   *                 updatedAt:
+   *                   type: string
+   *                   format: date-time
+   *       401:
+   *         description: Unauthorized. The authenticated user is not the owner of the rating.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: You are not allowed to edit this rating.
+   *       404:
+   *         description: Rating not found. Either the ID is invalid or the rating does not exist.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Rating not found.
+   *       422:
+   *         description: Validation error (e.g., score out of range, comment too long).
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Score must be between 1 and 5.
+   *       500:
+   *         description: Internal server error while updating rating.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Internal server error while updating rating.
+   */
+  app.put(`${baseAPIURL}/ratings/:ratingId`, async (req, res) => {
+    try {
+      const { ratingId } = req.params;
+      const { score, comment } = req.body;
+      const userId = req.user.id;
+
+      const rating = await ratingService.updateRatingById({
+        ratingId,
+        userId,
+        score,
+        comment,
+      });
+
+      return res.status(200).send({
+        id: rating._id,
+        beatId: rating.beatId ?? null,
+        playlistId: rating.playlistId ?? null,
+        userId: rating.userId,
+        score: rating.score,
+        comment: rating.comment,
+        createdAt: rating.createdAt,
+        updatedAt: rating.updatedAt,
+      });
+    } catch (err) {
+      if (err.status) {
+        return res.status(err.status).send({ message: err.message });
+      }
+      logger.error(`Internal server error while updating rating: ${err}`);
+      return res.status(500).send({
+        message: 'Internal server error while updating rating',
+      });
+    }
+  });
+
+  /**
+   * @swagger
+   * /api/v1/ratings/{ratingId}:
+   *   patch:
+   *     tags:
+   *       - Ratings
+   *     summary: Update a rating
+   *     description: >
+   *       Updates the score (and optionally the comment) of a rating identified by its ID.
+   *       Only the user who created the rating can update it.
+   *       This endpoint behaves the same as the PUT version; it is provided for convenience.
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: ratingId
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: ID of the rating to edit. Must be a valid MongoDB ObjectId.
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - score
+   *             properties:
+   *               score:
+   *                 type: integer
+   *                 minimum: 1
+   *                 maximum: 5
+   *                 example: 4
+   *               comment:
+   *                 type: string
+   *                 maxLength: 200
+   *                 example: "He ajustado la mezcla y ahora suena mejor."
+   *     responses:
+   *       200:
+   *         description: Rating successfully updated.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 id:
+   *                   type: string
+   *                 beatId:
+   *                   type: string
+   *                   nullable: true
+   *                 playlistId:
+   *                   type: string
+   *                   nullable: true
+   *                 userId:
+   *                   type: string
+   *                 score:
+   *                   type: integer
+   *                 comment:
+   *                   type: string
+   *                 createdAt:
+   *                   type: string
+   *                   format: date-time
+   *                 updatedAt:
+   *                   type: string
+   *                   format: date-time
+   *       401:
+   *         description: Unauthorized. The authenticated user is not the owner of the rating.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: You are not allowed to edit this rating.
+   *       404:
+   *         description: Rating not found. Either the ID is invalid or the rating does not exist.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Rating not found.
+   *       422:
+   *         description: Validation error (e.g., score out of range, comment too long).
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Score must be between 1 and 5.
+   *       500:
+   *         description: Internal server error while updating rating.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Internal server error while updating rating.
+   */
+  app.patch(`${baseAPIURL}/ratings/:ratingId`, async (req, res) => {
+    try {
+      const { ratingId } = req.params;
+      const { score, comment } = req.body;
+      const userId = req.user.id;
+
+      const rating = await ratingService.updateRatingById({
+        ratingId,
+        userId,
+        score,
+        comment,
+      });
+
+      return res.status(200).send({
+        id: rating._id,
+        beatId: rating.beatId ?? null,
+        playlistId: rating.playlistId ?? null,
+        userId: rating.userId,
+        score: rating.score,
+        comment: rating.comment,
+        createdAt: rating.createdAt,
+        updatedAt: rating.updatedAt,
+      });
+    } catch (err) {
+      if (err.status) {
+        return res.status(err.status).send({ message: err.message });
+      }
+
+      logger.error(`Internal server error while updating rating: ${err}`);
+      return res.status(500).send({
+        message: 'Internal server error while updating rating',
+      });
+    }
+  });
 }

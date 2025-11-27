@@ -261,6 +261,53 @@ class RatingService {
       throw err;
     }
   }
+
+  async updateRatingById({ ratingId, userId, score, comment }) {
+    try {
+      if (!mongoose.Types.ObjectId.isValid(ratingId)) {
+        const status = 404;
+        const message = 'Rating not found';
+        throw { status, message };
+      }
+
+      const rating = await Rating.findById(ratingId);
+
+      if (!rating) {
+        const status = 404;
+        const message = 'Rating not found';
+        throw { status, message };
+      }
+
+      if (rating.userId.toString() !== userId.toString()) {
+        const status = 401;
+        const message = 'You are not allowed to edit this rating.';
+        throw { status, message };
+      }
+
+      rating.score = score;
+      if (comment !== undefined) {
+        rating.comment = comment;
+      }
+
+      await rating.validate();
+      await rating.save();
+      return rating;
+    } catch (err) {
+      if (err.name === 'ValidationError') {
+        const message = Object.values(err.errors)
+          .map((e) => e.message)
+          .join(', ');
+        const status = 422;
+        throw { status, message };
+      }
+
+      if (err.status) {
+        throw err;
+      }
+
+      throw err;
+    }
+  }
 }
 
 export default new RatingService();
