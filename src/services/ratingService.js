@@ -233,6 +233,34 @@ class RatingService {
       throw err;
     }
   }
+
+  async deleteRating({ ratingId, userId }) {
+    try {
+      if (!mongoose.Types.ObjectId.isValid(ratingId)) {
+        return { deleted: false };
+      }
+
+      const rating = await Rating.findById(ratingId);
+
+      if (!rating) {
+        return { deleted: false };
+      }
+
+      if (rating.userId.toString() !== userId.toString()) {
+        const status = 401;
+        const message = 'You are not allowed to delete this rating.';
+        throw { status, message };
+      }
+
+      await Rating.deleteOne({ _id: ratingId });
+      return { deleted: true };
+    } catch (err) {
+      if (err.status) {
+        throw err;
+      }
+      throw err;
+    }
+  }
 }
 
 export default new RatingService();

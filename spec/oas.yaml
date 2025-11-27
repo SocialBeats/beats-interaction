@@ -2034,6 +2034,60 @@ paths:
                   message:
                     type: string
                     example: Internal server error while retrieving rating.
+    delete:
+      tags:
+        - Ratings
+      summary: Delete a rating
+      description: >
+        Deletes a rating if it exists and belongs to the authenticated user. The
+        operation is idempotent: - If the rating does not exist, or the ID is
+        invalid, it returns `deleted: false` with status 200. - If the rating
+        exists and is deleted, it returns `deleted: true` with status 200. - If
+        the rating exists but belongs to another user, it returns 401.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: ratingId
+          required: true
+          schema:
+            type: string
+          description: ID of the rating to delete. Must be a valid MongoDB ObjectId.
+      responses:
+        '200':
+          description: >-
+            Rating deletion result. `deleted` is true if the rating was deleted,
+            false otherwise.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted:
+                    type: boolean
+                    example: true
+        '401':
+          description: >-
+            Unauthorized. Rating exists but does not belong to the authenticated
+            user.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: You are not allowed to delete this rating.
+        '500':
+          description: Internal server error while deleting rating.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while deleting rating.
   /api/v1/beats/{beatId}/ratings/me:
     get:
       tags:

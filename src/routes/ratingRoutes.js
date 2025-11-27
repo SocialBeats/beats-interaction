@@ -782,4 +782,79 @@ export default function ratingRoutes(app) {
       });
     }
   });
+
+  /**
+   * @swagger
+   * /api/v1/ratings/{ratingId}:
+   *   delete:
+   *     tags:
+   *       - Ratings
+   *     summary: Delete a rating
+   *     description: >
+   *       Deletes a rating if it exists and belongs to the authenticated user.
+   *       The operation is idempotent:
+   *       - If the rating does not exist, or the ID is invalid, it returns `deleted: false` with status 200.
+   *       - If the rating exists and is deleted, it returns `deleted: true` with status 200.
+   *       - If the rating exists but belongs to another user, it returns 401.
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: ratingId
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: ID of the rating to delete. Must be a valid MongoDB ObjectId.
+   *     responses:
+   *       200:
+   *         description: Rating deletion result. `deleted` is true if the rating was deleted, false otherwise.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 deleted:
+   *                   type: boolean
+   *                   example: true
+   *       401:
+   *         description: Unauthorized. Rating exists but does not belong to the authenticated user.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: You are not allowed to delete this rating.
+   *       500:
+   *         description: Internal server error while deleting rating.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Internal server error while deleting rating.
+   */
+  app.delete(`${baseAPIURL}/ratings/:ratingId`, async (req, res) => {
+    try {
+      const { ratingId } = req.params;
+      const userId = req.user.id;
+
+      const result = await ratingService.deleteRating({ ratingId, userId });
+
+      return res.status(200).send(result);
+    } catch (err) {
+      if (err.status) {
+        return res.status(err.status).send({ message: err.message });
+      }
+
+      logger.error(`Internal server error while deleting rating: ${err}`);
+
+      return res.status(500).send({
+        message: 'Internal server error while deleting rating',
+      });
+    }
+  });
 }
