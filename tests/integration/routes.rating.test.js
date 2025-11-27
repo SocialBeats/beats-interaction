@@ -734,3 +734,251 @@ describe('DELETE /api/v1/ratings/:ratingId (integration)', () => {
     expect(stillThere).not.toBeNull();
   });
 });
+
+describe('PUT /api/v1/ratings/:ratingId (integration)', () => {
+  const withAuth = (req) =>
+    req.set('Authorization', `Bearer ${global.testToken}`);
+
+  it('should update the score and comment of an existing rating of the authenticated user and return 200', async () => {
+    const beatId = new mongoose.Types.ObjectId().toString();
+
+    const createResponse = await withAuth(
+      api.post(`/api/v1/beats/${beatId}/ratings`)
+    )
+      .send({ score: 3, comment: 'Old comment' })
+      .expect(201);
+
+    const ratingId = createResponse.body.id;
+
+    const updateResponse = await withAuth(
+      api.put(`/api/v1/ratings/${ratingId}`)
+    )
+      .send({ score: 5, comment: 'New comment from PUT' })
+      .expect(200);
+
+    expect(updateResponse.body).toHaveProperty('id', ratingId);
+    expect(updateResponse.body).toHaveProperty('score', 5);
+    expect(updateResponse.body).toHaveProperty(
+      'comment',
+      'New comment from PUT'
+    );
+    expect(updateResponse.body).toHaveProperty('updatedAt');
+
+    const inDb = await Rating.findById(ratingId);
+    expect(inDb.score).toBe(5);
+    expect(inDb.comment).toBe('New comment from PUT');
+  });
+
+  it('should return 404 if ratingId is not a valid ObjectId', async () => {
+    const response = await withAuth(api.put('/api/v1/ratings/not-a-valid-id'))
+      .send({ score: 4 })
+      .expect(404);
+
+    expect(response.body).toEqual({ message: 'Rating not found' });
+  });
+
+  it('should return 404 if rating does not exist', async () => {
+    const fakeId = new mongoose.Types.ObjectId().toString();
+
+    const response = await withAuth(api.put(`/api/v1/ratings/${fakeId}`))
+      .send({ score: 4 })
+      .expect(404);
+
+    expect(response.body).toEqual({ message: 'Rating not found' });
+  });
+
+  it('should return 401 if the rating belongs to another user', async () => {
+    const beatId = new mongoose.Types.ObjectId();
+    const otherUserId = new mongoose.Types.ObjectId();
+
+    const foreignRating = await Rating.create({
+      beatId,
+      userId: otherUserId,
+      score: 2,
+      comment: 'Not your rating',
+    });
+
+    const response = await withAuth(
+      api.put(`/api/v1/ratings/${foreignRating._id}`)
+    )
+      .send({ score: 5, comment: 'Trying to edit' })
+      .expect(401);
+
+    expect(response.body).toHaveProperty(
+      'message',
+      'You are not allowed to edit this rating.'
+    );
+
+    const stillInDb = await Rating.findById(foreignRating._id);
+    expect(stillInDb.score).toBe(2);
+    expect(stillInDb.comment).toBe('Not your rating');
+  });
+
+  it('should return 422 if score is out of range', async () => {
+    const beatId = new mongoose.Types.ObjectId().toString();
+
+    const createResponse = await withAuth(
+      api.post(`/api/v1/beats/${beatId}/ratings`)
+    )
+      .send({ score: 3, comment: 'Initial comment' })
+      .expect(201);
+
+    const ratingId = createResponse.body.id;
+
+    const response = await withAuth(api.put(`/api/v1/ratings/${ratingId}`))
+      .send({ score: 6, comment: 'Invalid score' })
+      .expect(422);
+
+    expect(response.body).toHaveProperty('message');
+
+    const inDb = await Rating.findById(ratingId);
+    expect(inDb.score).toBe(3);
+    expect(inDb.comment).toBe('Initial comment');
+  });
+
+  it('should return 422 if comment exceeds maxlength', async () => {
+    const beatId = new mongoose.Types.ObjectId().toString();
+    const longComment = 'a'.repeat(201);
+
+    const createResponse = await withAuth(
+      api.post(`/api/v1/beats/${beatId}/ratings`)
+    )
+      .send({ score: 4, comment: 'Initial comment' })
+      .expect(201);
+
+    const ratingId = createResponse.body.id;
+
+    const response = await withAuth(api.put(`/api/v1/ratings/${ratingId}`))
+      .send({ score: 4, comment: longComment })
+      .expect(422);
+
+    expect(response.body).toHaveProperty('message');
+
+    const inDb = await Rating.findById(ratingId);
+    expect(inDb.comment).toBe('Initial comment');
+  });
+});
+
+describe('PATCH /api/v1/ratings/:ratingId (integration)', () => {
+  const withAuth = (req) =>
+    req.set('Authorization', `Bearer ${global.testToken}`);
+
+  it('should update the score and comment of an existing rating using PATCH and return 200', async () => {
+    const beatId = new mongoose.Types.ObjectId().toString();
+
+    const createResponse = await withAuth(
+      api.post(`/api/v1/beats/${beatId}/ratings`)
+    )
+      .send({ score: 2, comment: 'Old text (patch)' })
+      .expect(201);
+
+    const ratingId = createResponse.body.id;
+
+    const patchResponse = await withAuth(
+      api.patch(`/api/v1/ratings/${ratingId}`)
+    )
+      .send({ score: 4, comment: 'New text from PATCH' })
+      .expect(200);
+
+    expect(patchResponse.body).toHaveProperty('id', ratingId);
+    expect(patchResponse.body).toHaveProperty('score', 4);
+    expect(patchResponse.body).toHaveProperty('comment', 'New text from PATCH');
+
+    const inDb = await Rating.findById(ratingId);
+    expect(inDb.score).toBe(4);
+    expect(inDb.comment).toBe('New text from PATCH');
+  });
+
+  it('should return 404 if ratingId is invalid (PATCH)', async () => {
+    const response = await withAuth(api.patch('/api/v1/ratings/not-a-valid-id'))
+      .send({ score: 4 })
+      .expect(404);
+
+    expect(response.body).toEqual({
+      message: 'Rating not found',
+    });
+  });
+
+  it('should return 404 if rating does not exist (PATCH)', async () => {
+    const fakeId = new mongoose.Types.ObjectId().toString();
+
+    const response = await withAuth(api.patch(`/api/v1/ratings/${fakeId}`))
+      .send({ score: 4 })
+      .expect(404);
+
+    expect(response.body).toEqual({
+      message: 'Rating not found',
+    });
+  });
+
+  it('should return 401 if the rating belongs to another user (PATCH)', async () => {
+    const beatId = new mongoose.Types.ObjectId();
+    const otherUserId = new mongoose.Types.ObjectId();
+
+    const foreignRating = await Rating.create({
+      beatId,
+      userId: otherUserId,
+      score: 3,
+      comment: 'Not yours',
+    });
+
+    const response = await withAuth(
+      api.patch(`/api/v1/ratings/${foreignRating._id}`)
+    )
+      .send({ score: 5, comment: 'Attempt to edit' })
+      .expect(401);
+
+    expect(response.body).toHaveProperty(
+      'message',
+      'You are not allowed to edit this rating.'
+    );
+
+    const stillThere = await Rating.findById(foreignRating._id);
+    expect(stillThere.score).toBe(3);
+    expect(stillThere.comment).toBe('Not yours');
+  });
+
+  it('should return 422 when PATCH score is invalid (out of range)', async () => {
+    const beatId = new mongoose.Types.ObjectId().toString();
+
+    const createResponse = await withAuth(
+      api.post(`/api/v1/beats/${beatId}/ratings`)
+    )
+      .send({ score: 3, comment: 'Initial patch text' })
+      .expect(201);
+
+    const ratingId = createResponse.body.id;
+
+    const response = await withAuth(api.patch(`/api/v1/ratings/${ratingId}`))
+      .send({ score: 0, comment: 'Invalid score' })
+      .expect(422);
+
+    expect(response.body).toHaveProperty('message');
+
+    const inDb = await Rating.findById(ratingId);
+    expect(inDb.score).toBe(3);
+    expect(inDb.comment).toBe('Initial patch text');
+  });
+
+  it('should return 422 when PATCH comment is too long', async () => {
+    const beatId = new mongoose.Types.ObjectId().toString();
+    const longComment = 'a'.repeat(201);
+
+    const createResponse = await withAuth(
+      api.post(`/api/v1/beats/${beatId}/ratings`)
+    )
+      .send({ score: 4, comment: 'Initial patch text' })
+      .expect(201);
+
+    const ratingId = createResponse.body.id;
+
+    const response = await withAuth(api.patch(`/api/v1/ratings/${ratingId}`))
+      .send({ score: 4, comment: longComment })
+      .expect(422);
+
+    expect(response.body).toHaveProperty('message');
+
+    const inDb = await Rating.findById(ratingId);
+    expect(inDb.comment).toBe('Initial patch text');
+  });
+});

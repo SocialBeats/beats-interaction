@@ -861,3 +861,183 @@ describe('RatingService.deleteRating', () => {
     Rating.deleteOne = originalDeleteOne;
   });
 });
+
+describe('RatingService.updateRatingById', () => {
+  it('should update score and comment when rating exists and belongs to the user', async () => {
+    const userId = new mongoose.Types.ObjectId();
+    const beatId = new mongoose.Types.ObjectId();
+
+    const created = await Rating.create({
+      beatId,
+      userId,
+      score: 3,
+      comment: 'Old comment',
+    });
+
+    const updated = await ratingService.updateRatingById({
+      ratingId: created._id.toString(),
+      userId: userId.toString(),
+      score: 5,
+      comment: 'New updated comment',
+    });
+
+    expect(updated).toBeDefined();
+    expect(updated._id.toString()).toBe(created._id.toString());
+    expect(updated.score).toBe(5);
+    expect(updated.comment).toBe('New updated comment');
+
+    const inDb = await Rating.findById(created._id);
+    expect(inDb.score).toBe(5);
+    expect(inDb.comment).toBe('New updated comment');
+  });
+
+  it('should throw 404 if ratingId is not a valid ObjectId', async () => {
+    const userId = new mongoose.Types.ObjectId();
+
+    await expect(
+      ratingService.updateRatingById({
+        ratingId: 'not-a-valid-id',
+        userId: userId.toString(),
+        score: 4,
+        comment: 'Whatever',
+      })
+    ).rejects.toMatchObject({
+      status: 404,
+      message: 'Rating not found',
+    });
+  });
+
+  it('should throw 404 if rating does not exist', async () => {
+    const userId = new mongoose.Types.ObjectId();
+    const fakeId = new mongoose.Types.ObjectId().toString();
+
+    await expect(
+      ratingService.updateRatingById({
+        ratingId: fakeId,
+        userId: userId.toString(),
+        score: 4,
+        comment: 'Whatever',
+      })
+    ).rejects.toMatchObject({
+      status: 404,
+      message: 'Rating not found',
+    });
+  });
+
+  it('should throw 401 if rating belongs to another user', async () => {
+    const ownerId = new mongoose.Types.ObjectId();
+    const otherUserId = new mongoose.Types.ObjectId();
+    const beatId = new mongoose.Types.ObjectId();
+
+    const created = await Rating.create({
+      beatId,
+      userId: ownerId,
+      score: 3,
+      comment: 'Original comment',
+    });
+
+    await expect(
+      ratingService.updateRatingById({
+        ratingId: created._id.toString(),
+        userId: otherUserId.toString(),
+        score: 5,
+        comment: 'Hacked comment',
+      })
+    ).rejects.toMatchObject({
+      status: 401,
+      message: 'You are not allowed to edit this rating.',
+    });
+
+    const stillInDb = await Rating.findById(created._id);
+    expect(stillInDb.score).toBe(3);
+    expect(stillInDb.comment).toBe('Original comment');
+  });
+
+  it('should throw 422 if score is out of range', async () => {
+    const userId = new mongoose.Types.ObjectId();
+    const beatId = new mongoose.Types.ObjectId();
+
+    const created = await Rating.create({
+      beatId,
+      userId,
+      score: 3,
+      comment: 'Valid comment',
+    });
+
+    await expect(
+      ratingService.updateRatingById({
+        ratingId: created._id.toString(),
+        userId: userId.toString(),
+        score: 6, // invalid (> 5)
+        comment: 'New comment',
+      })
+    ).rejects.toMatchObject({
+      status: 422,
+    });
+
+    const stillInDb = await Rating.findById(created._id);
+    expect(stillInDb.score).toBe(3);
+    expect(stillInDb.comment).toBe('Valid comment');
+  });
+
+  it('should throw 422 if comment exceeds maxlength', async () => {
+    const userId = new mongoose.Types.ObjectId();
+    const beatId = new mongoose.Types.ObjectId();
+    const longComment = 'a'.repeat(201); // maxLength 200
+
+    const created = await Rating.create({
+      beatId,
+      userId,
+      score: 4,
+      comment: 'Initial comment',
+    });
+
+    await expect(
+      ratingService.updateRatingById({
+        ratingId: created._id.toString(),
+        userId: userId.toString(),
+        score: 4,
+        comment: longComment,
+      })
+    ).rejects.toMatchObject({
+      status: 422,
+    });
+
+    const stillInDb = await Rating.findById(created._id);
+    expect(stillInDb.comment).toBe('Initial comment');
+  });
+
+  it('should rethrow unexpected errors (e.g. DB error on save)', async () => {
+    const userId = new mongoose.Types.ObjectId();
+    const beatId = new mongoose.Types.ObjectId();
+
+    const created = await Rating.create({
+      beatId,
+      userId,
+      score: 3,
+      comment: 'Original',
+    });
+
+    const originalSave = Rating.prototype.save;
+
+    Rating.prototype.save = async function () {
+      const err = new Error('Simulated save error on rating update');
+      err.name = 'SomeOtherError';
+      throw err;
+    };
+
+    await expect(
+      ratingService.updateRatingById({
+        ratingId: created._id.toString(),
+        userId: userId.toString(),
+        score: 5,
+        comment: 'Trying to update',
+      })
+    ).rejects.toHaveProperty(
+      'message',
+      'Simulated save error on rating update'
+    );
+
+    Rating.prototype.save = originalSave;
+  });
+});
