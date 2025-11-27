@@ -664,3 +664,73 @@ describe('GET /api/v1/playlists/:playlistId/ratings (integration)', () => {
     expect(response.body).toEqual({ message: 'Playlist not found' });
   });
 });
+
+describe('DELETE /api/v1/ratings/:ratingId (integration)', () => {
+  const withAuth = (req) =>
+    req.set('Authorization', `Bearer ${global.testToken}`);
+
+  it('should delete an existing rating of the authenticated user and return 200', async () => {
+    const beatId = new mongoose.Types.ObjectId().toString();
+
+    // first create the rating via API so that the userId is the one from the token
+    const createResponse = await withAuth(
+      api.post(`/api/v1/beats/${beatId}/ratings`)
+    )
+      .send({ score: 5, comment: 'Rating to delete' })
+      .expect(201);
+
+    const ratingId = createResponse.body.id;
+
+    const deleteResponse = await withAuth(
+      api.delete(`/api/v1/ratings/${ratingId}`)
+    ).expect(200);
+
+    expect(deleteResponse.body).toEqual({ deleted: true });
+
+    const inDb = await Rating.findById(ratingId);
+    expect(inDb).toBeNull();
+  });
+
+  it('should return 200 and deleted:false if rating does not exist', async () => {
+    const nonExistingId = new mongoose.Types.ObjectId().toString();
+
+    const response = await withAuth(
+      api.delete(`/api/v1/ratings/${nonExistingId}`)
+    ).expect(200);
+
+    expect(response.body).toEqual({ deleted: false });
+  });
+
+  it('should return 200 and deleted:false if ratingId is not a valid ObjectId', async () => {
+    const response = await withAuth(
+      api.delete('/api/v1/ratings/not-a-valid-id')
+    ).expect(200);
+
+    expect(response.body).toEqual({ deleted: false });
+  });
+
+  it('should return 401 if the rating belongs to another user', async () => {
+    const beatId = new mongoose.Types.ObjectId();
+    const otherUserId = new mongoose.Types.ObjectId();
+
+    // create a rating for another user directly in the DB
+    const foreignRating = await Rating.create({
+      beatId,
+      userId: otherUserId,
+      score: 3,
+      comment: 'Not your rating',
+    });
+
+    const response = await withAuth(
+      api.delete(`/api/v1/ratings/${foreignRating._id}`)
+    ).expect(401);
+
+    expect(response.body).toHaveProperty(
+      'message',
+      'You are not allowed to delete this rating.'
+    );
+
+    const stillThere = await Rating.findById(foreignRating._id);
+    expect(stillThere).not.toBeNull();
+  });
+});

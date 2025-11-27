@@ -759,3 +759,105 @@ describe('RatingService.listPlaylistRatings', () => {
     Rating.find = originalFind;
   });
 });
+
+describe('RatingService.deleteRating', () => {
+  it('should delete rating if it exists and belongs to the user', async () => {
+    const userId = new mongoose.Types.ObjectId();
+    const beatId = new mongoose.Types.ObjectId();
+
+    const created = await Rating.create({
+      beatId,
+      userId,
+      score: 5,
+      comment: 'Rating to delete',
+    });
+
+    const result = await ratingService.deleteRating({
+      ratingId: created._id.toString(),
+      userId: userId.toString(),
+    });
+
+    expect(result).toEqual({ deleted: true });
+
+    const inDb = await Rating.findById(created._id);
+    expect(inDb).toBeNull();
+  });
+
+  it('should return deleted:false if ratingId is not a valid ObjectId', async () => {
+    const userId = new mongoose.Types.ObjectId();
+
+    const result = await ratingService.deleteRating({
+      ratingId: 'not-a-valid-id',
+      userId: userId.toString(),
+    });
+
+    expect(result).toEqual({ deleted: false });
+  });
+
+  it('should return deleted:false if rating does not exist', async () => {
+    const userId = new mongoose.Types.ObjectId();
+    const fakeId = new mongoose.Types.ObjectId().toString();
+
+    const result = await ratingService.deleteRating({
+      ratingId: fakeId,
+      userId: userId.toString(),
+    });
+
+    expect(result).toEqual({ deleted: false });
+  });
+
+  it('should throw 401 if rating exists but belongs to another user', async () => {
+    const ownerId = new mongoose.Types.ObjectId();
+    const otherUserId = new mongoose.Types.ObjectId();
+    const beatId = new mongoose.Types.ObjectId();
+
+    const created = await Rating.create({
+      beatId,
+      userId: ownerId,
+      score: 3,
+      comment: 'Not your rating',
+    });
+
+    await expect(
+      ratingService.deleteRating({
+        ratingId: created._id.toString(),
+        userId: otherUserId.toString(),
+      })
+    ).rejects.toMatchObject({
+      status: 401,
+      message: 'You are not allowed to delete this rating.',
+    });
+
+    const stillThere = await Rating.findById(created._id);
+    expect(stillThere).not.toBeNull();
+  });
+
+  it('should rethrow unexpected errors (e.g. DB error on deleteOne)', async () => {
+    const userId = new mongoose.Types.ObjectId();
+    const beatId = new mongoose.Types.ObjectId();
+
+    const created = await Rating.create({
+      beatId,
+      userId,
+      score: 4,
+      comment: 'Rating to trigger delete error',
+    });
+
+    const originalDeleteOne = Rating.deleteOne;
+
+    Rating.deleteOne = async () => {
+      const err = new Error('Simulated deleteOne error (rating)');
+      err.name = 'SomeOtherError';
+      throw err;
+    };
+
+    await expect(
+      ratingService.deleteRating({
+        ratingId: created._id.toString(),
+        userId: userId.toString(),
+      })
+    ).rejects.toHaveProperty('message', 'Simulated deleteOne error (rating)');
+
+    Rating.deleteOne = originalDeleteOne;
+  });
+});
