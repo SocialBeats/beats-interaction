@@ -64,10 +64,24 @@ export async function startKafkaConsumer() {
           break;
 
         case 'BEAT_DELETED':
-          await BeatMaterialized.findOneAndDelete({ beatId: data.beatId });
-          logger.verbose(`Beat ${data._id} deleted from Materialized View`);
-          break;
+          const beatId = data._id;
 
+          await BeatMaterialized.findOneAndDelete({ beatId });
+          logger.verbose(`Beat ${beatId} deleted from Materialized View`);
+
+          await Comment.deleteMany({ beatId });
+          logger.verbose(`All comments for beat ${beatId} deleted`);
+
+          await Rating.deleteMany({ beatId });
+          logger.verbose(`All ratings for beat ${beatId} deleted`);
+
+          await Playlist.updateMany(
+            { 'items.beatId': beatId },
+            { $pull: { items: { beatId: beatId } } }
+          );
+          logger.verbose(`Beat ${beatId} removed from all playlists`);
+
+          break;
         case 'USER_CREATED':
           await UserMaterialized.create({
             userId: data._id,
@@ -107,6 +121,12 @@ export async function startKafkaConsumer() {
           logger.verbose(
             `User ${userId} removed from collaborators in all playlists`
           );
+
+          await Comment.deleteMany({ authorId: userId });
+          logger.verbose(`All comments by user ${userId} deleted`);
+
+          await Rating.deleteMany({ userId: userId });
+          logger.verbose(`All ratings by user ${userId} deleted`);
 
           await UserMaterialized.findOneAndDelete({ userId });
           logger.verbose(`User ${userId} deleted from Materialized View`);
