@@ -1,4 +1,4 @@
-import { BeatMaterialized, UserMaterialized } from '../models/models';
+import { BeatMaterialized, UserMaterialized } from '../models/models.js';
 import logger from '../../logger.js';
 import { Kafka } from 'kafkajs';
 
@@ -95,11 +95,25 @@ export async function startKafkaConsumer() {
           break;
 
         case 'USER_DELETED':
-          await UserMaterialized.findOneAndDelete({ userId: data._id });
-          logger.verbose(`User ${data._id} deleted from Materialized View`);
+          const userId = data._id;
+
+          await Playlist.deleteMany({ ownerId: userId });
+          logger.verbose(`All playlists owned by user ${userId} deleted`);
+
+          await Playlist.updateMany(
+            { collaborators: userId },
+            { $pull: { collaborators: userId } }
+          );
+          logger.verbose(
+            `User ${userId} removed from collaborators in all playlists`
+          );
+
+          await UserMaterialized.findOneAndDelete({ userId });
+          logger.verbose(`User ${userId} deleted from Materialized View`);
+
           await BeatMaterialized.deleteMany({ artist: data.username });
           logger.verbose(
-            `All beats from User ${data._id} deleted from Materialized View`
+            `All beats from user ${userId} deleted from Materialized View`
           );
           break;
 
