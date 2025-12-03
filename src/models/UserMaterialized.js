@@ -14,8 +14,7 @@ const UserMaterializedSchema = new mongoose.Schema(
     timestamps: false,
   }
 );
-UserMaterializedSchema.index({ username: 1 });
-UserMaterializedSchema.index({ email: 1 });
+
 UserMaterializedSchema.index({ roles: 1 });
 
 const UserMaterialized = mongoose.model(
