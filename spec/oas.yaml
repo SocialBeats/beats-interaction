@@ -1,8 +1,8 @@
 openapi: 3.0.0
 info:
-  title: Microservice API
+  title: beats-interaction microservice API
   version: unknown
-  description: This is an OAS description of this Microservice REST API
+  description: This is an OAS description of this beats-interaction microservice REST API
 servers:
   - url: http://localhost:3000
 components:
@@ -11,6 +11,142 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+  schemas:
+    Comment:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 654321abcdef
+        beatId:
+          type: string
+          example: beatId1
+          nullable: true
+        playlistId:
+          type: string
+          example: playlistId1
+          nullable: true
+        authorId:
+          type: string
+          example: 123456abcdef
+        text:
+          type: string
+          example: This is an awesome beat!
+          maxLength: 200
+        createdAt:
+          type: string
+          format: date-time
+          example: '2025-11-23T10:00:00.000Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2025-11-23T11:00:00.000Z'
+      required:
+        - authorId
+        - text
+      description: >-
+        Represents a comment made by a user on either a beat or a playlist. Only
+        one of beatId or playlistId must be present.
+    Rating:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 654321abcdef
+        beatId:
+          type: string
+          example: beatId1
+          nullable: true
+        playlistId:
+          type: string
+          example: playlistId1
+          nullable: true
+        userId:
+          type: string
+          example: 123456abcdef
+        score:
+          type: number
+          minimum: 1
+          maximum: 5
+          example: 4
+        comment:
+          type: string
+          example: This beat is awesome!
+          maxLength: 200
+        createdAt:
+          type: string
+          format: date-time
+          example: '2025-11-23T10:00:00.000Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2025-11-23T11:00:00.000Z'
+      required:
+        - userId
+        - score
+      description: >-
+        Represents a rating given by a user to a beat or a playlist. Only one of
+        beatId or playlistId must be present.
+    Playlist:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 654321abcdef
+        ownerId:
+          type: string
+          example: 123456abcdef
+        name:
+          type: string
+          example: My Awesome Playlist
+        description:
+          type: string
+          example: A playlist with my favorite beats
+        isPublic:
+          type: boolean
+          example: true
+        collaborators:
+          type: array
+          items:
+            type: string
+          example:
+            - userId1
+            - userId2
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Item'
+        createdAt:
+          type: string
+          format: date-time
+          example: '2025-11-23T10:00:00.000Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2025-11-23T11:00:00.000Z'
+      required:
+        - _id
+        - ownerId
+        - name
+        - items
+        - collaborators
+    Item:
+      type: object
+      properties:
+        beatId:
+          type: string
+          example: 654321abcdef
+        addedBy:
+          type: string
+          example: 123456abcdef
+        addedAt:
+          type: string
+          format: date-time
+          example: '2025-11-23T12:00:00.000Z'
+      required:
+        - beatId
+        - addedBy
+        - addedAt
 paths:
   /api/v1/about:
     get:
@@ -118,6 +254,604 @@ paths:
                 example: >-
                   There was an error retrieving API release notes: ENOENT: no
                   such file or directory, open 'CHANGELOG.md'
+  /api/v1/beats/{beatId}/comments:
+    post:
+      tags:
+        - Comments
+      summary: Create a comment on a beat
+      description: >-
+        Creates a new comment associated with the specified beat for the
+        authenticated user. `beatId` must be a valid MongoDB ObjectId.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: beatId
+          required: true
+          schema:
+            type: string
+          description: ID of the beat to comment on.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - text
+              properties:
+                text:
+                  type: string
+                  maxLength: 200
+                  example: La caja entra tarde, yo la adelantaría un poco.
+      responses:
+        '201':
+          description: Comment successfully created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        '401':
+          description: Unauthorized. Token missing or invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Unauthorized access.
+        '404':
+          description: Beat not found (invalid or non-existent `beatId`).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Beat not found.
+        '422':
+          description: Validation error (e.g., text empty or too long).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Comment text cannot exceed 200 characters.
+        '500':
+          description: Internal server error while creating comment.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while creating comment.
+    get:
+      tags:
+        - Comments
+      summary: List comments for a beat
+      description: >
+        Returns a paginated list of comments associated with a given beat.
+        Supports `page` and `limit` query parameters. Maximum `limit` is 100.
+        Sorted by `createdAt` descending.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: beatId
+          required: true
+          schema:
+            type: string
+          description: >-
+            ID of the beat whose comments are being requested. Must be a valid
+            MongoDB ObjectId.
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: >-
+            Page number for pagination. Defaults to 1 if invalid or not
+            provided.
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: >-
+            Number of comments per page. Defaults to 20 if invalid or not
+            provided.
+      responses:
+        '200':
+          description: Paginated list of comments for the beat.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Comment'
+                  page:
+                    type: integer
+                    example: 1
+                  limit:
+                    type: integer
+                    example: 20
+                  total:
+                    type: integer
+                    example: 42
+        '401':
+          description: Unauthorized. Token missing or invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Unauthorized access.
+        '404':
+          description: Beat not found (invalid `beatId`).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Beat not found.
+        '500':
+          description: Internal server error while listing comments.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while listing comments for beat.
+  /api/v1/playlists/{playlistId}/comments:
+    post:
+      tags:
+        - Comments
+      summary: Create a comment on a playlist
+      description: >-
+        Creates a new comment associated with the specified playlist for the
+        authenticated user. `playlistId` must be a valid MongoDB ObjectId.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: playlistId
+          required: true
+          schema:
+            type: string
+          description: ID of the playlist to comment on.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - text
+              properties:
+                text:
+                  type: string
+                  maxLength: 200
+                  example: Muy buena selección de temas.
+      responses:
+        '201':
+          description: Comment successfully created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        '401':
+          description: Unauthorized. Token missing or invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Unauthorized access.
+        '404':
+          description: Playlist not found (invalid or non-existent `playlistId`).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Playlist not found.
+        '422':
+          description: Validation error (e.g., text empty, too long, or playlist private).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Comment text cannot exceed 200 characters.
+        '500':
+          description: Internal server error while creating comment.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while creating comment.
+    get:
+      tags:
+        - Comments
+      summary: List comments for a playlist
+      description: >
+        Returns a paginated list of comments associated with a given playlist.
+        Supports `page` and `limit` query parameters. Maximum `limit` is 100.
+        Sorted by `createdAt` descending.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: playlistId
+          required: true
+          schema:
+            type: string
+          description: >-
+            ID of the playlist whose comments are being requested. Must be a
+            valid MongoDB ObjectId.
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: >-
+            Page number for pagination. Defaults to 1 if invalid or not
+            provided.
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: >-
+            Number of comments per page. Defaults to 20 if invalid or not
+            provided.
+      responses:
+        '200':
+          description: Paginated list of comments for the playlist.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Comment'
+                  page:
+                    type: integer
+                    example: 1
+                  limit:
+                    type: integer
+                    example: 20
+                  total:
+                    type: integer
+                    example: 42
+        '401':
+          description: Unauthorized. Token missing or invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Unauthorized access.
+        '404':
+          description: Playlist not found (invalid `playlistId`).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Playlist not found.
+        '500':
+          description: Internal server error while listing comments.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while listing comments for playlist.
+  /api/v1/comments/{commentId}:
+    get:
+      tags:
+        - Comments
+      summary: Get a specific comment
+      description: >-
+        Retrieves a single comment by its ID. Useful for moderation tools.
+        `commentId` must be a valid MongoDB ObjectId.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: commentId
+          required: true
+          schema:
+            type: string
+          description: ID of the comment to retrieve.
+      responses:
+        '200':
+          description: Comment successfully retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        '401':
+          description: Unauthorized. Token missing or invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Unauthorized access.
+        '404':
+          description: Comment not found (invalid or non-existent `commentId`).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Comment not found.
+        '500':
+          description: Internal server error while retrieving comment.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while retrieving comment.
+    delete:
+      tags:
+        - Comments
+      summary: Delete a comment
+      description: >
+        Deletes a comment if it belongs to the authenticated user. The operation
+        is idempotent: returns success even if the comment does not exist or the
+        ID is invalid.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: commentId
+          required: true
+          schema:
+            type: string
+          description: ID of the comment to delete. Must be a valid MongoDB ObjectId.
+      responses:
+        '200':
+          description: >-
+            Comment deletion result. `deleted` is true if the comment was
+            deleted, false otherwise.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted:
+                    type: boolean
+                    example: true
+        '401':
+          description: >-
+            Unauthorized. Comment exists but does not belong to the
+            authenticated user.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: You are not allowed to delete this comment.
+        '500':
+          description: Internal server error while deleting comment.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while deleting comment.
+    put:
+      tags:
+        - Comments
+      summary: Update a comment
+      description: >-
+        Updates the text of a comment. Only the author can edit their own
+        comment.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: commentId
+          required: true
+          schema:
+            type: string
+          description: ID of the comment to edit. Must be a valid Mongo ObjectId.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - text
+              properties:
+                text:
+                  type: string
+                  maxLength: 200
+                  example: Lo he escuchado mejor, el bombo está OK.
+      responses:
+        '200':
+          description: Comment successfully updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        '401':
+          description: >-
+            Unauthorized. The authenticated user is not the author of the
+            comment.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: You are not allowed to edit this comment.
+        '404':
+          description: Comment not found. Either invalid ID or comment does not exist.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Comment not found.
+        '422':
+          description: >-
+            Validation error. For example, text is empty or exceeds 200
+            characters.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Comment text cannot be empty or exceed 200 characters.
+        '500':
+          description: Internal server error while updating comment.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while updating comment.
+    patch:
+      tags:
+        - Comments
+      summary: Update a comment
+      description: >-
+        Updates the text of a comment. Only the author can edit their own
+        comment.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: commentId
+          required: true
+          schema:
+            type: string
+          description: ID of the comment to edit. Must be a valid Mongo ObjectId.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - text
+              properties:
+                text:
+                  type: string
+                  maxLength: 200
+                  example: Lo he escuchado mejor, el bombo está OK.
+      responses:
+        '200':
+          description: Comment successfully updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        '401':
+          description: >-
+            Unauthorized. The authenticated user is not the author of the
+            comment.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: You are not allowed to edit this comment.
+        '404':
+          description: Comment not found. Either invalid ID or comment does not exist.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Comment not found.
+        '422':
+          description: >-
+            Validation error. For example, text is empty or exceeds 200
+            characters.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Comment text cannot be empty or exceed 200 characters.
+        '500':
+          description: Internal server error while updating comment.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while updating comment.
   /api/v1/health:
     get:
       tags:
@@ -154,4 +888,1467 @@ paths:
                   db:
                     type: string
                     example: connected
+  /api/v1/playlists:
+    post:
+      tags:
+        - Playlists
+      summary: Create a new playlist
+      description: >-
+        Creates a new playlist for the authenticated user. Validates input data
+        including name, description, items, and collaborators.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: My Awesome Playlist
+                  description: The name of the playlist (max 50 characters).
+                description:
+                  type: string
+                  example: A playlist with my favorite beats
+                  description: Optional description of the playlist (max 300 characters).
+                isPublic:
+                  type: boolean
+                  example: true
+                  description: Whether the playlist is public or private.
+                collaborators:
+                  type: array
+                  items:
+                    type: string
+                  example:
+                    - userId1
+                    - userId2
+                  description: >-
+                    List of user IDs allowed to collaborate on the playlist (max
+                    30).
+                items:
+                  type: array
+                  items:
+                    type: string
+                  example:
+                    - beatId1
+                    - beatId2
+                  description: >-
+                    List of beat IDs to include in the playlist (max 250, no
+                    duplicates).
+              required:
+                - name
+      responses:
+        '201':
+          description: Playlist created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Playlist'
+        '422':
+          description: Validation error due to invalid input.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Playlist name cannot exceed 50 characters.
+        '500':
+          description: Internal server error while creating playlist.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while creating playlist
+  /api/v1/playlists/me:
+    get:
+      tags:
+        - Playlists
+      summary: Get authenticated user's playlists
+      description: >-
+        Retrieves all playlists owned by or collaborated on by the authenticated
+        user. Returns playlists sorted by creation date descending.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of user's playlists
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Playlist'
+        '422':
+          description: Validation error due to invalid userId or missing parameters.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Invalid userId.
+        '500':
+          description: Internal server error while getting user playlists.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while getting user playlists
+  /api/v1/playlists/user/{userId}:
+    get:
+      tags:
+        - Playlists
+      summary: Get playlists of a specific user
+      description: >-
+        Retrieves playlists of a user specified by `userId`. Returns public
+        playlists and playlists the requester collaborates on. Sorted by
+        creation date descending.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: The ID of the user whose playlists are being requested.
+          schema:
+            type: string
+            example: 123456abcdef
+      responses:
+        '200':
+          description: List of the user's playlists
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Playlist'
+        '422':
+          description: Validation error due to invalid or missing userId.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Invalid userId.
+        '500':
+          description: Internal server error while getting user playlists.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while getting user playlists
+  /api/v1/playlists/public:
+    get:
+      tags:
+        - Playlists
+      summary: Get public playlists
+      description: >-
+        Retrieves public playlists with optional filters by name and owner.
+        Supports pagination.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          required: false
+          description: Page number for pagination (default is 1)
+          schema:
+            type: integer
+            example: 1
+        - name: limit
+          in: query
+          required: false
+          description: Number of playlists per page (default is 20)
+          schema:
+            type: integer
+            example: 20
+        - name: name
+          in: query
+          required: false
+          description: Filter playlists by name (case-insensitive, partial match)
+          schema:
+            type: string
+            example: Awesome
+        - name: ownerId
+          in: query
+          required: false
+          description: Filter playlists by owner user ID
+          schema:
+            type: string
+            example: 123456abcdef
+      responses:
+        '200':
+          description: Paginated list of public playlists
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                    example: 100
+                  totalPages:
+                    type: integer
+                    example: 5
+                  currentPage:
+                    type: integer
+                    example: 1
+                  pageSize:
+                    type: integer
+                    example: 20
+                  playlists:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Playlist'
+        '422':
+          description: Invalid ownerId format.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Invalid ownerId format.
+        '500':
+          description: Internal server error while retrieving public playlists.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while retrieving public playlists
+  /api/v1/playlists/{id}:
+    get:
+      tags:
+        - Playlists
+      summary: Get a specific playlist by ID
+      description: >-
+        Retrieves a playlist by its ID. Only accessible if the playlist is
+        public, or if the requester is the owner or a collaborator.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The ID of the playlist to retrieve
+          schema:
+            type: string
+            example: 654321abcdef
+      responses:
+        '200':
+          description: Playlist details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Playlist'
+        '403':
+          description: Access denied to view this playlist
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: You do not have permission to view this playlist.
+        '404':
+          description: Playlist not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Playlist not found.
+        '422':
+          description: Validation error due to missing or invalid playlist ID
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Invalid playlist ID format.
+        '500':
+          description: Internal server error while retrieving playlist
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while getting playlist
+    put:
+      tags:
+        - Playlists
+      summary: Update a playlist
+      description: >-
+        Updates a playlist's details. Only the owner can update. Supports
+        updating name, description, isPublic, collaborators, and items.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The ID of the playlist to update
+          schema:
+            type: string
+            example: 654321abcdef
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: Updated Playlist Name
+                  description: Playlist name (max 50 characters)
+                description:
+                  type: string
+                  example: Updated description for the playlist
+                  description: Playlist description (max 300 characters)
+                isPublic:
+                  type: boolean
+                  example: true
+                collaborators:
+                  type: array
+                  items:
+                    type: string
+                  example:
+                    - userId1
+                    - userId2
+                  description: >-
+                    List of collaborator user IDs (max 30, owner cannot be a
+                    collaborator, no duplicates, only for public playlists)
+                items:
+                  type: array
+                  items:
+                    oneOf:
+                      - type: string
+                      - type: object
+                        properties:
+                          beatId:
+                            type: string
+                            example: beatId1
+                          addedBy:
+                            type: string
+                            example: 123456abcdef
+                          addedAt:
+                            type: string
+                            format: date-time
+                            example: '2025-11-23T12:00:00.000Z'
+                  description: List of beats in the playlist (max 250, no duplicates)
+      responses:
+        '200':
+          description: Playlist updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Playlist'
+        '403':
+          description: User does not have permission to update this playlist
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: You do not have permission to update this playlist.
+        '404':
+          description: Playlist not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Playlist not found.
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Playlist name cannot exceed 50 characters.
+        '500':
+          description: Internal server error while updating playlist
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while updating playlist
+    patch:
+      tags:
+        - Playlists
+      summary: Update a playlist
+      description: >-
+        Updates a playlist's details. Only the owner can update. Supports
+        updating name, description, isPublic, collaborators, and items.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The ID of the playlist to update
+          schema:
+            type: string
+            example: 654321abcdef
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: Updated Playlist Name
+                  description: Playlist name (max 50 characters)
+                description:
+                  type: string
+                  example: Updated description for the playlist
+                  description: Playlist description (max 300 characters)
+                isPublic:
+                  type: boolean
+                  example: true
+                collaborators:
+                  type: array
+                  items:
+                    type: string
+                  example:
+                    - userId1
+                    - userId2
+                  description: >-
+                    List of collaborator user IDs (max 30, owner cannot be a
+                    collaborator, no duplicates, only for public playlists)
+                items:
+                  type: array
+                  items:
+                    oneOf:
+                      - type: string
+                      - type: object
+                        properties:
+                          beatId:
+                            type: string
+                            example: beatId1
+                          addedBy:
+                            type: string
+                            example: 123456abcdef
+                          addedAt:
+                            type: string
+                            format: date-time
+                            example: '2025-11-23T12:00:00.000Z'
+                  description: List of beats in the playlist (max 250, no duplicates)
+      responses:
+        '200':
+          description: Playlist updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Playlist'
+        '403':
+          description: User does not have permission to update this playlist
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: You do not have permission to update this playlist.
+        '404':
+          description: Playlist not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Playlist not found.
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Playlist name cannot exceed 50 characters.
+        '500':
+          description: Internal server error while updating playlist
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while updating playlist
+    delete:
+      tags:
+        - Playlists
+      summary: Delete a playlist
+      description: Deletes a playlist by its ID. Only the owner can delete it.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The ID of the playlist to delete
+          schema:
+            type: string
+            example: 654321abcdef
+      responses:
+        '200':
+          description: Playlist deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Playlist deleted successfully.
+        '403':
+          description: User does not have permission to delete this playlist
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: You do not have permission to delete this playlist.
+        '422':
+          description: Validation error due to missing or invalid playlist ID
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Invalid playlist ID format.
+        '500':
+          description: Internal server error while deleting playlist
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while deleting playlist
+  /api/v1/playlists/{id}/items:
+    post:
+      tags:
+        - Playlists
+      summary: Add a beat to a playlist
+      description: >-
+        Adds a beat to a playlist. Only the owner or collaborators can add
+        beats. Maximum 250 items per playlist, no duplicates allowed.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The ID of the playlist
+          schema:
+            type: string
+            example: 654321abcdef
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                beatId:
+                  type: string
+                  example: beatId1
+                  description: ID of the beat to add to the playlist
+              required:
+                - beatId
+      responses:
+        '200':
+          description: Beat added successfully, returns updated playlist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Playlist'
+        '403':
+          description: User does not have permission to add beats
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: You do not have permission to add beats to this playlist.
+        '404':
+          description: Playlist not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Playlist not found.
+        '422':
+          description: Validation error (missing IDs, duplicate beat, max items exceeded)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: This beat is already in the playlist.
+        '500':
+          description: Internal server error while adding beat to playlist
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while adding beat to playlist
+  /api/v1/playlists/{id}/items/{beatId}:
+    delete:
+      tags:
+        - Playlists
+      summary: Remove a beat from a playlist
+      description: >-
+        Removes a beat from a playlist. Only the owner or collaborators can
+        remove beats.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The ID of the playlist
+          schema:
+            type: string
+            example: 654321abcdef
+        - name: beatId
+          in: path
+          required: true
+          description: The ID of the beat to remove
+          schema:
+            type: string
+            example: beatId1
+      responses:
+        '200':
+          description: Beat removed successfully, returns updated playlist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Playlist'
+        '403':
+          description: User does not have permission to remove beats
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: >-
+                      You do not have permission to remove beats from this
+                      playlist.
+        '404':
+          description: Playlist or beat not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Beat not found in the playlist.
+        '422':
+          description: Validation error (missing or invalid IDs)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Invalid playlist ID format.
+        '500':
+          description: Internal server error while removing beat from playlist
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while deleting beat from playlist
+  /api/v1/beats/{beatId}/ratings:
+    post:
+      tags:
+        - Ratings
+      summary: Create a rating for a beat
+      description: >
+        Creates a new rating associated with the specified beat for the
+        authenticated user. A user can only rate a beat once. If a rating
+        already exists for this user and beat, a validation error (422) is
+        returned. `beatId` must be a valid MongoDB ObjectId.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: beatId
+          required: true
+          schema:
+            type: string
+          description: ID of the beat to rate.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/Rating'
+              required:
+                - score
+              properties:
+                beatId:
+                  readOnly: true
+                playlistId:
+                  readOnly: true
+                userId:
+                  readOnly: true
+                createdAt:
+                  readOnly: true
+                updatedAt:
+                  readOnly: true
+              description: Only `score` and optional `comment` are accepted in the request.
+      responses:
+        '201':
+          description: Rating successfully created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rating'
+        '401':
+          description: Unauthorized. Token missing or invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Unauthorized access.
+        '404':
+          description: Beat not found (invalid or non-existent `beatId`).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Beat not found.
+        '422':
+          description: >-
+            Validation error (e.g., score out of range, comment too long, or
+            user already rated this beat).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: User has already rated this beat.
+        '500':
+          description: Internal server error while creating rating.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while creating rating.
+    get:
+      tags:
+        - Ratings
+      summary: List ratings for a beat
+      description: >
+        Returns all ratings associated with a given beat, along with the average
+        score and total number of ratings. `beatId` must be a valid MongoDB
+        ObjectId.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: beatId
+          required: true
+          schema:
+            type: string
+          description: ID of the beat whose ratings are being requested.
+      responses:
+        '200':
+          description: List of ratings for the beat with average and total count.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      allOf:
+                        - $ref: '#/components/schemas/Rating'
+                      properties:
+                        beatId:
+                          readOnly: true
+                        playlistId:
+                          readOnly: true
+                        userId:
+                          readOnly: true
+                        createdAt:
+                          readOnly: true
+                        updatedAt:
+                          readOnly: true
+                  average:
+                    type: number
+                    example: 4.5
+                  count:
+                    type: integer
+                    example: 12
+        '401':
+          description: Unauthorized. Token missing or invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Unauthorized access.
+        '404':
+          description: Beat not found (invalid `beatId`).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Beat not found.
+        '500':
+          description: Internal server error while listing ratings for beat.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while listing ratings for beat.
+  /api/v1/playlists/{playlistId}/ratings:
+    post:
+      tags:
+        - Ratings
+      summary: Create a rating for a playlist
+      description: >
+        Creates a new rating associated with the specified playlist for the
+        authenticated user. The playlist must exist and be public. A user can
+        only rate a playlist once. If a rating already exists for this user and
+        playlist, a validation error (422) is returned. `playlistId` must be a
+        valid MongoDB ObjectId.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: playlistId
+          required: true
+          schema:
+            type: string
+          description: ID of the playlist to rate.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/Rating'
+              required:
+                - score
+              properties:
+                playlistId:
+                  readOnly: true
+                beatId:
+                  readOnly: true
+                userId:
+                  readOnly: true
+                createdAt:
+                  readOnly: true
+                updatedAt:
+                  readOnly: true
+              description: Only `score` and optional `comment` are accepted in the request.
+      responses:
+        '201':
+          description: Rating successfully created for the playlist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rating'
+        '401':
+          description: Unauthorized. Token missing or invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Unauthorized access.
+        '404':
+          description: Playlist not found (invalid or non-existent `playlistId`).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Playlist not found.
+        '422':
+          description: >
+            Validation error. For example: - score out of range - comment too
+            long - playlist does not exist - playlist is private - user has
+            already rated this playlist
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: User has already rated this playlist.
+        '500':
+          description: Internal server error while creating playlist rating.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while creating playlist rating.
+    get:
+      tags:
+        - Ratings
+      summary: List ratings for a playlist
+      description: >
+        Returns all ratings associated with a given playlist, along with the
+        average score and total number of ratings. `playlistId` must be a valid
+        MongoDB ObjectId.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: playlistId
+          required: true
+          schema:
+            type: string
+          description: ID of the playlist whose ratings are being requested.
+      responses:
+        '200':
+          description: List of ratings for the playlist with average and total count.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      allOf:
+                        - $ref: '#/components/schemas/Rating'
+                      properties:
+                        playlistId:
+                          readOnly: true
+                        beatId:
+                          readOnly: true
+                        userId:
+                          readOnly: true
+                        createdAt:
+                          readOnly: true
+                        updatedAt:
+                          readOnly: true
+                  average:
+                    type: number
+                    example: 4.5
+                  count:
+                    type: integer
+                    example: 12
+        '401':
+          description: Unauthorized. Token missing or invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Unauthorized access.
+        '404':
+          description: Playlist not found (invalid `playlistId`).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Playlist not found.
+        '500':
+          description: Internal server error while listing ratings for playlist.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while listing ratings for playlist.
+  /api/v1/ratings/{ratingId}:
+    get:
+      tags:
+        - Ratings
+      summary: Get a specific rating by its ID
+      description: >
+        Retrieves a single rating by its ID. Useful for moderation or admin
+        tools. `ratingId` must be a valid MongoDB ObjectId.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: ratingId
+          required: true
+          schema:
+            type: string
+          description: ID of the rating to retrieve.
+      responses:
+        '200':
+          description: Rating successfully retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rating'
+        '401':
+          description: Unauthorized. Token missing or invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Unauthorized access.
+        '404':
+          description: Rating not found (invalid or non-existent `ratingId`).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Rating not found.
+        '500':
+          description: Internal server error while retrieving rating.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while retrieving rating.
+    delete:
+      tags:
+        - Ratings
+      summary: Delete a rating
+      description: >
+        Deletes a rating if it exists and belongs to the authenticated user. The
+        operation is idempotent: - If the rating does not exist, or the ID is
+        invalid, it returns `deleted: false` with status 200. - If the rating
+        exists and is deleted, it returns `deleted: true` with status 200. - If
+        the rating exists but belongs to another user, it returns 401.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: ratingId
+          required: true
+          schema:
+            type: string
+          description: ID of the rating to delete. Must be a valid MongoDB ObjectId.
+      responses:
+        '200':
+          description: >-
+            Rating deletion result. `deleted` is true if the rating was deleted,
+            false otherwise.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted:
+                    type: boolean
+                    example: true
+        '401':
+          description: >-
+            Unauthorized. Rating exists but does not belong to the authenticated
+            user.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: You are not allowed to delete this rating.
+        '500':
+          description: Internal server error while deleting rating.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while deleting rating.
+    put:
+      tags:
+        - Ratings
+      summary: Update a rating
+      description: >
+        Updates the score (and optionally the comment) of a rating identified by
+        its ID. Only the user who created the rating can update it.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: ratingId
+          required: true
+          schema:
+            type: string
+          description: ID of the rating to edit. Must be a valid MongoDB ObjectId.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - score
+              properties:
+                score:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                  example: 5
+                comment:
+                  type: string
+                  maxLength: 200
+                  example: Muy pro, master limpio.
+      responses:
+        '200':
+          description: Rating successfully updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rating'
+        '401':
+          description: Unauthorized. The authenticated user is not the owner of the rating.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: You are not allowed to edit this rating.
+        '404':
+          description: >-
+            Rating not found. Either the ID is invalid or the rating does not
+            exist.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Rating not found.
+        '422':
+          description: Validation error (e.g., score out of range, comment too long).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Score must be between 1 and 5.
+        '500':
+          description: Internal server error while updating rating.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while updating rating.
+    patch:
+      tags:
+        - Ratings
+      summary: Update a rating
+      description: >
+        Updates the score (and optionally the comment) of a rating identified by
+        its ID. Only the user who created the rating can update it. This
+        endpoint behaves the same as the PUT version; it is provided for
+        convenience.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: ratingId
+          required: true
+          schema:
+            type: string
+          description: ID of the rating to edit. Must be a valid MongoDB ObjectId.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - score
+              properties:
+                score:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                  example: 4
+                comment:
+                  type: string
+                  maxLength: 200
+                  example: He ajustado la mezcla y ahora suena mejor.
+      responses:
+        '200':
+          description: Rating successfully updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rating'
+        '401':
+          description: Unauthorized. The authenticated user is not the owner of the rating.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: You are not allowed to edit this rating.
+        '404':
+          description: >-
+            Rating not found. Either the ID is invalid or the rating does not
+            exist.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Rating not found.
+        '422':
+          description: Validation error (e.g., score out of range, comment too long).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Score must be between 1 and 5.
+        '500':
+          description: Internal server error while updating rating.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while updating rating.
+  /api/v1/beats/{beatId}/ratings/me:
+    get:
+      tags:
+        - Ratings
+      summary: Get the current user's rating for a beat
+      description: >
+        Returns the rating of the authenticated user for the specified beat. If
+        the user has not rated this beat yet, a 404 is returned. `beatId` must
+        be a valid MongoDB ObjectId.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: beatId
+          required: true
+          schema:
+            type: string
+          description: ID of the beat whose rating is being requested.
+      responses:
+        '200':
+          description: Rating found for this beat and user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rating'
+        '401':
+          description: Unauthorized. Token missing or invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Unauthorized access.
+        '404':
+          description: Beat not found or user has no rating for this beat.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Rating not found.
+        '500':
+          description: Internal server error while retrieving rating.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while retrieving rating.
+  /api/v1/playlists/{playlistId}/ratings/me:
+    get:
+      tags:
+        - Ratings
+      summary: Get the current user's rating for a playlist
+      description: >
+        Returns the rating of the authenticated user for the specified playlist.
+        If the user has not rated this playlist yet, a 404 is returned.
+        `playlistId` must be a valid MongoDB ObjectId.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: playlistId
+          required: true
+          schema:
+            type: string
+          description: ID of the playlist whose rating is being requested.
+      responses:
+        '200':
+          description: Rating found for this playlist and user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rating'
+        '401':
+          description: Unauthorized. Token missing or invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Unauthorized access.
+        '404':
+          description: Playlist not found or user has no rating for this playlist.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Rating not found.
+        '500':
+          description: Internal server error while retrieving playlist rating.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while retrieving playlist rating.
 tags: []

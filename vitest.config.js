@@ -6,11 +6,22 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     setupFiles: ['./tests/setup/setup.js'],
+    isolate: true,
+    threads: false,
+    maxConcurrency: 1,
     coverage: {
       provider: 'istanbul',
       reporter: ['text', 'html'],
       all: true,
       reportsDirectory: path.resolve('./coverage'),
+      exclude: [
+        'tests/**',
+        'node_modules/**',
+        'vitest.config.js',
+        'scripts/**',
+        'src/db.js',
+        'commitlint.config.cjs',
+      ],
     },
   },
 });

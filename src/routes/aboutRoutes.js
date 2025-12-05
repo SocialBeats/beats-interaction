@@ -6,7 +6,12 @@ import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 import yaml from 'js-yaml';
 import { getVersion } from '../utils/versionUtils.js';
-
+import {
+  PlaylistSchema,
+  ItemSchema,
+  CommentSchema,
+  RatingSchema,
+} from '../models/OASSchemas.js';
 export default function aboutRoutes(app) {
   const API_TITLE = process.env.API_TITLE || 'Microservice API';
   const API_DESCRIPTION =
@@ -35,6 +40,12 @@ export default function aboutRoutes(app) {
             scheme: 'bearer',
             bearerFormat: 'JWT',
           },
+        },
+        schemas: {
+          Comment: CommentSchema,
+          Rating: RatingSchema,
+          Playlist: PlaylistSchema,
+          Item: ItemSchema,
         },
       },
     },
