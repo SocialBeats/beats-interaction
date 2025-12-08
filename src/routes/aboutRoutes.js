@@ -13,6 +13,7 @@ import {
   RatingSchema,
   UserMaterializedSchema,
   BeatMaterializedSchema,
+  DetailedPlaylistSchema,
 } from '../models/OASSchemas.js';
 export default function aboutRoutes(app) {
   const API_TITLE = process.env.API_TITLE || 'Microservice API';
@@ -48,8 +49,9 @@ export default function aboutRoutes(app) {
           Rating: RatingSchema,
           Playlist: PlaylistSchema,
           Item: ItemSchema,
-          UserMaterializedSchema: UserMaterializedSchema,
-          BeatMaterializedSchema: BeatMaterializedSchema,
+          UserMaterialized: UserMaterializedSchema,
+          BeatMaterialized: BeatMaterializedSchema,
+          DetailedPlaylist: DetailedPlaylistSchema,
         },
       },
     },

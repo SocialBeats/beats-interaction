@@ -46,6 +46,50 @@ export const PlaylistSchema = {
   required: ['_id', 'ownerId', 'name', 'items', 'collaborators'],
 };
 
+export const DetailedPlaylistSchema = {
+  type: 'object',
+  properties: {
+    _id: { type: 'string', example: '654321abcdef' },
+    ownerId: { type: 'string', example: '123456abcdef' },
+    name: { type: 'string', example: 'My Awesome Playlist' },
+    description: {
+      type: 'string',
+      example: 'A playlist with my favorite beats',
+    },
+    isPublic: { type: 'boolean', example: true },
+    collaborators: {
+      type: 'array',
+      items: { type: 'string' },
+      example: ['userId1', 'userId2'],
+    },
+    items: {
+      type: 'array',
+      items: { $ref: '#/components/schemas/Item' },
+    },
+    collaboratorsData: {
+      type: 'array',
+      items: { $ref: '#/components/schemas/UserMaterialized' },
+      description: 'Array with full collaborators data',
+    },
+    beatsData: {
+      type: 'array',
+      items: { $ref: '#/components/schemas/BeatMaterialized' },
+      description: 'Array with full beats data',
+    },
+    createdAt: {
+      type: 'string',
+      format: 'date-time',
+      example: '2025-11-23T10:00:00.000Z',
+    },
+    updatedAt: {
+      type: 'string',
+      format: 'date-time',
+      example: '2025-11-23T11:00:00.000Z',
+    },
+  },
+  required: ['_id', 'ownerId', 'name', 'items', 'collaborators'],
+};
+
 export const RatingSchema = {
   type: 'object',
   properties: {

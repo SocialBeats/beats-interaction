@@ -147,7 +147,7 @@ components:
         - beatId
         - addedBy
         - addedAt
-    UserMaterializedSchema:
+    UserMaterialized:
       type: object
       properties:
         userId:
@@ -179,7 +179,7 @@ components:
         - username
         - email
       description: Materialized view of users optimized for quick lookup.
-    BeatMaterializedSchema:
+    BeatMaterialized:
       type: object
       properties:
         beatId:
@@ -234,6 +234,59 @@ components:
         - genre
         - updatedAt
       description: Materialized view of beats used for efficient querying and filtering.
+    DetailedPlaylist:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 654321abcdef
+        ownerId:
+          type: string
+          example: 123456abcdef
+        name:
+          type: string
+          example: My Awesome Playlist
+        description:
+          type: string
+          example: A playlist with my favorite beats
+        isPublic:
+          type: boolean
+          example: true
+        collaborators:
+          type: array
+          items:
+            type: string
+          example:
+            - userId1
+            - userId2
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Item'
+        collaboratorsData:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserMaterialized'
+          description: Array with full collaborators data
+        beatsData:
+          type: array
+          items:
+            $ref: '#/components/schemas/BeatMaterialized'
+          description: Array with full beats data
+        createdAt:
+          type: string
+          format: date-time
+          example: '2025-11-23T10:00:00.000Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2025-11-23T11:00:00.000Z'
+      required:
+        - _id
+        - ownerId
+        - name
+        - items
+        - collaborators
 paths:
   /api/v1/about:
     get:
@@ -1067,7 +1120,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Playlist'
+                $ref: '#/components/schemas/DetailedPlaylist'
         '422':
           description: Validation error due to invalid input.
           content:
@@ -1282,7 +1335,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Playlist'
+                $ref: '#/components/schemas/DetailedPlaylist'
         '403':
           description: Access denied to view this playlist
           content:
@@ -1392,7 +1445,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Playlist'
+                $ref: '#/components/schemas/DetailedPlaylist'
         '403':
           description: User does not have permission to update this playlist
           content:
@@ -1502,7 +1555,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Playlist'
+                $ref: '#/components/schemas/DetailedPlaylist'
         '403':
           description: User does not have permission to update this playlist
           content:
@@ -1636,7 +1689,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Playlist'
+                $ref: '#/components/schemas/DetailedPlaylist'
         '403':
           description: User does not have permission to add beats
           content:
@@ -1708,7 +1761,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Playlist'
+                $ref: '#/components/schemas/DetailedPlaylist'
         '403':
           description: User does not have permission to remove beats
           content:
