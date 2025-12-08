@@ -5,6 +5,11 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import logger from './logger.js';
 import { connectDB, disconnectDB } from './src/db.js';
+import {
+  startKafkaConsumer,
+  consumer,
+  producer,
+} from './src/services/kafkaConsumer.js';
 // import your middlewares here
 import verifyToken from './src/middlewares/authMiddlewares.js';
 // import your routes here
@@ -43,6 +48,13 @@ let server;
 if (process.env.NODE_ENV !== 'test') {
   await connectDB();
 
+  if (process.env.ENABLE_KAFKA.toLocaleLowerCase() === 'true') {
+    logger.warn('Kafka is enabled, trying to connect');
+    await startKafkaConsumer();
+  } else {
+    logger.warn('Kafka is not enabled');
+  }
+
   server = app.listen(PORT, () => {
     logger.warn(`Using log level: ${process.env.LOG_LEVEL}`);
     logger.info(`API running at http://localhost:${PORT}`);
@@ -54,18 +66,31 @@ if (process.env.NODE_ENV !== 'test') {
 
 async function gracefulShutdown(signal) {
   logger.warn(`${signal} received. Starting secure shutdown...`);
+
+  try {
+    logger.warn('Disconnecting Kafka consumer...');
+    await consumer.disconnect();
+    logger.warn('Kafka consumer disconnected.');
+    logger.warn('Disconnecting Kafka producer...');
+    await producer.disconnect();
+    logger.warn('Kafka producer disconnected.');
+  } catch (err) {
+    logger.error('Error disconnecting Kafka:', err);
+  }
   if (server) {
     server.close(async () => {
+      logger.info('Server closed');
       logger.info(
         'Since now new connections are not allowed. Waiting for current operations to finish...'
       );
       try {
         await disconnectDB();
-        logger.info('MongoDB connection is now closed.');
+        logger.info('MongoDB disconnected');
       } catch (err) {
-        logger.error('Error disconnecting from MongoDB:', err);
+        logger.error('Error disconnecting MongoDB:', err);
       }
-      logger.info('shutting down API.');
+
+      logger.info('Shutdown complete. Bye! ;)');
       process.exit(0);
     });
   }

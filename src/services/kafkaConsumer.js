@@ -16,6 +16,8 @@ const kafka = new Kafka({
 const consumer = kafka.consumer({ groupId: 'beats-interaction-group' });
 const producer = kafka.producer();
 
+const admin = kafka.admin();
+
 async function processEvent(event) {
   const data = event.payload;
 
@@ -150,16 +152,20 @@ async function sendToDLQ(event, reason) {
 }
 
 export async function startKafkaConsumer() {
-  const MAX_RETRIES = process.env.KAFKA_CONNECTION_MAX_RETRIES || 5;
-  const RETRY_DELAY = process.env.KAFKA_CONNECTION_RETRY_DELAY || 5000;
+  const MAX_RETRIES = Number(process.env.KAFKA_CONNECTION_MAX_RETRIES || 5);
+  const RETRY_DELAY = Number(process.env.KAFKA_CONNECTION_RETRY_DELAY || 5000);
+  const COOLDOWN_AFTER_FAIL = Number(process.env.KAFKA_COOLDOWN || 30000);
 
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+  let attempt = 1;
+
+  while (true) {
     try {
+      logger.info(`Connecting to Kafka... (Attempt ${attempt}/${MAX_RETRIES})`);
       await consumer.connect();
       await consumer.subscribe({ topic: 'beats-events', fromBeginning: true });
       await consumer.subscribe({ topic: 'users-events', fromBeginning: true });
 
-      logger.info('Kafka ready; Waiting for users and beats events...');
+      logger.info('Kafka connected & listening');
 
       await consumer.run({
         eachMessage: async ({ topic, message }) => {
@@ -178,16 +184,35 @@ export async function startKafkaConsumer() {
         },
       });
 
+      attempt = 1;
       break;
     } catch (err) {
-      logger.error(`Attempt ${attempt} failed: ${err.message}`);
-      if (attempt < MAX_RETRIES) {
-        logger.info(`Retrying connection in ${RETRY_DELAY / 1000}s...`);
-        await new Promise((res) => setTimeout(res, RETRY_DELAY));
+      logger.error(`Kafka connection failed: ${err.message}`);
+
+      if (attempt >= MAX_RETRIES) {
+        logger.warn(
+          `Max retries reached. Cooling down for ${COOLDOWN_AFTER_FAIL / 1000}s before trying again...`
+        );
+        await new Promise((res) => setTimeout(res, COOLDOWN_AFTER_FAIL));
+        attempt = 1;
       } else {
-        logger.error('Max retries reached. Consumer could not connect.');
-        process.exit(1);
+        attempt++;
+        logger.warn(`Retrying in ${RETRY_DELAY / 1000}s...`);
+        await new Promise((res) => setTimeout(res, RETRY_DELAY));
       }
     }
   }
 }
+
+export async function isKafkaConnected() {
+  try {
+    await admin.connect();
+    await admin.describeCluster();
+    await admin.disconnect();
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
+export { consumer, producer };
