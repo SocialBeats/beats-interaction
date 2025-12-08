@@ -219,4 +219,4 @@ export function isKafkaEnabled() {
   return process.env.ENABLE_KAFKA.toLocaleLowerCase() === 'true';
 }
 
-export { consumer, producer };
+export { consumer, producer, processEvent };
