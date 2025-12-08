@@ -8,8 +8,9 @@ import {
   Comment,
 } from '../../src/models/models.js';
 import { processEvent } from '../../src/services/kafkaConsumer.js';
+import logger from '../../logger.js';
 
-describe('Kafka Materialized Events Test', () => {
+describe('Kafka Materialized Events Test', async () => {
   const oid = () => new mongoose.Types.ObjectId();
 
   beforeEach(async () => {
@@ -162,5 +163,13 @@ describe('Kafka Materialized Events Test', () => {
     expect(await Comment.countDocuments()).toBe(0);
     expect(await Rating.countDocuments()).toBe(0);
     expect(await UserMaterialized.countDocuments()).toBe(0);
+  });
+
+  it('UNKNOWN_EVENT → should not crash and trigger logger.warn', async () => {
+    const warnSpy = vi.spyOn(logger, 'warn');
+
+    await processEvent({ type: 'NON_EXISTENT', payload: {} });
+
+    expect(warnSpy).toHaveBeenCalled();
   });
 });
