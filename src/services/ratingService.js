@@ -176,7 +176,7 @@ class RatingService {
     }
   }
 
-  async listBeatRatings({ beatId }) {
+  async listBeatRatings({ beatId, page = 1, limit = 20 }) {
     try {
       if (!mongoose.Types.ObjectId.isValid(beatId)) {
         const status = 404;
@@ -184,29 +184,58 @@ class RatingService {
         throw { status, message };
       }
 
-      // TODO: check if beat exists in Beats microservice (404 if not found)
+      // TODO: check if beat exists in DB (404 if not found)
 
-      const ratings = await Rating.find({ beatId });
+      page = Number(page);
+      limit = Number(limit);
 
-      const count = ratings.length;
-      const average =
-        count === 0 ? 0 : ratings.reduce((sum, r) => sum + r.score, 0) / count;
+      if (!Number.isInteger(page) || page < 1) page = 1;
+      if (!Number.isInteger(limit) || limit < 1) limit = 20;
+      if (limit > 100) limit = 100;
+
+      const beatObjectId = new mongoose.Types.ObjectId(beatId);
+      const match = { beatId: beatObjectId };
+
+      const [stats] = await Rating.aggregate([
+        { $match: match },
+        {
+          $group: {
+            _id: null,
+            count: { $sum: 1 },
+            average: { $avg: '$score' },
+          },
+        },
+      ]);
+
+      const count = stats ? stats.count : 0;
+      const average = stats ? stats.average : 0;
+
+      const maxPage = Math.max(1, Math.ceil(count / limit));
+      if (page > maxPage) page = maxPage;
+
+      const skip = (page - 1) * limit;
+
+      const ratings = await Rating.find(match)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
 
       return {
         data: ratings,
         average,
         count,
+        page,
+        limit,
       };
     } catch (err) {
       if (err.status) {
         throw err;
       }
-
       throw err;
     }
   }
 
-  async listPlaylistRatings({ playlistId }) {
+  async listPlaylistRatings({ playlistId, page = 1, limit = 20 }) {
     try {
       if (!mongoose.Types.ObjectId.isValid(playlistId)) {
         const status = 404;
@@ -214,22 +243,51 @@ class RatingService {
         throw { status, message };
       }
 
-      const ratings = await Rating.find({ playlistId });
+      page = Number(page);
+      limit = Number(limit);
 
-      const count = ratings.length;
-      const average =
-        count === 0 ? 0 : ratings.reduce((sum, r) => sum + r.score, 0) / count;
+      if (!Number.isInteger(page) || page < 1) page = 1;
+      if (!Number.isInteger(limit) || limit < 1) limit = 20;
+      if (limit > 100) limit = 100;
+
+      const playlistObjectId = new mongoose.Types.ObjectId(playlistId);
+      const match = { playlistId: playlistObjectId };
+
+      const [stats] = await Rating.aggregate([
+        { $match: match },
+        {
+          $group: {
+            _id: null,
+            count: { $sum: 1 },
+            average: { $avg: '$score' },
+          },
+        },
+      ]);
+
+      const count = stats ? stats.count : 0;
+      const average = stats ? stats.average : 0;
+
+      const maxPage = Math.max(1, Math.ceil(count / limit));
+      if (page > maxPage) page = maxPage;
+
+      const skip = (page - 1) * limit;
+
+      const ratings = await Rating.find(match)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
 
       return {
         data: ratings,
         average,
         count,
+        page,
+        limit,
       };
     } catch (err) {
       if (err.status) {
         throw err;
       }
-
       throw err;
     }
   }
