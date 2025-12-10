@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: 22.18.0
 
-      - run: npm ci
+      - run: npm ci --ignore-scripts
 
       - name: Run Prettier check
         id: lint
