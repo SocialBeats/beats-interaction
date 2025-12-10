@@ -20,6 +20,7 @@ export default function aboutRoutes(app) {
   const API_DESCRIPTION =
     process.env.API_DESCRIPTION ||
     'This is an OAS description of this Microservice REST API';
+  const API_PORT = process.env.PORT || 3002;
   const version = getVersion();
 
   // Swagger options
@@ -33,7 +34,7 @@ export default function aboutRoutes(app) {
       },
       servers: [
         {
-          url: 'http://localhost:3000',
+          url: `http://localhost:${API_PORT}`,
         },
       ],
       components: {
