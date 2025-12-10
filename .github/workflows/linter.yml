@@ -29,19 +29,26 @@ jobs:
         id: lint
         run: npm run lint
 
-      - name: Auto-fix lint and push changes
+      - name: Auto-fix when lint fails
         if: failure()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "Auto-fixing formatting..."
+          echo "Lint failed. Fixing code style..."
           npm run lint:fix
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "✔ No changes to commit."
+            exit 0
+          fi
+
+          echo "Committing..."
           git add .
-          git commit -m "style: automated prettier formatting" || exit 0
+          git commit -m "style: auto formatted by CI"
 
           echo "Pushing changes..."
-          git push https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }} HEAD:${{ github.ref_name }}
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}" HEAD:${{ github.ref_name }}
+
