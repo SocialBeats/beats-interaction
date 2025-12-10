@@ -526,8 +526,10 @@ export default function ratingRoutes(app) {
    *       - Ratings
    *     summary: List ratings for a beat
    *     description: >
-   *       Returns all ratings associated with a given beat, along with the average score
-   *       and total number of ratings.
+   *       Returns a paginated list of ratings associated with a given beat,
+   *       along with the average score and total number of ratings.
+   *       Supports `page` and `limit` query parameters. Maximum `limit` is 100.
+   *       Sorted by `createdAt` descending.
    *       `beatId` must be a valid MongoDB ObjectId.
    *     security:
    *       - bearerAuth: []
@@ -538,9 +540,24 @@ export default function ratingRoutes(app) {
    *         schema:
    *           type: string
    *         description: ID of the beat whose ratings are being requested.
+   *       - in: query
+   *         name: page
+   *         schema:
+   *           type: integer
+   *           minimum: 1
+   *           default: 1
+   *         description: Page number for pagination. Defaults to 1 if invalid or not provided.
+   *       - in: query
+   *         name: limit
+   *         schema:
+   *           type: integer
+   *           minimum: 1
+   *           maximum: 100
+   *           default: 20
+   *         description: Number of ratings per page. Defaults to 20 if invalid or not provided.
    *     responses:
    *       200:
-   *         description: List of ratings for the beat with average and total count.
+   *         description: Paginated list of ratings for the beat, with average and total count.
    *         content:
    *           application/json:
    *             schema:
@@ -550,25 +567,25 @@ export default function ratingRoutes(app) {
    *                   type: array
    *                   items:
    *                     type: object
-   *                     allOf:
-   *                       - $ref: '#/components/schemas/Rating'
    *                     properties:
-   *                       beatId:
-   *                         readOnly: true
-   *                       playlistId:
-   *                         readOnly: true
    *                       userId:
-   *                         readOnly: true
-   *                       createdAt:
-   *                         readOnly: true
-   *                       updatedAt:
-   *                         readOnly: true
+   *                         type: string
+   *                       score:
+   *                         type: integer
+   *                       comment:
+   *                         type: string
    *                 average:
    *                   type: number
    *                   example: 4.5
    *                 count:
    *                   type: integer
    *                   example: 12
+   *                 page:
+   *                   type: integer
+   *                   example: 1
+   *                 limit:
+   *                   type: integer
+   *                   example: 20
    *       401:
    *         description: Unauthorized. Token missing or invalid.
    *         content:
@@ -603,8 +620,14 @@ export default function ratingRoutes(app) {
   app.get(`${baseAPIURL}/beats/:beatId/ratings`, async (req, res) => {
     try {
       const { beatId } = req.params;
+      const page = req.query.page ? Number(req.query.page) : 1;
+      const limit = req.query.limit ? Number(req.query.limit) : 20;
 
-      const result = await ratingService.listBeatRatings({ beatId });
+      const result = await ratingService.listBeatRatings({
+        beatId,
+        page,
+        limit,
+      });
 
       return res.status(200).send({
         data: result.data.map((rating) => ({
@@ -614,6 +637,8 @@ export default function ratingRoutes(app) {
         })),
         average: result.average,
         count: result.count,
+        page: result.page,
+        limit: result.limit,
       });
     } catch (err) {
       if (err.status) {
@@ -636,8 +661,10 @@ export default function ratingRoutes(app) {
    *       - Ratings
    *     summary: List ratings for a playlist
    *     description: >
-   *       Returns all ratings associated with a given playlist, along with the average score
-   *       and total number of ratings.
+   *       Returns a paginated list of ratings associated with a given playlist,
+   *       along with the average score and total number of ratings.
+   *       Supports `page` and `limit` query parameters. Maximum `limit` is 100.
+   *       Sorted by `createdAt` descending.
    *       `playlistId` must be a valid MongoDB ObjectId.
    *     security:
    *       - bearerAuth: []
@@ -648,9 +675,24 @@ export default function ratingRoutes(app) {
    *         schema:
    *           type: string
    *         description: ID of the playlist whose ratings are being requested.
+   *       - in: query
+   *         name: page
+   *         schema:
+   *           type: integer
+   *           minimum: 1
+   *           default: 1
+   *         description: Page number for pagination. Defaults to 1 if invalid or not provided.
+   *       - in: query
+   *         name: limit
+   *         schema:
+   *           type: integer
+   *           minimum: 1
+   *           maximum: 100
+   *           default: 20
+   *         description: Number of ratings per page. Defaults to 20 if invalid or not provided.
    *     responses:
    *       200:
-   *         description: List of ratings for the playlist with average and total count.
+   *         description: Paginated list of ratings for the playlist, with average and total count.
    *         content:
    *           application/json:
    *             schema:
@@ -660,25 +702,25 @@ export default function ratingRoutes(app) {
    *                   type: array
    *                   items:
    *                     type: object
-   *                     allOf:
-   *                       - $ref: '#/components/schemas/Rating'
    *                     properties:
-   *                       playlistId:
-   *                         readOnly: true
-   *                       beatId:
-   *                         readOnly: true
    *                       userId:
-   *                         readOnly: true
-   *                       createdAt:
-   *                         readOnly: true
-   *                       updatedAt:
-   *                         readOnly: true
+   *                         type: string
+   *                       score:
+   *                         type: integer
+   *                       comment:
+   *                         type: string
    *                 average:
    *                   type: number
    *                   example: 4.5
    *                 count:
    *                   type: integer
    *                   example: 12
+   *                 page:
+   *                   type: integer
+   *                   example: 1
+   *                 limit:
+   *                   type: integer
+   *                   example: 20
    *       401:
    *         description: Unauthorized. Token missing or invalid.
    *         content:
@@ -713,8 +755,14 @@ export default function ratingRoutes(app) {
   app.get(`${baseAPIURL}/playlists/:playlistId/ratings`, async (req, res) => {
     try {
       const { playlistId } = req.params;
+      const page = req.query.page ? Number(req.query.page) : 1;
+      const limit = req.query.limit ? Number(req.query.limit) : 20;
 
-      const result = await ratingService.listPlaylistRatings({ playlistId });
+      const result = await ratingService.listPlaylistRatings({
+        playlistId,
+        page,
+        limit,
+      });
 
       return res.status(200).send({
         data: result.data.map((rating) => ({
@@ -724,6 +772,8 @@ export default function ratingRoutes(app) {
         })),
         average: result.average,
         count: result.count,
+        page: result.page,
+        limit: result.limit,
       });
     } catch (err) {
       if (err.status) {

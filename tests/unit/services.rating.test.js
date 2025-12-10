@@ -577,7 +577,7 @@ describe('RatingService.getMyPlaylistRating', () => {
 });
 
 describe('RatingService.listBeatRatings', () => {
-  it('should list ratings for a beat with correct average and count', async () => {
+  it('should list ratings for a beat with correct average, count and default pagination', async () => {
     const beatId = new mongoose.Types.ObjectId();
     const otherBeatId = new mongoose.Types.ObjectId();
 
@@ -610,6 +610,9 @@ describe('RatingService.listBeatRatings', () => {
       beatId: beatId.toString(),
     });
 
+    expect(result.page).toBe(1);
+    expect(result.limit).toBe(20);
+
     expect(result.count).toBe(2);
     expect(result.average).toBeCloseTo(4.5);
 
@@ -622,13 +625,15 @@ describe('RatingService.listBeatRatings', () => {
     });
   });
 
-  it('should return empty array, average 0 and count 0 when there are no ratings', async () => {
+  it('should return empty data, average 0, count 0 and default pagination when there are no ratings', async () => {
     const beatId = new mongoose.Types.ObjectId();
 
     const result = await ratingService.listBeatRatings({
       beatId: beatId.toString(),
     });
 
+    expect(result.page).toBe(1);
+    expect(result.limit).toBe(20);
     expect(result.count).toBe(0);
     expect(result.average).toBe(0);
     expect(result.data).toEqual([]);
@@ -643,27 +648,27 @@ describe('RatingService.listBeatRatings', () => {
     });
   });
 
-  it('should rethrow unexpected errors (e.g. DB error in Rating.find)', async () => {
+  it('should rethrow unexpected errors (e.g. DB error in Rating.aggregate)', async () => {
     const beatId = new mongoose.Types.ObjectId().toString();
 
-    const originalFind = Rating.find;
+    const originalAggregate = Rating.aggregate;
 
-    Rating.find = async () => {
-      const err = new Error('Simulated Rating.find error');
+    Rating.aggregate = async () => {
+      const err = new Error('Simulated Rating.aggregate error');
       err.name = 'SomeOtherError';
       throw err;
     };
 
     await expect(
       ratingService.listBeatRatings({ beatId })
-    ).rejects.toHaveProperty('message', 'Simulated Rating.find error');
+    ).rejects.toHaveProperty('message', 'Simulated Rating.aggregate error');
 
-    Rating.find = originalFind;
+    Rating.aggregate = originalAggregate;
   });
 });
 
 describe('RatingService.listPlaylistRatings', () => {
-  it('should list ratings for a playlist with correct average and count', async () => {
+  it('should list ratings for a playlist with correct average, count and default pagination', async () => {
     const playlist = await Playlist.create({
       name: 'Playlist for ratings',
       ownerId: new mongoose.Types.ObjectId(),
@@ -705,6 +710,9 @@ describe('RatingService.listPlaylistRatings', () => {
       playlistId: playlist._id.toString(),
     });
 
+    expect(result.page).toBe(1);
+    expect(result.limit).toBe(20);
+
     expect(result.count).toBe(2);
     expect(result.average).toBeCloseTo(4.5);
     expect(result.data).toHaveLength(2);
@@ -717,13 +725,15 @@ describe('RatingService.listPlaylistRatings', () => {
     });
   });
 
-  it('should return empty array, average 0 and count 0 when there are no ratings', async () => {
+  it('should return empty data, average 0, count 0 and default pagination when there are no ratings', async () => {
     const playlistId = new mongoose.Types.ObjectId().toString();
 
     const result = await ratingService.listPlaylistRatings({
       playlistId,
     });
 
+    expect(result.page).toBe(1);
+    expect(result.limit).toBe(20);
     expect(result.count).toBe(0);
     expect(result.average).toBe(0);
     expect(result.data).toEqual([]);
@@ -738,13 +748,13 @@ describe('RatingService.listPlaylistRatings', () => {
     });
   });
 
-  it('should rethrow unexpected errors (e.g. DB error in Rating.find)', async () => {
+  it('should rethrow unexpected errors (e.g. DB error in Rating.aggregate)', async () => {
     const playlistId = new mongoose.Types.ObjectId().toString();
 
-    const originalFind = Rating.find;
+    const originalAggregate = Rating.aggregate;
 
-    Rating.find = async () => {
-      const err = new Error('Simulated Rating.find error (playlist)');
+    Rating.aggregate = async () => {
+      const err = new Error('Simulated Rating.aggregate error (playlist)');
       err.name = 'SomeOtherError';
       throw err;
     };
@@ -753,10 +763,10 @@ describe('RatingService.listPlaylistRatings', () => {
       ratingService.listPlaylistRatings({ playlistId })
     ).rejects.toHaveProperty(
       'message',
-      'Simulated Rating.find error (playlist)'
+      'Simulated Rating.aggregate error (playlist)'
     );
 
-    Rating.find = originalFind;
+    Rating.aggregate = originalAggregate;
   });
 });
 
