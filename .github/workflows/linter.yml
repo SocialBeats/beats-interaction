@@ -16,6 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
+          fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-node@v3
@@ -33,7 +34,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "Auto-fixing linting issues..."
+          echo "Auto-fixing formatting..."
           npm run lint:fix
 
           git config user.name "github-actions[bot]"
@@ -42,5 +43,5 @@ jobs:
           git add .
           git commit -m "style: automated prettier formatting" || exit 0
 
-          echo "Pushing changes back to branch..."
+          echo "Pushing changes..."
           git push https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }} HEAD:${{ github.ref_name }}
