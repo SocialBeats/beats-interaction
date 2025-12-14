@@ -11,8 +11,8 @@ class CommentService {
         throw { status, message };
       }
 
-      const author = null;
-      // check if beat and user exist only if kafka is enabled
+      // check author and beat existence only if kafka is enabled
+      let author = null;
       if (isKafkaEnabled()) {
         author = await UserMaterialized.findById(authorId);
         if (!author) {
@@ -37,11 +37,7 @@ class CommentService {
       await comment.validate();
       await comment.save();
 
-      if (isKafkaEnabled()) {
-        comment.author = author;
-      } else {
-        comment.author = null;
-      }
+      comment.author = author;
 
       return comment;
     } catch (err) {
