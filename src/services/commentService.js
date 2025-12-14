@@ -313,13 +313,13 @@ class CommentService {
   async deleteCommentById(commentId, userId) {
     try {
       if (!mongoose.Types.ObjectId.isValid(commentId)) {
-        return { deleted: false }; // idempotente
+        return { deleted: false };
       }
 
       const comment = await Comment.findById(commentId);
 
       if (!comment) {
-        return { deleted: false }; // idempotente
+        return { deleted: false };
       }
 
       if (comment.authorId.toString() !== userId.toString()) {
@@ -365,6 +365,19 @@ class CommentService {
 
       await comment.validate();
       await comment.save();
+
+      let author = null;
+      if (isKafkaEnabled()) {
+        author = await UserMaterialized.findById(comment.authorId);
+        if (!author) {
+          throw {
+            status: 422,
+            message: 'authorId must correspond to an existing user',
+          };
+        }
+      }
+
+      comment.author = author;
 
       return comment;
     } catch (err) {
