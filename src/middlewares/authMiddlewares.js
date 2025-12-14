@@ -4,6 +4,7 @@ import logger from '../../logger.js';
 const openPaths = [
   '/api/v1/docs/',
   '/api/v1/health',
+  '/api/v1/kafka/health',
   '/api/v1/about',
   '/api/v1/changelog',
   '/api/v1/version',

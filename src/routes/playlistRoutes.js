@@ -53,7 +53,7 @@ export default function playlistRoutes(app) {
    *         content:
    *           application/json:
    *             schema:
-   *               $ref: '#/components/schemas/Playlist'
+   *               $ref: '#/components/schemas/DetailedPlaylist'
    *       422:
    *         description: Validation error due to invalid input.
    *         content:
@@ -81,7 +81,7 @@ export default function playlistRoutes(app) {
         req.body,
         req.user.id
       );
-      return res.status(201).send(newPlaylist.toObject());
+      return res.status(201).send(newPlaylist);
     } catch (err) {
       if (err.status) {
         return res.status(err.status).send({ message: err.message });
@@ -356,7 +356,7 @@ export default function playlistRoutes(app) {
    *         content:
    *           application/json:
    *             schema:
-   *               $ref: '#/components/schemas/Playlist'
+   *               $ref: '#/components/schemas/DetailedPlaylist'
    *       403:
    *         description: Access denied to view this playlist
    *         content:
@@ -487,7 +487,7 @@ export default function playlistRoutes(app) {
    *         content:
    *           application/json:
    *             schema:
-   *               $ref: '#/components/schemas/Playlist'
+   *               $ref: '#/components/schemas/DetailedPlaylist'
    *       403:
    *         description: User does not have permission to update this playlist
    *         content:
@@ -617,7 +617,7 @@ export default function playlistRoutes(app) {
    *         content:
    *           application/json:
    *             schema:
-   *               $ref: '#/components/schemas/Playlist'
+   *               $ref: '#/components/schemas/DetailedPlaylist'
    *       403:
    *         description: User does not have permission to update this playlist
    *         content:
@@ -803,7 +803,7 @@ export default function playlistRoutes(app) {
    *         content:
    *           application/json:
    *             schema:
-   *               $ref: '#/components/schemas/Playlist'
+   *               $ref: '#/components/schemas/DetailedPlaylist'
    *       403:
    *         description: User does not have permission to add beats
    *         content:
@@ -901,7 +901,7 @@ export default function playlistRoutes(app) {
    *         content:
    *           application/json:
    *             schema:
-   *               $ref: '#/components/schemas/Playlist'
+   *               $ref: '#/components/schemas/DetailedPlaylist'
    *       403:
    *         description: User does not have permission to remove beats
    *         content:

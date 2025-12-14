@@ -4,7 +4,7 @@ info:
   version: v0.0.1
   description: This is an OAS description of this beats-interaction microservice REST API
 servers:
-  - url: http://localhost:3000
+  - url: http://localhost:3002
 components:
   securitySchemes:
     bearerAuth:
@@ -147,6 +147,146 @@ components:
         - beatId
         - addedBy
         - addedAt
+    UserMaterialized:
+      type: object
+      properties:
+        userId:
+          type: string
+          example: 123456abcdef
+        username:
+          type: string
+          example: beatMaster99
+        email:
+          type: string
+          example: user@email.com
+        roles:
+          type: array
+          items:
+            type: string
+          example:
+            - producer
+            - premium
+        createdAt:
+          type: string
+          format: date-time
+          example: '2025-11-20T10:00:00.000Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2025-11-23T14:32:00.000Z'
+      required:
+        - userId
+        - username
+        - email
+      description: Materialized view of users optimized for quick lookup.
+    BeatMaterialized:
+      type: object
+      properties:
+        beatId:
+          type: string
+          example: abcdef123456
+        title:
+          type: string
+          example: Midnight Drive
+        artist:
+          type: string
+          example: John Beatmaker
+        genre:
+          type: string
+          example: Hip-hop
+        bpm:
+          type: number
+          example: 94
+        key:
+          type: string
+          example: Cm
+        duration:
+          type: number
+          example: 180
+        tags:
+          type: array
+          items:
+            type: string
+          example:
+            - chill
+            - lofi
+            - smooth
+        audioUrl:
+          type: string
+          example: https://cdn.mysite.com/beat.mp3
+        isFree:
+          type: boolean
+          example: true
+        price:
+          type: number
+          example: 14.99
+        plays:
+          type: number
+          example: 15430
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2025-11-23T11:00:00.000Z'
+      required:
+        - beatId
+        - title
+        - artist
+        - genre
+        - updatedAt
+      description: Materialized view of beats used for efficient querying and filtering.
+    DetailedPlaylist:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 654321abcdef
+        ownerId:
+          type: string
+          example: 123456abcdef
+        name:
+          type: string
+          example: My Awesome Playlist
+        description:
+          type: string
+          example: A playlist with my favorite beats
+        isPublic:
+          type: boolean
+          example: true
+        collaborators:
+          type: array
+          items:
+            type: string
+          example:
+            - userId1
+            - userId2
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Item'
+        collaboratorsData:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserMaterialized'
+          description: Array with full collaborators data
+        beatsData:
+          type: array
+          items:
+            $ref: '#/components/schemas/BeatMaterialized'
+          description: Array with full beats data
+        createdAt:
+          type: string
+          format: date-time
+          example: '2025-11-23T10:00:00.000Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2025-11-23T11:00:00.000Z'
+      required:
+        - _id
+        - ownerId
+        - name
+        - items
+        - collaborators
 paths:
   /api/v1/about:
     get:
@@ -888,6 +1028,41 @@ paths:
                   db:
                     type: string
                     example: connected
+  /api/v1/kafka/health:
+    get:
+      tags:
+        - Kafka
+      summary: Kafka health check
+      description: Verifies whether Kafka is currently reachable and responding.
+      responses:
+        '200':
+          description: Kafka is running and the connection is successful.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  kafka:
+                    type: string
+                    example: connected
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: '2025-11-08T13:41:47.074Z'
+        '503':
+          description: Kafka is not reachable or connection failed.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  kafka:
+                    type: string
+                    example: disconnected
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: '2025-11-08T13:41:47.074Z'
   /api/v1/playlists:
     post:
       tags:
@@ -945,7 +1120,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Playlist'
+                $ref: '#/components/schemas/DetailedPlaylist'
         '422':
           description: Validation error due to invalid input.
           content:
@@ -1160,7 +1335,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Playlist'
+                $ref: '#/components/schemas/DetailedPlaylist'
         '403':
           description: Access denied to view this playlist
           content:
@@ -1270,7 +1445,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Playlist'
+                $ref: '#/components/schemas/DetailedPlaylist'
         '403':
           description: User does not have permission to update this playlist
           content:
@@ -1380,7 +1555,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Playlist'
+                $ref: '#/components/schemas/DetailedPlaylist'
         '403':
           description: User does not have permission to update this playlist
           content:
@@ -1514,7 +1689,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Playlist'
+                $ref: '#/components/schemas/DetailedPlaylist'
         '403':
           description: User does not have permission to add beats
           content:
@@ -1586,7 +1761,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Playlist'
+                $ref: '#/components/schemas/DetailedPlaylist'
         '403':
           description: User does not have permission to remove beats
           content:

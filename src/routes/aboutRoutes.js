@@ -11,12 +11,16 @@ import {
   ItemSchema,
   CommentSchema,
   RatingSchema,
+  UserMaterializedSchema,
+  BeatMaterializedSchema,
+  DetailedPlaylistSchema,
 } from '../models/OASSchemas.js';
 export default function aboutRoutes(app) {
   const API_TITLE = process.env.API_TITLE || 'Microservice API';
   const API_DESCRIPTION =
     process.env.API_DESCRIPTION ||
     'This is an OAS description of this Microservice REST API';
+  const API_PORT = process.env.PORT || 3002;
   const version = getVersion();
 
   // Swagger options
@@ -30,7 +34,7 @@ export default function aboutRoutes(app) {
       },
       servers: [
         {
-          url: 'http://localhost:3000',
+          url: `http://localhost:${API_PORT}`,
         },
       ],
       components: {
@@ -46,6 +50,9 @@ export default function aboutRoutes(app) {
           Rating: RatingSchema,
           Playlist: PlaylistSchema,
           Item: ItemSchema,
+          UserMaterialized: UserMaterializedSchema,
+          BeatMaterialized: BeatMaterializedSchema,
+          DetailedPlaylist: DetailedPlaylistSchema,
         },
       },
     },

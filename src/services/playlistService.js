@@ -1,4 +1,9 @@
-import { Playlist } from '../models/models.js';
+import {
+  Playlist,
+  UserMaterialized,
+  BeatMaterialized,
+} from '../models/models.js';
+import { isKafkaEnabled } from './kafkaConsumer.js';
 import mongoose from 'mongoose';
 
 class PlaylistService {
@@ -6,6 +11,13 @@ class PlaylistService {
     try {
       if (!userId) {
         throw { status: 422, message: 'ownerId is required.' };
+      }
+
+      if (isKafkaEnabled()) {
+        const UserExists = await UserMaterialized.findById(userId);
+        if (!UserExists) {
+          throw { status: 422, message: 'ownerId must be an existing user' };
+        }
       }
 
       if (!data.name || data.name.trim().length === 0) {
@@ -37,6 +49,8 @@ class PlaylistService {
       data.ownerId = userId;
       data.collaborators = data.collaborators || [];
       data.items = data.items || [];
+      let existingUsers = [];
+      let existingBeats = [];
 
       data.items = data.items.map((item) => {
         return {
@@ -95,6 +109,31 @@ class PlaylistService {
             message: 'Duplicate collaborators are not allowed.',
           };
         }
+
+        if (isKafkaEnabled()) {
+          existingUsers = await UserMaterialized.find({
+            _id: { $in: data.collaborators },
+          }).select('_id');
+
+          if (existingUsers.length !== data.collaborators.length) {
+            throw {
+              status: 422,
+              message: 'One or more collaborators do not exist.',
+            };
+          }
+        }
+      }
+
+      if (isKafkaEnabled() && beatIds.length > 0) {
+        existingBeats = await Beat.find({ _id: { $in: beatIds } }).select(
+          '_id'
+        );
+        if (existingBeats.length !== beatIds.length) {
+          throw {
+            status: 422,
+            message: 'One or more beats do not exist.',
+          };
+        }
       }
 
       const playlist = new Playlist(data);
@@ -102,7 +141,11 @@ class PlaylistService {
       await playlist.validate();
       await playlist.save();
 
-      return playlist;
+      let playlistObj = playlist.toObject();
+      playlistObj.collaboratorsData = existingUsers;
+      playlistObj.beatsData = existingBeats;
+
+      return playlistObj;
     } catch (err) {
       if (err.name === 'ValidationError') {
         const message = Object.values(err.errors)
@@ -126,11 +169,29 @@ class PlaylistService {
           message: 'Invalid userId.',
         };
       }
+      if (isKafkaEnabled()) {
+        const targetUserExists = await UserMaterialized.findById(targetUserId);
+        if (!targetUserExists) {
+          throw {
+            status: 422,
+            message: 'target user must be an existing user',
+          };
+        }
+      }
       if (!targetUserId || !askerUserId) {
         throw {
           status: 422,
           message: 'Both targetUserId and askerUserId are required.',
         };
+      }
+      if (isKafkaEnabled()) {
+        const askerUserExists = await UserMaterialized.findById(askerUserId);
+        if (!askerUserExists) {
+          throw {
+            status: 422,
+            message: 'asker user must be an existing user',
+          };
+        }
       }
 
       let query;
@@ -174,6 +235,15 @@ class PlaylistService {
           if (!mongoose.Types.ObjectId.isValid(ownerIdStr)) {
             throw { status: 422, message: 'Invalid ownerId format.' };
           }
+          if (isKafkaEnabled()) {
+            const ownerExists = await UserMaterialized.findById(ownerIdStr);
+            if (!ownerExists) {
+              throw {
+                status: 422,
+                message: 'ownerId must be an existing user',
+              };
+            }
+          }
           query.ownerId = ownerIdStr;
         }
       }
@@ -213,6 +283,16 @@ class PlaylistService {
       if (!requesterId) {
         throw { status: 422, message: 'requesterId is required.' };
       }
+      if (isKafkaEnabled()) {
+        const requesterUserExists =
+          await UserMaterialized.findById(requesterId);
+        if (!requesterUserExists) {
+          throw {
+            status: 422,
+            message: 'target user must be an existing user',
+          };
+        }
+      }
 
       if (!mongoose.Types.ObjectId.isValid(playlistId)) {
         throw { status: 422, message: 'Invalid playlist ID format.' };
@@ -232,25 +312,35 @@ class PlaylistService {
 
       const isCollaborator = collaborators.includes(String(requesterId));
 
-      if (playlist.isPublic === true) {
-        return {
-          ...playlist,
-          ownerId: String(playlist.ownerId),
-          collaborators,
+      if (!playlist.isPublic && !isOwner && !isCollaborator) {
+        throw {
+          status: 403,
+          message: 'You do not have permission to view this playlist.',
         };
       }
 
-      if (isOwner || isCollaborator) {
-        return {
-          ...playlist,
-          ownerId: String(playlist.ownerId),
-          collaborators,
-        };
+      let existingUsers = [];
+      let existingBeats = [];
+
+      if (isKafkaEnabled()) {
+        if (playlist.collaborators && playlist.collaborators.length > 0) {
+          existingUsers = await UserMaterialized.find({
+            _id: { $in: playlist.collaborators },
+          }).lean();
+        }
+
+        const beatIds = (playlist.items || []).map((i) => String(i.beatId));
+        if (beatIds.length > 0) {
+          existingBeats = await Beat.find({ _id: { $in: beatIds } }).lean();
+        }
       }
 
-      throw {
-        status: 403,
-        message: 'You do not have permission to view this playlist.',
+      return {
+        ...playlist,
+        ownerId: String(playlist.ownerId),
+        collaborators,
+        collaboratorsData: existingUsers,
+        beatsData: existingBeats,
       };
     } catch (err) {
       if (err.status) throw err;
@@ -268,6 +358,15 @@ class PlaylistService {
         throw { status: 422, message: 'userId is required.' };
       }
 
+      if (isKafkaEnabled()) {
+        const UserExists = await UserMaterialized.findById(userId);
+        if (!UserExists) {
+          throw {
+            status: 422,
+            message: 'userId must correspond to an existing user',
+          };
+        }
+      }
       if (!mongoose.Types.ObjectId.isValid(playlistId)) {
         throw { status: 422, message: 'Invalid playlist ID format.' };
       }
@@ -311,6 +410,9 @@ class PlaylistService {
         playlist.isPublic = data.isPublic;
       }
 
+      let existingUsers = [];
+      let existingBeats = [];
+
       if (data.collaborators !== undefined) {
         if (!Array.isArray(data.collaborators)) {
           throw { status: 422, message: 'collaborators must be an array.' };
@@ -343,6 +445,19 @@ class PlaylistService {
         }
 
         playlist.collaborators = data.collaborators;
+
+        if (isKafkaEnabled() && data.collaborators.length > 0) {
+          existingUsers = await UserMaterialized.find({
+            _id: { $in: data.collaborators },
+          }).lean();
+
+          if (existingUsers.length !== data.collaborators.length) {
+            throw {
+              status: 422,
+              message: 'One or more collaborators do not exist.',
+            };
+          }
+        }
       }
 
       if (data.items !== undefined) {
@@ -388,12 +503,26 @@ class PlaylistService {
         }
 
         playlist.items = items;
+
+        if (isKafkaEnabled() && beatIds.length > 0) {
+          existingBeats = await Beat.find({ _id: { $in: beatIds } }).lean();
+          if (existingBeats.length !== beatIds.length) {
+            throw {
+              status: 422,
+              message: 'One or more beats do not exist.',
+            };
+          }
+        }
       }
 
       await playlist.validate();
       await playlist.save();
 
-      return playlist;
+      const playlistObj = playlist.toObject();
+      playlistObj.collaboratorsData = existingUsers;
+      playlistObj.beatsData = existingBeats;
+
+      return playlistObj;
     } catch (err) {
       if (err.name === 'ValidationError') {
         const message = Object.values(err.errors)
@@ -415,6 +544,16 @@ class PlaylistService {
 
       if (!userId) {
         throw { status: 422, message: 'userId is required.' };
+      }
+
+      if (isKafkaEnabled()) {
+        const UserExists = await UserMaterialized.findById(userId);
+        if (!UserExists) {
+          throw {
+            status: 422,
+            message: 'userId must correspond to an existing user',
+          };
+        }
       }
 
       if (!mongoose.Types.ObjectId.isValid(playlistId)) {
@@ -452,6 +591,22 @@ class PlaylistService {
       if (!beatId) {
         throw { status: 422, message: 'beatId is required.' };
       }
+
+      if (isKafkaEnabled()) {
+        const UserExists = await UserMaterialized.findById(userId);
+        if (!UserExists) {
+          throw {
+            status: 422,
+            message: 'userId must correspond to an existing user',
+          };
+        }
+
+        const beatExists = await BeatMaterialized.findById(beatId);
+        if (!beatExists) {
+          throw { status: 404, message: 'Beat not found' };
+        }
+      }
+
       if (!mongoose.Types.ObjectId.isValid(playlistId)) {
         throw { status: 422, message: 'Invalid playlist ID format.' };
       }
@@ -497,7 +652,29 @@ class PlaylistService {
       await playlist.validate();
       await playlist.save();
 
-      return playlist;
+      let collaboratorsData = [];
+      let beatsData = [];
+
+      if (isKafkaEnabled()) {
+        if (playlist.collaborators && playlist.collaborators.length > 0) {
+          collaboratorsData = await UserMaterialized.find({
+            _id: { $in: playlist.collaborators },
+          }).lean();
+        }
+
+        const beatIds = playlist.items.map((i) => String(i.beatId));
+        if (beatIds.length > 0) {
+          beatsData = await Beat.find({ _id: { $in: beatIds } }).lean();
+        }
+      }
+
+      const playlistObj = playlist.toObject();
+      playlistObj.collaboratorsData = collaboratorsData;
+      playlistObj.beatsData = beatsData;
+      playlistObj.ownerId = String(playlistObj.ownerId);
+      playlistObj.collaborators = (playlistObj.collaborators || []).map(String);
+
+      return playlistObj;
     } catch (err) {
       if (err.name === 'ValidationError') {
         const message = Object.values(err.errors)
@@ -517,6 +694,16 @@ class PlaylistService {
         throw { status: 422, message: 'playlistId is required.' };
       if (!beatId) throw { status: 422, message: 'beatId is required.' };
       if (!userId) throw { status: 422, message: 'userId is required.' };
+
+      if (isKafkaEnabled()) {
+        const UserExists = await UserMaterialized.findById(userId);
+        if (!UserExists) {
+          throw {
+            status: 422,
+            message: 'userId must correspond to an existing user',
+          };
+        }
+      }
 
       if (!mongoose.Types.ObjectId.isValid(playlistId)) {
         throw { status: 422, message: 'Invalid playlist ID format.' };
@@ -554,7 +741,29 @@ class PlaylistService {
       await playlist.validate();
       await playlist.save();
 
-      return playlist;
+      let collaboratorsData = [];
+      let beatsData = [];
+
+      if (isKafkaEnabled()) {
+        if (playlist.collaborators && playlist.collaborators.length > 0) {
+          collaboratorsData = await UserMaterialized.find({
+            _id: { $in: playlist.collaborators },
+          }).lean();
+        }
+
+        const beatIds = playlist.items.map((i) => String(i.beatId));
+        if (beatIds.length > 0) {
+          beatsData = await Beat.find({ _id: { $in: beatIds } }).lean();
+        }
+      }
+
+      const playlistObj = playlist.toObject();
+      playlistObj.collaboratorsData = collaboratorsData;
+      playlistObj.beatsData = beatsData;
+      playlistObj.ownerId = String(playlistObj.ownerId);
+      playlistObj.collaborators = (playlistObj.collaborators || []).map(String);
+
+      return playlistObj;
     } catch (err) {
       if (err.name === 'ValidationError') {
         const message = Object.values(err.errors)
