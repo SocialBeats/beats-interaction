@@ -2,13 +2,12 @@ name: Lint and Auto-fix
 
 on:
   pull_request:
-    branches:
-      - develop
-      - main
+    branches: [ develop, main ]
   push:
-    branches:
-      - main
-      - develop
+    branches: [ develop, main ]
+
+permissions:
+  contents: write
 
 jobs:
   lint:
@@ -16,24 +15,40 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-node@v3
         with:
           node-version: 22.18.0
 
-      - run: npm ci
+      - run: npm ci --ignore-scripts
 
       - name: Run Prettier check
         id: lint
         run: npm run lint
 
-      - name: Auto-fix lint
+      - name: Auto-fix when lint fails
         if: failure()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          echo "Lint failed. Fixing code style..."
           npm run lint:fix
+
           git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"          git add .
-          git commit -m "style: update codebase to be lint compliant" || echo "Nothing to commit"
-          git push https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }} HEAD:${{ github.head_ref }}
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "✔ No changes to commit."
+            exit 0
+          fi
+
+          echo "Committing..."
+          git add .
+          git commit -m "style: auto formatted by CI"
+
+          echo "Pushing changes..."
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}" HEAD:${{ github.ref_name }}
+

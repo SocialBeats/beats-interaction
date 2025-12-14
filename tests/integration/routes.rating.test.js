@@ -495,7 +495,7 @@ describe('GET /api/v1/beats/:beatId/ratings (integration)', () => {
   const withAuth = (req) =>
     req.set('Authorization', `Bearer ${global.testToken}`);
 
-  it('should return ratings with average and count for a beat', async () => {
+  it('should return ratings with average, count and default pagination for a beat', async () => {
     const beatId = new mongoose.Types.ObjectId();
     const otherBeatId = new mongoose.Types.ObjectId();
     const user1 = new mongoose.Types.ObjectId();
@@ -531,6 +531,10 @@ describe('GET /api/v1/beats/:beatId/ratings (integration)', () => {
     expect(response.body).toHaveProperty('average');
     expect(response.body.average).toBeCloseTo(4.5);
 
+    // paginación
+    expect(response.body.page).toBe(1);
+    expect(response.body.limit).toBe(20);
+
     expect(response.body.data).toHaveLength(2);
 
     const userIdsFromResponse = response.body.data.map((r) => r.userId);
@@ -541,14 +545,14 @@ describe('GET /api/v1/beats/:beatId/ratings (integration)', () => {
     response.body.data.forEach((r) => {
       expect(r).toHaveProperty('userId');
       expect(r).toHaveProperty('score');
-      // comment is optional we only check its value if present
+      // comment opcional, solo comprobamos si coincide para user1
       if (r.userId === user1.toString()) {
         expect(r.comment).toBe('El bajo tapa la voz');
       }
     });
   });
 
-  it('should return empty data, average 0 and count 0 when there are no ratings for the beat', async () => {
+  it('should return empty data, average 0, count 0 and default pagination when there are no ratings for the beat', async () => {
     const beatId = new mongoose.Types.ObjectId();
 
     const response = await withAuth(
@@ -559,6 +563,8 @@ describe('GET /api/v1/beats/:beatId/ratings (integration)', () => {
       data: [],
       average: 0,
       count: 0,
+      page: 1,
+      limit: 20,
     });
   });
 
@@ -575,7 +581,7 @@ describe('GET /api/v1/playlists/:playlistId/ratings (integration)', () => {
   const withAuth = (req) =>
     req.set('Authorization', `Bearer ${global.testToken}`);
 
-  it('should return ratings with average and count for a playlist', async () => {
+  it('should return ratings with average, count and default pagination for a playlist', async () => {
     const playlist = await Playlist.create({
       name: 'Playlist for ratings (integration)',
       ownerId: new mongoose.Types.ObjectId(),
@@ -621,6 +627,10 @@ describe('GET /api/v1/playlists/:playlistId/ratings (integration)', () => {
     expect(response.body).toHaveProperty('average');
     expect(response.body.average).toBeCloseTo(4.5);
 
+    // paginación
+    expect(response.body.page).toBe(1);
+    expect(response.body.limit).toBe(20);
+
     expect(response.body.data).toHaveLength(2);
 
     const userIdsFromResponse = response.body.data.map((r) => r.userId);
@@ -631,14 +641,13 @@ describe('GET /api/v1/playlists/:playlistId/ratings (integration)', () => {
     response.body.data.forEach((r) => {
       expect(r).toHaveProperty('userId');
       expect(r).toHaveProperty('score');
-      // comment is optional we only check its value if present
       if (r.userId === user1.toString()) {
         expect(r.comment).toBe('El bajo tapa la voz');
       }
     });
   });
 
-  it('should return empty data, average 0 and count 0 when there are no ratings for the playlist', async () => {
+  it('should return empty data, average 0, count 0 and default pagination when there are no ratings for the playlist', async () => {
     const playlist = await Playlist.create({
       name: 'Playlist without ratings',
       ownerId: new mongoose.Types.ObjectId(),
@@ -653,6 +662,8 @@ describe('GET /api/v1/playlists/:playlistId/ratings (integration)', () => {
       data: [],
       average: 0,
       count: 0,
+      page: 1,
+      limit: 20,
     });
   });
 

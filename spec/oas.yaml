@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: beats-interaction microservice API
-  version: unknown
+  version: v0.0.1
   description: This is an OAS description of this beats-interaction microservice REST API
 servers:
   - url: http://localhost:3002
@@ -1898,9 +1898,10 @@ paths:
         - Ratings
       summary: List ratings for a beat
       description: >
-        Returns all ratings associated with a given beat, along with the average
-        score and total number of ratings. `beatId` must be a valid MongoDB
-        ObjectId.
+        Returns a paginated list of ratings associated with a given beat, along
+        with the average score and total number of ratings. Supports `page` and
+        `limit` query parameters. Maximum `limit` is 100. Sorted by `createdAt`
+        descending. `beatId` must be a valid MongoDB ObjectId.
       security:
         - bearerAuth: []
       parameters:
@@ -1910,9 +1911,30 @@ paths:
           schema:
             type: string
           description: ID of the beat whose ratings are being requested.
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: >-
+            Page number for pagination. Defaults to 1 if invalid or not
+            provided.
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: >-
+            Number of ratings per page. Defaults to 20 if invalid or not
+            provided.
       responses:
         '200':
-          description: List of ratings for the beat with average and total count.
+          description: >-
+            Paginated list of ratings for the beat, with average and total
+            count.
           content:
             application/json:
               schema:
@@ -1922,25 +1944,25 @@ paths:
                     type: array
                     items:
                       type: object
-                      allOf:
-                        - $ref: '#/components/schemas/Rating'
                       properties:
-                        beatId:
-                          readOnly: true
-                        playlistId:
-                          readOnly: true
                         userId:
-                          readOnly: true
-                        createdAt:
-                          readOnly: true
-                        updatedAt:
-                          readOnly: true
+                          type: string
+                        score:
+                          type: integer
+                        comment:
+                          type: string
                   average:
                     type: number
                     example: 4.5
                   count:
                     type: integer
                     example: 12
+                  page:
+                    type: integer
+                    example: 1
+                  limit:
+                    type: integer
+                    example: 20
         '401':
           description: Unauthorized. Token missing or invalid.
           content:
@@ -2067,9 +2089,10 @@ paths:
         - Ratings
       summary: List ratings for a playlist
       description: >
-        Returns all ratings associated with a given playlist, along with the
-        average score and total number of ratings. `playlistId` must be a valid
-        MongoDB ObjectId.
+        Returns a paginated list of ratings associated with a given playlist,
+        along with the average score and total number of ratings. Supports
+        `page` and `limit` query parameters. Maximum `limit` is 100. Sorted by
+        `createdAt` descending. `playlistId` must be a valid MongoDB ObjectId.
       security:
         - bearerAuth: []
       parameters:
@@ -2079,9 +2102,30 @@ paths:
           schema:
             type: string
           description: ID of the playlist whose ratings are being requested.
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: >-
+            Page number for pagination. Defaults to 1 if invalid or not
+            provided.
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: >-
+            Number of ratings per page. Defaults to 20 if invalid or not
+            provided.
       responses:
         '200':
-          description: List of ratings for the playlist with average and total count.
+          description: >-
+            Paginated list of ratings for the playlist, with average and total
+            count.
           content:
             application/json:
               schema:
@@ -2091,25 +2135,25 @@ paths:
                     type: array
                     items:
                       type: object
-                      allOf:
-                        - $ref: '#/components/schemas/Rating'
                       properties:
-                        playlistId:
-                          readOnly: true
-                        beatId:
-                          readOnly: true
                         userId:
-                          readOnly: true
-                        createdAt:
-                          readOnly: true
-                        updatedAt:
-                          readOnly: true
+                          type: string
+                        score:
+                          type: integer
+                        comment:
+                          type: string
                   average:
                     type: number
                     example: 4.5
                   count:
                     type: integer
                     example: 12
+                  page:
+                    type: integer
+                    example: 1
+                  limit:
+                    type: integer
+                    example: 20
         '401':
           description: Unauthorized. Token missing or invalid.
           content:
