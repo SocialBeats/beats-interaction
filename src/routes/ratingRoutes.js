@@ -108,12 +108,14 @@ export default function ratingRoutes(app) {
       });
 
       return res.status(201).send({
-        id: rating._id,
-        beatId: rating.beatId,
+        _id: rating._id,
+        beatId: rating.beatId ?? null,
+        playlistId: rating.playlistId ?? null,
         userId: rating.userId,
         score: rating.score,
         comment: rating.comment,
         createdAt: rating.createdAt,
+        updatedAt: rating.updatedAt,
       });
     } catch (err) {
       if (err.status) {
@@ -236,12 +238,14 @@ export default function ratingRoutes(app) {
       });
 
       return res.status(201).send({
-        id: rating._id,
-        playlistId: rating.playlistId,
+        _id: rating._id,
+        beatId: rating.beatId ?? null,
+        playlistId: rating.playlistId ?? null,
         userId: rating.userId,
         score: rating.score,
         comment: rating.comment,
         createdAt: rating.createdAt,
+        updatedAt: rating.updatedAt,
       });
     } catch (err) {
       if (err.status) {
@@ -320,7 +324,7 @@ export default function ratingRoutes(app) {
       const rating = await ratingService.getRatingById({ ratingId });
 
       return res.status(200).send({
-        id: rating._id,
+        _id: rating._id,
         beatId: rating.beatId ?? null,
         playlistId: rating.playlistId ?? null,
         userId: rating.userId,
@@ -408,7 +412,9 @@ export default function ratingRoutes(app) {
       const rating = await ratingService.getMyBeatRating({ beatId, userId });
 
       return res.status(200).send({
-        beatId: rating.beatId,
+        _id: rating._id,
+        beatId: rating.beatId ?? null,
+        playlistId: rating.playlistId ?? null,
         userId: rating.userId,
         score: rating.score,
         comment: rating.comment,
@@ -497,7 +503,9 @@ export default function ratingRoutes(app) {
         });
 
         return res.status(200).send({
-          playlistId: rating.playlistId,
+          _id: rating._id,
+          beatId: rating.beatId ?? null,
+          playlistId: rating.playlistId ?? null,
           userId: rating.userId,
           score: rating.score,
           comment: rating.comment,
@@ -631,9 +639,14 @@ export default function ratingRoutes(app) {
 
       return res.status(200).send({
         data: result.data.map((rating) => ({
+          _id: rating._id,
+          beatId: rating.beatId ?? null,
+          playlistId: rating.playlistId ?? null,
           userId: rating.userId,
           score: rating.score,
           comment: rating.comment,
+          createdAt: rating.createdAt,
+          updatedAt: rating.updatedAt,
         })),
         average: result.average,
         count: result.count,
@@ -766,9 +779,14 @@ export default function ratingRoutes(app) {
 
       return res.status(200).send({
         data: result.data.map((rating) => ({
+          _id: rating._id,
+          beatId: rating.beatId ?? null,
+          playlistId: rating.playlistId ?? null,
           userId: rating.userId,
           score: rating.score,
           comment: rating.comment,
+          createdAt: rating.createdAt,
+          updatedAt: rating.updatedAt,
         })),
         average: result.average,
         count: result.count,
@@ -962,7 +980,7 @@ export default function ratingRoutes(app) {
       });
 
       return res.status(200).send({
-        id: rating._id,
+        _id: rating._id,
         beatId: rating.beatId ?? null,
         playlistId: rating.playlistId ?? null,
         userId: rating.userId,
@@ -1082,7 +1100,7 @@ export default function ratingRoutes(app) {
       });
 
       return res.status(200).send({
-        id: rating._id,
+        _id: rating._id,
         beatId: rating.beatId ?? null,
         playlistId: rating.playlistId ?? null,
         userId: rating.userId,
