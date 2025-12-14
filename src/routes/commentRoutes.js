@@ -96,7 +96,7 @@ export default function commentRoutes(app) {
       });
 
       return res.status(201).send({
-        id: comment._id,
+        _id: comment._id,
         beatId: comment.beatId ?? null,
         playlistId: comment.playlistId ?? null,
         authorId: comment.authorId,
@@ -208,7 +208,7 @@ export default function commentRoutes(app) {
       });
 
       return res.status(201).send({
-        id: comment._id,
+        _id: comment._id,
         beatId: comment.beatId ?? null,
         playlistId: comment.playlistId ?? null,
         authorId: comment.authorId,
@@ -301,7 +301,7 @@ export default function commentRoutes(app) {
       const comment = await commentService.getCommentById({ commentId });
 
       return res.status(200).send({
-        id: comment._id,
+        _id: comment._id,
         beatId: comment.beatId ?? null,
         playlistId: comment.playlistId ?? null,
         authorId: comment.authorId,
@@ -422,7 +422,7 @@ export default function commentRoutes(app) {
 
       return res.status(200).send({
         data: result.data.map((comment) => ({
-          id: comment._id,
+          _id: comment._id,
           beatId: comment.beatId ?? null,
           playlistId: comment.playlistId ?? null,
           authorId: comment.authorId,
@@ -549,10 +549,14 @@ export default function commentRoutes(app) {
 
       return res.status(200).send({
         data: result.data.map((comment) => ({
-          id: comment._id,
+          _id: comment._id,
+          beatId: comment.beatId ?? null,
+          playlistId: comment.playlistId ?? null,
           authorId: comment.authorId,
+          author: comment.author,
           text: comment.text,
           createdAt: comment.createdAt,
+          updatedAt: comment.updatedAt,
         })),
         page: result.page,
         limit: result.limit,
@@ -734,10 +738,11 @@ export default function commentRoutes(app) {
       });
 
       return res.status(200).send({
-        id: comment._id,
+        _id: comment._id,
         beatId: comment.beatId ?? null,
         playlistId: comment.playlistId ?? null,
         authorId: comment.authorId,
+        author: comment.author,
         text: comment.text,
         createdAt: comment.createdAt,
         updatedAt: comment.updatedAt,
@@ -844,10 +849,11 @@ export default function commentRoutes(app) {
       });
 
       return res.status(200).send({
-        id: comment._id,
+        _id: comment._id,
         beatId: comment.beatId ?? null,
         playlistId: comment.playlistId ?? null,
         authorId: comment.authorId,
+        author: comment.author,
         text: comment.text,
         createdAt: comment.createdAt,
         updatedAt: comment.updatedAt,
