@@ -164,7 +164,13 @@ class CommentService {
         throw { status, message };
       }
 
-      // TODO: check if beat exists in DB (404 if not found)
+      // check beat existence only if kafka is enabled
+      if (isKafkaEnabled()) {
+        const beatExists = await BeatMaterialized.findById(beatId);
+        if (!beatExists) {
+          throw { status: 404, message: 'Beat not found' };
+        }
+      }
 
       // parameter normalization
       page = Number(page);
@@ -186,10 +192,33 @@ class CommentService {
 
       const skip = (page - 1) * limit;
 
-      const comments = await Comment.find(filter)
+      let comments = await Comment.find(filter)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit);
+
+      comments = comments.map((comment) => {
+        comment.author = null;
+        return comment;
+      });
+
+      // if Kafka is enabled, try to enrich with materialized user data in one query
+      if (isKafkaEnabled() && comments.length > 0) {
+        const authorIds = [
+          ...new Set(comments.map((c) => c.authorId.toString())),
+        ];
+
+        const authors = await UserMaterialized.find({
+          userId: { $in: authorIds },
+        }).lean();
+
+        const authorMap = new Map(authors.map((a) => [a.userId.toString(), a]));
+
+        comments = comments.map((comment) => {
+          comment.author = authorMap.get(comment.authorId.toString()) ?? null;
+          return comment;
+        });
+      }
 
       return {
         data: comments,

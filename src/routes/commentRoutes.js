@@ -97,11 +97,13 @@ export default function commentRoutes(app) {
 
       return res.status(201).send({
         id: comment._id,
-        beatId: comment.beatId,
+        beatId: comment.beatId ?? null,
+        playlistId: comment.playlistId ?? null,
         authorId: comment.authorId,
         author: comment.author,
         text: comment.text,
         createdAt: comment.createdAt,
+        updatedAt: comment.updatedAt,
       });
     } catch (err) {
       if (err.status) {
@@ -207,11 +209,13 @@ export default function commentRoutes(app) {
 
       return res.status(201).send({
         id: comment._id,
-        playlistId: comment.playlistId,
+        beatId: comment.beatId ?? null,
+        playlistId: comment.playlistId ?? null,
         authorId: comment.authorId,
         author: comment.author,
         text: comment.text,
         createdAt: comment.createdAt,
+        updatedAt: comment.updatedAt,
       });
     } catch (err) {
       if (err.status) {
@@ -419,9 +423,13 @@ export default function commentRoutes(app) {
       return res.status(200).send({
         data: result.data.map((comment) => ({
           id: comment._id,
+          beatId: comment.beatId ?? null,
+          playlistId: comment.playlistId ?? null,
           authorId: comment.authorId,
+          author: comment.author,
           text: comment.text,
           createdAt: comment.createdAt,
+          updatedAt: comment.updatedAt,
         })),
         page: result.page,
         limit: result.limit,
