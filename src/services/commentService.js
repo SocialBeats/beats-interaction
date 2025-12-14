@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { Comment } from '../models/models.js';
+import { isKafkaEnabled } from './kafkaConsumer.js';
 
 class CommentService {
   async createBeatComment({ beatId, authorId, text }) {
@@ -10,12 +11,28 @@ class CommentService {
         throw { status, message };
       }
 
-      // TODO: check if beat exists in DB (404 if not found)
+      const author = null;
+      // check if beat and user exist only if kafka is enabled
+      if (isKafkaEnabled()) {
+        author = await UserMaterialized.findById(authorId);
+        if (!author) {
+          throw {
+            status: 422,
+            message: 'authorId must correspond to an existing user',
+          };
+        }
+
+        const beatExists = await BeatMaterialized.findById(beatId);
+        if (!beatExists) {
+          throw { status: 404, message: 'Beat not found' };
+        }
+      }
 
       const comment = new Comment({
         beatId,
         authorId,
         text,
+        author,
       });
 
       await comment.validate();

@@ -99,6 +99,7 @@ export default function commentRoutes(app) {
         id: comment._id,
         beatId: comment.beatId,
         authorId: comment.authorId,
+        author: comment.author,
         text: comment.text,
         createdAt: comment.createdAt,
       });
