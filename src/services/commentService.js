@@ -65,6 +65,18 @@ class CommentService {
         throw { status, message };
       }
 
+      // check author existence only if kafka is enabled
+      let author = null;
+      if (isKafkaEnabled()) {
+        author = await UserMaterialized.findById(authorId);
+        if (!author) {
+          throw {
+            status: 422,
+            message: 'authorId must correspond to an existing user',
+          };
+        }
+      }
+
       // comment model validation will ensure to check if playlist exists and if playlist is public
       const comment = new Comment({
         playlistId,
@@ -74,6 +86,9 @@ class CommentService {
 
       await comment.validate();
       await comment.save();
+
+      comment.author = author;
+
       return comment;
     } catch (err) {
       if (err.name === 'ValidationError') {

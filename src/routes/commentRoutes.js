@@ -209,6 +209,7 @@ export default function commentRoutes(app) {
         id: comment._id,
         playlistId: comment.playlistId,
         authorId: comment.authorId,
+        author: comment.author,
         text: comment.text,
         createdAt: comment.createdAt,
       });
