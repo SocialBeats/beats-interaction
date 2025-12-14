@@ -515,7 +515,7 @@ export default function commentRoutes(app) {
    *                   type: string
    *                   example: Unauthorized access.
    *       404:
-   *         description: Playlist not found (invalid `playlistId`).
+   *         description: Playlist not found (invalid or non-existent playlistId).
    *         content:
    *           application/json:
    *             schema:

@@ -3,6 +3,7 @@ import {
   Comment,
   UserMaterialized,
   BeatMaterialized,
+  Playlist,
 } from '../models/models.js';
 import { isKafkaEnabled } from './kafkaConsumer.js';
 
@@ -243,6 +244,12 @@ class CommentService {
         throw { status, message };
       }
 
+      // check playlist existence
+      const playlistExists = await Playlist.findById(playlistId);
+      if (!playlistExists) {
+        throw { status: 404, message: 'Playlist not found' };
+      }
+
       // parameter normalization
       page = Number(page);
       limit = Number(limit);
@@ -261,10 +268,32 @@ class CommentService {
 
       const skip = (page - 1) * limit;
 
-      const comments = await Comment.find(filter)
+      let comments = await Comment.find(filter)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit);
+
+      comments = comments.map((comment) => {
+        comment.author = null;
+        return comment;
+      });
+
+      if (isKafkaEnabled() && comments.length > 0) {
+        const authorIds = [
+          ...new Set(comments.map((c) => c.authorId.toString())),
+        ];
+
+        const authors = await UserMaterialized.find({
+          userId: { $in: authorIds },
+        }).lean();
+
+        const authorMap = new Map(authors.map((a) => [a.userId.toString(), a]));
+
+        comments = comments.map((comment) => {
+          comment.author = authorMap.get(comment.authorId.toString()) ?? null;
+          return comment;
+        });
+      }
 
       return {
         data: comments,
