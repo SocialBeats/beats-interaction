@@ -574,14 +574,7 @@ export default function ratingRoutes(app) {
    *                 data:
    *                   type: array
    *                   items:
-   *                     type: object
-   *                     properties:
-   *                       userId:
-   *                         type: string
-   *                       score:
-   *                         type: integer
-   *                       comment:
-   *                         type: string
+   *                       $ref: '#/components/schemas/Rating'
    *                 average:
    *                   type: number
    *                   example: 4.5
@@ -714,14 +707,7 @@ export default function ratingRoutes(app) {
    *                 data:
    *                   type: array
    *                   items:
-   *                     type: object
-   *                     properties:
-   *                       userId:
-   *                         type: string
-   *                       score:
-   *                         type: integer
-   *                       comment:
-   *                         type: string
+   *                       $ref: '#/components/schemas/Rating'
    *                 average:
    *                   type: number
    *                   example: 4.5
