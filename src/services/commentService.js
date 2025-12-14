@@ -32,11 +32,17 @@ class CommentService {
         beatId,
         authorId,
         text,
-        author,
       });
 
       await comment.validate();
       await comment.save();
+
+      if (isKafkaEnabled()) {
+        comment.author = author;
+      } else {
+        comment.author = null;
+      }
+
       return comment;
     } catch (err) {
       if (err.name === 'ValidationError') {
