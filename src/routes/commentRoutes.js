@@ -63,7 +63,7 @@ export default function commentRoutes(app) {
    *                   type: string
    *                   example: Beat not found.
    *       422:
-   *         description: Validation error (e.g., text empty or too long).
+   *         description: Validation error or related resource not found (e.g., text empty/too long, or authorId does not correspond to an existing user).
    *         content:
    *           application/json:
    *             schema:
@@ -71,7 +71,7 @@ export default function commentRoutes(app) {
    *               properties:
    *                 message:
    *                   type: string
-   *                   example: Comment text cannot exceed 200 characters.
+   *                   example: authorId must correspond to an existing user
    *       500:
    *         description: Internal server error while creating comment.
    *         content:
@@ -173,7 +173,7 @@ export default function commentRoutes(app) {
    *                   type: string
    *                   example: Playlist not found.
    *       422:
-   *         description: Validation error (e.g., text empty, too long, or playlist private).
+   *         description: Validation error or related resource not found (e.g., playlist private, playlist does not exist, invalid text, or authorId does not correspond to an existing user).
    *         content:
    *           application/json:
    *             schema:
@@ -181,7 +181,7 @@ export default function commentRoutes(app) {
    *               properties:
    *                 message:
    *                   type: string
-   *                   example: Comment text cannot exceed 200 characters.
+   *                   example: The playlist being commented does not exist.
    *       500:
    *         description: Internal server error while creating comment.
    *         content:
@@ -269,6 +269,16 @@ export default function commentRoutes(app) {
    *                 message:
    *                   type: string
    *                   example: Comment not found.
+   *       422:
+   *         description: Related resource not found.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: authorId must correspond to an existing user
    *       500:
    *         description: Internal server error while retrieving comment.
    *         content:
@@ -291,6 +301,7 @@ export default function commentRoutes(app) {
         beatId: comment.beatId ?? null,
         playlistId: comment.playlistId ?? null,
         authorId: comment.authorId,
+        author: comment.author,
         text: comment.text,
         createdAt: comment.createdAt,
         updatedAt: comment.updatedAt,

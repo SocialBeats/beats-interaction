@@ -1,5 +1,9 @@
 import mongoose from 'mongoose';
-import { Comment } from '../models/models.js';
+import {
+  Comment,
+  UserMaterialized,
+  BeatMaterialized,
+} from '../models/models.js';
 import { isKafkaEnabled } from './kafkaConsumer.js';
 
 class CommentService {
@@ -128,6 +132,19 @@ class CommentService {
         const message = 'Comment not found';
         throw { status, message };
       }
+
+      let author = null;
+      if (isKafkaEnabled()) {
+        author = await UserMaterialized.findById(comment.authorId);
+        if (!author) {
+          throw {
+            status: 422,
+            message: 'authorId must correspond to an existing user',
+          };
+        }
+      }
+
+      comment.author = author;
 
       return comment;
     } catch (err) {
