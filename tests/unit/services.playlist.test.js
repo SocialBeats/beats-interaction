@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { describe, it, expect, beforeEach } from 'vitest';
 import PlaylistService from '../../src/services/playlistService';
-import { Playlist } from '../../src/models/models';
+import { Playlist, Comment, Rating } from '../../src/models/models';
 
 describe('create playlist test', () => {
   const fakeUserId = new mongoose.Types.ObjectId();
@@ -615,6 +615,124 @@ describe('delete playlist test', () => {
 
     const deleted = await Playlist.findById(playlist._id);
     expect(deleted).toBeNull();
+  });
+
+  it('should delete all comments and ratings related to the playlist when owner deletes it', async () => {
+    const ownerId = new mongoose.Types.ObjectId();
+
+    const playlist = await Playlist.create({
+      ownerId,
+      name: 'Playlist cascade delete',
+      isPublic: true,
+      collaborators: [],
+    });
+
+    await Comment.insertMany([
+      {
+        playlistId: playlist._id,
+        authorId: ownerId,
+        text: 'Comment 1',
+      },
+      {
+        playlistId: playlist._id,
+        authorId: ownerId,
+        text: 'Comment 2',
+      },
+    ]);
+
+    await Rating.insertMany([
+      {
+        playlistId: playlist._id,
+        userId: ownerId,
+        score: 4,
+        comment: 'Nice',
+      },
+      {
+        playlistId: playlist._id,
+        userId: new mongoose.Types.ObjectId(),
+        score: 5,
+        comment: 'Great',
+      },
+    ]);
+
+    await expect(
+      PlaylistService.deletePlaylist({
+        playlistId: playlist._id,
+        userId: ownerId,
+      })
+    ).resolves.toBeUndefined();
+
+    const deletedPlaylist = await Playlist.findById(playlist._id);
+    expect(deletedPlaylist).toBeNull();
+
+    const remainingComments = await Comment.countDocuments({
+      playlistId: playlist._id,
+    });
+    const remainingRatings = await Rating.countDocuments({
+      playlistId: playlist._id,
+    });
+
+    expect(remainingComments).toBe(0);
+    expect(remainingRatings).toBe(0);
+  });
+
+  it('should not delete comments/ratings from other playlists', async () => {
+    const ownerId = new mongoose.Types.ObjectId();
+
+    const playlistToDelete = await Playlist.create({
+      ownerId,
+      name: 'To delete',
+      isPublic: true,
+      collaborators: [],
+    });
+
+    const otherPlaylist = await Playlist.create({
+      ownerId,
+      name: 'Other playlist',
+      isPublic: true,
+      collaborators: [],
+    });
+
+    await Comment.create({
+      playlistId: playlistToDelete._id,
+      authorId: ownerId,
+      text: 'Will be deleted',
+    });
+
+    await Rating.create({
+      playlistId: playlistToDelete._id,
+      userId: ownerId,
+      score: 3,
+      comment: 'Will be deleted',
+    });
+
+    await Comment.create({
+      playlistId: otherPlaylist._id,
+      authorId: ownerId,
+      text: 'Must remain',
+    });
+
+    await Rating.create({
+      playlistId: otherPlaylist._id,
+      userId: ownerId,
+      score: 5,
+      comment: 'Must remain',
+    });
+
+    await PlaylistService.deletePlaylist({
+      playlistId: playlistToDelete._id,
+      userId: ownerId,
+    });
+
+    const otherComments = await Comment.countDocuments({
+      playlistId: otherPlaylist._id,
+    });
+    const otherRatings = await Rating.countDocuments({
+      playlistId: otherPlaylist._id,
+    });
+
+    expect(otherComments).toBe(1);
+    expect(otherRatings).toBe(1);
   });
 });
 

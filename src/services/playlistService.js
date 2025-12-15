@@ -2,6 +2,8 @@ import {
   Playlist,
   UserMaterialized,
   BeatMaterialized,
+  Comment,
+  Rating,
 } from '../models/models.js';
 import { isKafkaEnabled } from './kafkaConsumer.js';
 import mongoose from 'mongoose';
@@ -571,6 +573,12 @@ class PlaylistService {
           message: 'You do not have permission to delete this playlist.',
         };
       }
+
+      // remove associated comments and ratings
+      await Promise.all([
+        Comment.deleteMany({ playlistId: playlist._id }),
+        Rating.deleteMany({ playlistId: playlist._id }),
+      ]);
 
       await playlist.deleteOne();
       return;
