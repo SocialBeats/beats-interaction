@@ -606,28 +606,38 @@ describe('CommentService.listPlaylistComments', () => {
   });
 
   it('should rethrow unexpected errors (e.g. DB error in countDocuments)', async () => {
-    const playlistId = new mongoose.Types.ObjectId();
+    const ownerId = new mongoose.Types.ObjectId();
+
+    const playlist = await Playlist.create({
+      ownerId,
+      name: `Playlist error ${new mongoose.Types.ObjectId()}`,
+      isPublic: true,
+      collaborators: [],
+      items: [],
+    });
 
     const originalCountDocuments = Comment.countDocuments;
 
-    Comment.countDocuments = async () => {
-      const err = new Error('Simulated countDocuments error (playlist)');
-      err.name = 'SomeOtherError';
-      throw err;
-    };
+    try {
+      Comment.countDocuments = async () => {
+        const err = new Error('Simulated countDocuments error (playlist)');
+        err.name = 'SomeOtherError';
+        throw err;
+      };
 
-    await expect(
-      commentService.listPlaylistComments({
-        playlistId,
-        page: 1,
-        limit: 10,
-      })
-    ).rejects.toHaveProperty(
-      'message',
-      'Simulated countDocuments error (playlist)'
-    );
-
-    Comment.countDocuments = originalCountDocuments;
+      await expect(
+        commentService.listPlaylistComments({
+          playlistId: playlist._id,
+          page: 1,
+          limit: 10,
+        })
+      ).rejects.toHaveProperty(
+        'message',
+        'Simulated countDocuments error (playlist)'
+      );
+    } finally {
+      Comment.countDocuments = originalCountDocuments;
+    }
   });
 });
 

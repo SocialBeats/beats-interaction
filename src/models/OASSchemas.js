@@ -126,6 +126,10 @@ export const CommentSchema = {
     beatId: { type: 'string', example: 'beatId1', nullable: true },
     playlistId: { type: 'string', example: 'playlistId1', nullable: true },
     authorId: { type: 'string', example: '123456abcdef' },
+    author: {
+      allOf: [{ $ref: '#/components/schemas/UserMaterialized' }],
+      description: 'Full information about the comment author.',
+    },
     text: {
       type: 'string',
       example: 'This is an awesome beat!',

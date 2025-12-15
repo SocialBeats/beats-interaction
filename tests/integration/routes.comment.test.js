@@ -16,9 +16,9 @@ describe('POST /api/v1/beats/:beatId/comments (integration)', () => {
       .send({ text: 'Nice beat bro!' })
       .expect(201);
 
-    const createdId = response.body.id;
+    const createdId = response.body._id;
 
-    expect(response.body).toHaveProperty('id');
+    expect(response.body).toHaveProperty('_id');
     expect(response.body).toHaveProperty('beatId', beatId);
     expect(response.body).toHaveProperty('authorId');
     expect(response.body).toHaveProperty('text', 'Nice beat bro!');
@@ -96,7 +96,7 @@ describe('POST /api/v1/playlists/:playlistId/comments (integration)', () => {
       .send({ text: 'Awesome playlist!' })
       .expect(201);
 
-    const createdId = response.body.id;
+    const createdId = response.body._id;
 
     expect(response.body).toHaveProperty('playlistId', playlist._id.toString());
     expect(response.body).toHaveProperty('text', 'Awesome playlist!');
@@ -185,7 +185,7 @@ describe('GET /api/v1/comments/:commentId (integration)', () => {
       api.get(`/api/v1/comments/${created._id}`)
     ).expect(200);
 
-    expect(response.body).toHaveProperty('id', created._id.toString());
+    expect(response.body).toHaveProperty('_id', created._id.toString());
     expect(response.body).toHaveProperty('text', 'Existing comment');
     expect(response.body).toHaveProperty('authorId', authorId.toString());
     expect(response.body).toHaveProperty('createdAt');
@@ -237,7 +237,7 @@ describe('GET /api/v1/beats/:beatId/comments (integration)', () => {
     expect(response.body.data).toHaveLength(3);
 
     response.body.data.forEach((c) => {
-      expect(c).toHaveProperty('id');
+      expect(c).toHaveProperty('_id');
       expect(c).toHaveProperty('authorId');
       expect(c).toHaveProperty('text');
       expect(c).toHaveProperty('createdAt');
@@ -371,7 +371,7 @@ describe('GET /api/v1/playlists/:playlistId/comments (integration)', () => {
     expect(response.body.data).toHaveLength(3);
 
     response.body.data.forEach((c) => {
-      expect(c).toHaveProperty('id');
+      expect(c).toHaveProperty('_id');
       expect(c).toHaveProperty('authorId');
       expect(c).toHaveProperty('text');
       expect(c).toHaveProperty('createdAt');
@@ -505,7 +505,7 @@ describe('DELETE /api/v1/comments/:commentId (integration)', () => {
       .send({ text: 'Comment to delete' })
       .expect(201);
 
-    const commentId = createResponse.body.id;
+    const commentId = createResponse.body._id;
 
     const deleteResponse = await withAuth(
       api.delete(`/api/v1/comments/${commentId}`)
@@ -573,7 +573,7 @@ describe('PUT /api/v1/comments/:commentId (integration)', () => {
       .send({ text: 'Old text' })
       .expect(201);
 
-    const commentId = createResponse.body.id;
+    const commentId = createResponse.body._id;
 
     const updateResponse = await withAuth(
       api.put(`/api/v1/comments/${commentId}`)
@@ -581,7 +581,7 @@ describe('PUT /api/v1/comments/:commentId (integration)', () => {
       .send({ text: 'New text from PUT' })
       .expect(200);
 
-    expect(updateResponse.body).toHaveProperty('id', commentId);
+    expect(updateResponse.body).toHaveProperty('_id', commentId);
     expect(updateResponse.body).toHaveProperty('text', 'New text from PUT');
     expect(updateResponse.body).toHaveProperty('updatedAt');
 
@@ -641,7 +641,7 @@ describe('PUT /api/v1/comments/:commentId (integration)', () => {
       .send({ text: 'Initial text' })
       .expect(201);
 
-    const commentId = createResponse.body.id;
+    const commentId = createResponse.body._id;
 
     const response = await withAuth(api.put(`/api/v1/comments/${commentId}`))
       .send({ text: '   ' })
@@ -666,7 +666,7 @@ describe('PUT /api/v1/comments/:commentId (integration)', () => {
       .send({ text: 'Initial text' })
       .expect(201);
 
-    const commentId = createResponse.body.id;
+    const commentId = createResponse.body._id;
 
     const response = await withAuth(api.put(`/api/v1/comments/${commentId}`))
       .send({ text: longText })
@@ -692,7 +692,7 @@ describe('PATCH /api/v1/comments/:commentId (integration)', () => {
       .send({ text: 'Old text (patch)' })
       .expect(201);
 
-    const commentId = createResponse.body.id;
+    const commentId = createResponse.body._id;
 
     const patchResponse = await withAuth(
       api.patch(`/api/v1/comments/${commentId}`)
@@ -700,7 +700,7 @@ describe('PATCH /api/v1/comments/:commentId (integration)', () => {
       .send({ text: 'New text from PATCH' })
       .expect(200);
 
-    expect(patchResponse.body).toHaveProperty('id', commentId);
+    expect(patchResponse.body).toHaveProperty('_id', commentId);
     expect(patchResponse.body).toHaveProperty('text', 'New text from PATCH');
 
     const inDb = await Comment.findById(commentId);
@@ -765,7 +765,7 @@ describe('PATCH /api/v1/comments/:commentId (integration)', () => {
       .send({ text: 'Initial patch text' })
       .expect(201);
 
-    const commentId = createResponse.body.id;
+    const commentId = createResponse.body._id;
 
     const response = await withAuth(api.patch(`/api/v1/comments/${commentId}`))
       .send({ text: '   ' })
