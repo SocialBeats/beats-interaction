@@ -1,0 +1,84 @@
+version: "3.8"
+
+services:
+  mongodb:
+    restart: unless-stopped
+    image: mongo:latest
+    container_name: mongodb
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=
+      - MONGO_INITDB_ROOT_PASSWORD=
+    networks:
+      - socialbeats-network
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - socialbeats-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - socialbeats-network
+
+  beats-interaction:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: beats-interaction
+    environment:
+      - MONGOURL=mongodb://mongodb:27017/beats-interaction
+      - MONGOADMIN=
+      - MONGOPASS=
+      - NODE_ENV=development
+      - PORT=3002
+      - LOG_LEVEL=info
+      - JWT_SECRETsecret
+      - API_TITLE=beats-interaction microservice API
+      - API_DESCRIPTION=This is an OAS description of this beats-interaction microservice REST API
+      - KAFKA_CONNECTION_MAX_RETRIES=10
+      - KAFKA_CONNECTION_RETRY_DELAY=3000
+      - KAFKA_COOLDOWN=30000
+      - KAFKA_BROKER=kafka:9092
+      - ENABLE_KAFKA=false
+
+    depends_on:
+      - mongodb
+      - kafka
+    networks:
+      - socialbeats-network
+    ports:
+      - "${PORT}:${PORT}"
+    volumes:
+      - ./:/app:cached
+      - /app/node_modules
+    command: nodemon --watch /app --legacy-watch --polling-interval 1000 main.js
+
+volumes:
+  mongo-data:
+
+networks:
+  socialbeats-network:
+    driver: bridge
