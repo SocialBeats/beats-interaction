@@ -328,6 +328,7 @@ export default function ratingRoutes(app) {
         beatId: rating.beatId ?? null,
         playlistId: rating.playlistId ?? null,
         userId: rating.userId,
+        user: rating.user,
         score: rating.score,
         comment: rating.comment,
         createdAt: rating.createdAt,
@@ -393,6 +394,16 @@ export default function ratingRoutes(app) {
    *                 message:
    *                   type: string
    *                   example: Rating not found.
+   *       422:
+   *         description: Related resource not found (e.g., userId does not correspond to an existing user in materialized views).
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: userId must correspond to an existing user
    *       500:
    *         description: Internal server error while retrieving rating.
    *         content:
