@@ -490,6 +490,20 @@ class RatingService {
 
       await rating.validate();
       await rating.save();
+
+      let user = null;
+      if (isKafkaEnabled()) {
+        user = await UserMaterialized.findById(rating.userId);
+        if (!user) {
+          throw {
+            status: 422,
+            message: 'userId must correspond to an existing user',
+          };
+        }
+      }
+
+      rating.user = user;
+
       return rating;
     } catch (err) {
       if (err.name === 'ValidationError') {

@@ -961,7 +961,7 @@ export default function ratingRoutes(app) {
    *                   type: string
    *                   example: Rating not found.
    *       422:
-   *         description: Validation error (e.g., score out of range, comment too long).
+   *         description: Validation error (score/comment) or related resource not found (materialized user missing when Kafka enabled).
    *         content:
    *           application/json:
    *             schema:
@@ -999,6 +999,7 @@ export default function ratingRoutes(app) {
         beatId: rating.beatId ?? null,
         playlistId: rating.playlistId ?? null,
         userId: rating.userId,
+        user: rating.user,
         score: rating.score,
         comment: rating.comment,
         createdAt: rating.createdAt,
@@ -1081,7 +1082,7 @@ export default function ratingRoutes(app) {
    *                   type: string
    *                   example: Rating not found.
    *       422:
-   *         description: Validation error (e.g., score out of range, comment too long).
+   *         description: Validation error (score/comment) or related resource not found (materialized user missing when Kafka enabled).
    *         content:
    *           application/json:
    *             schema:
@@ -1119,6 +1120,7 @@ export default function ratingRoutes(app) {
         beatId: rating.beatId ?? null,
         playlistId: rating.playlistId ?? null,
         userId: rating.userId,
+        user: rating.user,
         score: rating.score,
         comment: rating.comment,
         createdAt: rating.createdAt,
