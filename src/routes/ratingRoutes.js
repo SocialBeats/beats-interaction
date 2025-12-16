@@ -30,22 +30,22 @@ export default function ratingRoutes(app) {
    *       content:
    *         application/json:
    *           schema:
-   *             allOf:
-   *               - $ref: '#/components/schemas/Rating'
+   *             type: object
    *             required:
    *               - score
    *             properties:
-   *               beatId:
-   *                 readOnly: true
-   *               playlistId:
-   *                 readOnly: true
-   *               userId:
-   *                 readOnly: true
-   *               createdAt:
-   *                 readOnly: true
-   *               updatedAt:
-   *                 readOnly: true
-   *             description: Only `score` and optional `comment` are accepted in the request.
+   *               score:
+   *                 type: integer
+   *                 minimum: 1
+   *                 maximum: 5
+   *                 example: 5
+   *               comment:
+   *                 type: string
+   *                 maxLength: 200
+   *                 example: "El beat está muy limpio, me gusta mucho."
+   *             additionalProperties: false
+   *             description: >
+   *               Only `score` and optional `comment` are accepted.
    *     responses:
    *       201:
    *         description: Rating successfully created.
@@ -74,7 +74,9 @@ export default function ratingRoutes(app) {
    *                   type: string
    *                   example: Beat not found.
    *       422:
-   *         description: Validation error (e.g., score out of range, comment too long, or user already rated this beat).
+   *         description: >
+   *           Validation error (e.g., score out of range, comment too long,
+   *           user already rated this beat, or user does not exist).
    *         content:
    *           application/json:
    *             schema:
@@ -112,6 +114,7 @@ export default function ratingRoutes(app) {
         beatId: rating.beatId ?? null,
         playlistId: rating.playlistId ?? null,
         userId: rating.userId,
+        user: rating.user,
         score: rating.score,
         comment: rating.comment,
         createdAt: rating.createdAt,
@@ -154,22 +157,21 @@ export default function ratingRoutes(app) {
    *       content:
    *         application/json:
    *           schema:
-   *             allOf:
-   *               - $ref: '#/components/schemas/Rating'
+   *             type: object
    *             required:
    *               - score
    *             properties:
-   *               playlistId:
-   *                 readOnly: true
-   *               beatId:
-   *                 readOnly: true
-   *               userId:
-   *                 readOnly: true
-   *               createdAt:
-   *                 readOnly: true
-   *               updatedAt:
-   *                 readOnly: true
-   *             description: Only `score` and optional `comment` are accepted in the request.
+   *               score:
+   *                 type: integer
+   *                 minimum: 1
+   *                 maximum: 5
+   *                 example: 5
+   *               comment:
+   *                 type: string
+   *                 maxLength: 200
+   *                 example: "La playlist está muy limpio, me gusta mucho."
+   *             additionalProperties: false
+   *             description: Only `score` and optional `comment` are accepted.
    *     responses:
    *       201:
    *         description: Rating successfully created for the playlist.
@@ -199,12 +201,8 @@ export default function ratingRoutes(app) {
    *                   example: Playlist not found.
    *       422:
    *         description: >
-   *           Validation error. For example:
-   *           - score out of range
-   *           - comment too long
-   *           - playlist does not exist
-   *           - playlist is private
-   *           - user has already rated this playlist
+   *           Validation error (e.g., score out of range, comment too long,
+   *           user already rated this playlist, or user does not exist).
    *         content:
    *           application/json:
    *             schema:

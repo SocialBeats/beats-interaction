@@ -1,5 +1,10 @@
 import mongoose from 'mongoose';
-import { Rating } from '../models/models.js';
+import {
+  Rating,
+  UserMaterialized,
+  BeatMaterialized,
+} from '../models/models.js';
+import { isKafkaEnabled } from './kafkaConsumer.js';
 
 class RatingService {
   async createBeatRating({ beatId, userId, score, comment }) {
@@ -10,7 +15,22 @@ class RatingService {
         throw { status, message };
       }
 
-      // TODO: check if beat exists in DB (404 if not found)
+      // check user and beat existence only if kafka is enabled
+      let user = null;
+      if (isKafkaEnabled()) {
+        user = await UserMaterialized.findById(userId);
+        if (!user) {
+          throw {
+            status: 422,
+            message: 'userId must correspond to an existing user',
+          };
+        }
+
+        const beatExists = await BeatMaterialized.findById(beatId);
+        if (!beatExists) {
+          throw { status: 404, message: 'Beat not found' };
+        }
+      }
 
       // check if user has already rated this beat
       const existing = await Rating.findOne({ beatId, userId });
@@ -29,6 +49,9 @@ class RatingService {
 
       await rating.validate();
       await rating.save();
+
+      rating.user = user;
+
       return rating;
     } catch (err) {
       if (err.name === 'ValidationError') {
