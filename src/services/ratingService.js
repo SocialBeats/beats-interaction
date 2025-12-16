@@ -85,6 +85,18 @@ class RatingService {
         throw { status, message };
       }
 
+      // check user existence only if kafka is enabled
+      let user = null;
+      if (isKafkaEnabled()) {
+        user = await UserMaterialized.findById(userId);
+        if (!user) {
+          throw {
+            status: 422,
+            message: 'userId must correspond to an existing user',
+          };
+        }
+      }
+
       const rating = new Rating({
         playlistId,
         userId,
@@ -94,6 +106,9 @@ class RatingService {
 
       await rating.validate();
       await rating.save();
+
+      rating.user = user;
+
       return rating;
     } catch (err) {
       if (err.name === 'ValidationError') {
@@ -103,7 +118,6 @@ class RatingService {
         const status = 422;
         throw { status, message };
       }
-
       // errors thrown from pre-validate hooks (e.g., playlist not found or not public)
       if (err.name === 'Error') {
         const status = 422;

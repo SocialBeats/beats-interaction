@@ -2067,7 +2067,7 @@ paths:
                     type: string
                     example: Unauthorized access.
         '404':
-          description: Playlist not found (invalid or non-existent `playlistId`).
+          description: Playlist not found (invalid `playlistId` format).
           content:
             application/json:
               schema:
@@ -2078,8 +2078,9 @@ paths:
                     example: Playlist not found.
         '422':
           description: >
-            Validation error (e.g., score out of range, comment too long, user
-            already rated this playlist, or user does not exist).
+            Validation error (e.g., score out of range, comment too long,
+            playlist does not exist, playlist is private, user already rated
+            this playlist, or user does not exist).
           content:
             application/json:
               schema:
@@ -2087,7 +2088,7 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: User has already rated this playlist.
+                    example: The playlist being rated does not exist.
         '500':
           description: Internal server error while creating playlist rating.
           content:

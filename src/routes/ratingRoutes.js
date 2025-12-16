@@ -190,7 +190,7 @@ export default function ratingRoutes(app) {
    *                   type: string
    *                   example: Unauthorized access.
    *       404:
-   *         description: Playlist not found (invalid or non-existent `playlistId`).
+   *         description: Playlist not found (invalid `playlistId` format).
    *         content:
    *           application/json:
    *             schema:
@@ -202,7 +202,8 @@ export default function ratingRoutes(app) {
    *       422:
    *         description: >
    *           Validation error (e.g., score out of range, comment too long,
-   *           user already rated this playlist, or user does not exist).
+   *           playlist does not exist, playlist is private, user already rated this playlist,
+   *           or user does not exist).
    *         content:
    *           application/json:
    *             schema:
@@ -210,7 +211,7 @@ export default function ratingRoutes(app) {
    *               properties:
    *                 message:
    *                   type: string
-   *                   example: User has already rated this playlist.
+   *                   example: The playlist being rated does not exist.
    *       500:
    *         description: Internal server error while creating playlist rating.
    *         content:
@@ -240,6 +241,7 @@ export default function ratingRoutes(app) {
         beatId: rating.beatId ?? null,
         playlistId: rating.playlistId ?? null,
         userId: rating.userId,
+        user: rating.user,
         score: rating.score,
         comment: rating.comment,
         createdAt: rating.createdAt,
