@@ -3,6 +3,7 @@ import {
   Rating,
   UserMaterialized,
   BeatMaterialized,
+  Playlist,
 } from '../models/models.js';
 import { isKafkaEnabled } from './kafkaConsumer.js';
 
@@ -234,6 +235,19 @@ class RatingService {
         const message = 'Rating not found';
         throw { status, message };
       }
+
+      let user = null;
+      if (isKafkaEnabled()) {
+        user = await UserMaterialized.findById(rating.userId);
+        if (!user) {
+          throw {
+            status: 422,
+            message: 'userId must correspond to an existing user',
+          };
+        }
+      }
+
+      rating.user = user;
 
       return rating;
     } catch (err) {
