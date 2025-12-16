@@ -68,6 +68,10 @@ components:
         userId:
           type: string
           example: 123456abcdef
+        user:
+          allOf:
+            - $ref: '#/components/schemas/UserMaterialized'
+          description: Full information about the user author.
         score:
           type: number
           minimum: 1
