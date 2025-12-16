@@ -663,6 +663,7 @@ export default function ratingRoutes(app) {
           beatId: rating.beatId ?? null,
           playlistId: rating.playlistId ?? null,
           userId: rating.userId,
+          user: rating.user,
           score: rating.score,
           comment: rating.comment,
           createdAt: rating.createdAt,

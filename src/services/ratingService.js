@@ -267,8 +267,15 @@ class RatingService {
         throw { status, message };
       }
 
-      // TODO: check if beat exists in DB (404 if not found)
+      // check beat existence only if kafka is enabled
+      if (isKafkaEnabled()) {
+        const beatExists = await BeatMaterialized.findById(beatId);
+        if (!beatExists) {
+          throw { status: 404, message: 'Beat not found' };
+        }
+      }
 
+      // parameter normalization
       page = Number(page);
       limit = Number(limit);
 
@@ -279,6 +286,7 @@ class RatingService {
       const beatObjectId = new mongoose.Types.ObjectId(beatId);
       const match = { beatId: beatObjectId };
 
+      // global stats (NOT paginated)
       const [stats] = await Rating.aggregate([
         { $match: match },
         {
@@ -298,10 +306,31 @@ class RatingService {
 
       const skip = (page - 1) * limit;
 
-      const ratings = await Rating.find(match)
+      let ratings = await Rating.find(match)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit);
+
+      ratings = ratings.map((rating) => {
+        rating.user = null;
+        return rating;
+      });
+
+      // enrich with materialized users if kafka enabled
+      if (isKafkaEnabled() && ratings.length > 0) {
+        const userIds = [...new Set(ratings.map((r) => r.userId.toString()))];
+
+        const users = await UserMaterialized.find({
+          userId: { $in: userIds },
+        }).lean();
+
+        const userMap = new Map(users.map((u) => [u.userId.toString(), u]));
+
+        ratings = ratings.map((rating) => {
+          rating.user = userMap.get(rating.userId.toString()) ?? null;
+          return rating;
+        });
+      }
 
       return {
         data: ratings,
