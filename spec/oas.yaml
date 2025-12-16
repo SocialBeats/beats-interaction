@@ -2504,7 +2504,9 @@ paths:
                     type: string
                     example: Unauthorized access.
         '404':
-          description: Beat not found or user has no rating for this beat.
+          description: >-
+            Beat not found (invalid/non-existent beatId) or rating not found for
+            this user.
           content:
             application/json:
               schema:
@@ -2512,7 +2514,13 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: Rating not found.
+                examples:
+                  beatNotFound:
+                    value:
+                      message: Beat not found
+                  ratingNotFound:
+                    value:
+                      message: Rating not found
         '422':
           description: >-
             Related resource not found (e.g., userId does not correspond to an

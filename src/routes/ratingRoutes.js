@@ -385,7 +385,7 @@ export default function ratingRoutes(app) {
    *                   type: string
    *                   example: Unauthorized access.
    *       404:
-   *         description: Beat not found or user has no rating for this beat.
+   *         description: Beat not found (invalid/non-existent beatId) or rating not found for this user.
    *         content:
    *           application/json:
    *             schema:
@@ -393,7 +393,11 @@ export default function ratingRoutes(app) {
    *               properties:
    *                 message:
    *                   type: string
-   *                   example: Rating not found.
+   *               examples:
+   *                 beatNotFound:
+   *                   value: { message: Beat not found }
+   *                 ratingNotFound:
+   *                   value: { message: Rating not found }
    *       422:
    *         description: Related resource not found (e.g., userId does not correspond to an existing user in materialized views).
    *         content:
@@ -427,6 +431,7 @@ export default function ratingRoutes(app) {
         beatId: rating.beatId ?? null,
         playlistId: rating.playlistId ?? null,
         userId: rating.userId,
+        user: rating.user,
         score: rating.score,
         comment: rating.comment,
         createdAt: rating.createdAt,

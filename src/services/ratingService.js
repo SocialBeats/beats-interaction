@@ -180,7 +180,13 @@ class RatingService {
         throw { status, message };
       }
 
-      // TODO: check beat existence via Beats microservice
+      // check beat existence only if kafka is enabled
+      if (isKafkaEnabled()) {
+        const beatExists = await BeatMaterialized.findById(beatId);
+        if (!beatExists) {
+          throw { status: 404, message: 'Beat not found' };
+        }
+      }
 
       const rating = await Rating.findOne({ beatId, userId });
 
@@ -189,6 +195,19 @@ class RatingService {
         const message = 'Rating not found';
         throw { status, message };
       }
+
+      let user = null;
+      if (isKafkaEnabled()) {
+        user = await UserMaterialized.findById(rating.userId);
+        if (!user) {
+          throw {
+            status: 422,
+            message: 'userId must correspond to an existing user',
+          };
+        }
+      }
+
+      rating.user = user;
 
       return rating;
     } catch (err) {
