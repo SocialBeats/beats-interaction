@@ -30,22 +30,22 @@ export default function ratingRoutes(app) {
    *       content:
    *         application/json:
    *           schema:
-   *             allOf:
-   *               - $ref: '#/components/schemas/Rating'
+   *             type: object
    *             required:
    *               - score
    *             properties:
-   *               beatId:
-   *                 readOnly: true
-   *               playlistId:
-   *                 readOnly: true
-   *               userId:
-   *                 readOnly: true
-   *               createdAt:
-   *                 readOnly: true
-   *               updatedAt:
-   *                 readOnly: true
-   *             description: Only `score` and optional `comment` are accepted in the request.
+   *               score:
+   *                 type: integer
+   *                 minimum: 1
+   *                 maximum: 5
+   *                 example: 5
+   *               comment:
+   *                 type: string
+   *                 maxLength: 200
+   *                 example: "El beat está muy limpio, me gusta mucho."
+   *             additionalProperties: false
+   *             description: >
+   *               Only `score` and optional `comment` are accepted.
    *     responses:
    *       201:
    *         description: Rating successfully created.
@@ -74,7 +74,9 @@ export default function ratingRoutes(app) {
    *                   type: string
    *                   example: Beat not found.
    *       422:
-   *         description: Validation error (e.g., score out of range, comment too long, or user already rated this beat).
+   *         description: >
+   *           Validation error (e.g., score out of range, comment too long,
+   *           user already rated this beat, or user does not exist).
    *         content:
    *           application/json:
    *             schema:
@@ -108,12 +110,15 @@ export default function ratingRoutes(app) {
       });
 
       return res.status(201).send({
-        id: rating._id,
-        beatId: rating.beatId,
+        _id: rating._id,
+        beatId: rating.beatId ?? null,
+        playlistId: rating.playlistId ?? null,
         userId: rating.userId,
+        user: rating.user,
         score: rating.score,
         comment: rating.comment,
         createdAt: rating.createdAt,
+        updatedAt: rating.updatedAt,
       });
     } catch (err) {
       if (err.status) {
@@ -152,22 +157,21 @@ export default function ratingRoutes(app) {
    *       content:
    *         application/json:
    *           schema:
-   *             allOf:
-   *               - $ref: '#/components/schemas/Rating'
+   *             type: object
    *             required:
    *               - score
    *             properties:
-   *               playlistId:
-   *                 readOnly: true
-   *               beatId:
-   *                 readOnly: true
-   *               userId:
-   *                 readOnly: true
-   *               createdAt:
-   *                 readOnly: true
-   *               updatedAt:
-   *                 readOnly: true
-   *             description: Only `score` and optional `comment` are accepted in the request.
+   *               score:
+   *                 type: integer
+   *                 minimum: 1
+   *                 maximum: 5
+   *                 example: 5
+   *               comment:
+   *                 type: string
+   *                 maxLength: 200
+   *                 example: "La playlist está muy limpio, me gusta mucho."
+   *             additionalProperties: false
+   *             description: Only `score` and optional `comment` are accepted.
    *     responses:
    *       201:
    *         description: Rating successfully created for the playlist.
@@ -186,7 +190,7 @@ export default function ratingRoutes(app) {
    *                   type: string
    *                   example: Unauthorized access.
    *       404:
-   *         description: Playlist not found (invalid or non-existent `playlistId`).
+   *         description: Playlist not found (invalid `playlistId` format).
    *         content:
    *           application/json:
    *             schema:
@@ -197,12 +201,9 @@ export default function ratingRoutes(app) {
    *                   example: Playlist not found.
    *       422:
    *         description: >
-   *           Validation error. For example:
-   *           - score out of range
-   *           - comment too long
-   *           - playlist does not exist
-   *           - playlist is private
-   *           - user has already rated this playlist
+   *           Validation error (e.g., score out of range, comment too long,
+   *           playlist does not exist, playlist is private, user already rated this playlist,
+   *           or user does not exist).
    *         content:
    *           application/json:
    *             schema:
@@ -210,7 +211,7 @@ export default function ratingRoutes(app) {
    *               properties:
    *                 message:
    *                   type: string
-   *                   example: User has already rated this playlist.
+   *                   example: The playlist being rated does not exist.
    *       500:
    *         description: Internal server error while creating playlist rating.
    *         content:
@@ -236,12 +237,15 @@ export default function ratingRoutes(app) {
       });
 
       return res.status(201).send({
-        id: rating._id,
-        playlistId: rating.playlistId,
+        _id: rating._id,
+        beatId: rating.beatId ?? null,
+        playlistId: rating.playlistId ?? null,
         userId: rating.userId,
+        user: rating.user,
         score: rating.score,
         comment: rating.comment,
         createdAt: rating.createdAt,
+        updatedAt: rating.updatedAt,
       });
     } catch (err) {
       if (err.status) {
@@ -320,10 +324,11 @@ export default function ratingRoutes(app) {
       const rating = await ratingService.getRatingById({ ratingId });
 
       return res.status(200).send({
-        id: rating._id,
+        _id: rating._id,
         beatId: rating.beatId ?? null,
         playlistId: rating.playlistId ?? null,
         userId: rating.userId,
+        user: rating.user,
         score: rating.score,
         comment: rating.comment,
         createdAt: rating.createdAt,
@@ -380,7 +385,7 @@ export default function ratingRoutes(app) {
    *                   type: string
    *                   example: Unauthorized access.
    *       404:
-   *         description: Beat not found or user has no rating for this beat.
+   *         description: Beat not found (invalid/non-existent beatId) or rating not found for this user.
    *         content:
    *           application/json:
    *             schema:
@@ -388,7 +393,21 @@ export default function ratingRoutes(app) {
    *               properties:
    *                 message:
    *                   type: string
-   *                   example: Rating not found.
+   *               examples:
+   *                 beatNotFound:
+   *                   value: { message: Beat not found }
+   *                 ratingNotFound:
+   *                   value: { message: Rating not found }
+   *       422:
+   *         description: Related resource not found (e.g., userId does not correspond to an existing user in materialized views).
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: userId must correspond to an existing user
    *       500:
    *         description: Internal server error while retrieving rating.
    *         content:
@@ -408,8 +427,11 @@ export default function ratingRoutes(app) {
       const rating = await ratingService.getMyBeatRating({ beatId, userId });
 
       return res.status(200).send({
-        beatId: rating.beatId,
+        _id: rating._id,
+        beatId: rating.beatId ?? null,
+        playlistId: rating.playlistId ?? null,
         userId: rating.userId,
+        user: rating.user,
         score: rating.score,
         comment: rating.comment,
         createdAt: rating.createdAt,
@@ -473,6 +495,16 @@ export default function ratingRoutes(app) {
    *                 message:
    *                   type: string
    *                   example: Rating not found.
+   *       422:
+   *         description: Related resource not found (e.g., userId does not correspond to an existing user in materialized views).
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: userId must correspond to an existing user
    *       500:
    *         description: Internal server error while retrieving playlist rating.
    *         content:
@@ -497,8 +529,11 @@ export default function ratingRoutes(app) {
         });
 
         return res.status(200).send({
-          playlistId: rating.playlistId,
+          _id: rating._id,
+          beatId: rating.beatId ?? null,
+          playlistId: rating.playlistId ?? null,
           userId: rating.userId,
+          user: rating.user,
           score: rating.score,
           comment: rating.comment,
           createdAt: rating.createdAt,
@@ -566,14 +601,7 @@ export default function ratingRoutes(app) {
    *                 data:
    *                   type: array
    *                   items:
-   *                     type: object
-   *                     properties:
-   *                       userId:
-   *                         type: string
-   *                       score:
-   *                         type: integer
-   *                       comment:
-   *                         type: string
+   *                       $ref: '#/components/schemas/Rating'
    *                 average:
    *                   type: number
    *                   example: 4.5
@@ -631,9 +659,15 @@ export default function ratingRoutes(app) {
 
       return res.status(200).send({
         data: result.data.map((rating) => ({
+          _id: rating._id,
+          beatId: rating.beatId ?? null,
+          playlistId: rating.playlistId ?? null,
           userId: rating.userId,
+          user: rating.user,
           score: rating.score,
           comment: rating.comment,
+          createdAt: rating.createdAt,
+          updatedAt: rating.updatedAt,
         })),
         average: result.average,
         count: result.count,
@@ -701,14 +735,7 @@ export default function ratingRoutes(app) {
    *                 data:
    *                   type: array
    *                   items:
-   *                     type: object
-   *                     properties:
-   *                       userId:
-   *                         type: string
-   *                       score:
-   *                         type: integer
-   *                       comment:
-   *                         type: string
+   *                       $ref: '#/components/schemas/Rating'
    *                 average:
    *                   type: number
    *                   example: 4.5
@@ -766,9 +793,15 @@ export default function ratingRoutes(app) {
 
       return res.status(200).send({
         data: result.data.map((rating) => ({
+          _id: rating._id,
+          beatId: rating.beatId ?? null,
+          playlistId: rating.playlistId ?? null,
           userId: rating.userId,
+          user: rating.user,
           score: rating.score,
           comment: rating.comment,
+          createdAt: rating.createdAt,
+          updatedAt: rating.updatedAt,
         })),
         average: result.average,
         count: result.count,
@@ -928,7 +961,7 @@ export default function ratingRoutes(app) {
    *                   type: string
    *                   example: Rating not found.
    *       422:
-   *         description: Validation error (e.g., score out of range, comment too long).
+   *         description: Validation error (score/comment) or related resource not found (materialized user missing when Kafka enabled).
    *         content:
    *           application/json:
    *             schema:
@@ -962,10 +995,11 @@ export default function ratingRoutes(app) {
       });
 
       return res.status(200).send({
-        id: rating._id,
+        _id: rating._id,
         beatId: rating.beatId ?? null,
         playlistId: rating.playlistId ?? null,
         userId: rating.userId,
+        user: rating.user,
         score: rating.score,
         comment: rating.comment,
         createdAt: rating.createdAt,
@@ -1048,7 +1082,7 @@ export default function ratingRoutes(app) {
    *                   type: string
    *                   example: Rating not found.
    *       422:
-   *         description: Validation error (e.g., score out of range, comment too long).
+   *         description: Validation error (score/comment) or related resource not found (materialized user missing when Kafka enabled).
    *         content:
    *           application/json:
    *             schema:
@@ -1082,10 +1116,11 @@ export default function ratingRoutes(app) {
       });
 
       return res.status(200).send({
-        id: rating._id,
+        _id: rating._id,
         beatId: rating.beatId ?? null,
         playlistId: rating.playlistId ?? null,
         userId: rating.userId,
+        user: rating.user,
         score: rating.score,
         comment: rating.comment,
         createdAt: rating.createdAt,

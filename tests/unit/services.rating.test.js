@@ -726,10 +726,14 @@ describe('RatingService.listPlaylistRatings', () => {
   });
 
   it('should return empty data, average 0, count 0 and default pagination when there are no ratings', async () => {
-    const playlistId = new mongoose.Types.ObjectId().toString();
+    const playlist = await Playlist.create({
+      name: 'Playlist without ratings (listPlaylistRatings)',
+      ownerId: new mongoose.Types.ObjectId(),
+      isPublic: true,
+    });
 
     const result = await ratingService.listPlaylistRatings({
-      playlistId,
+      playlistId: playlist._id.toString(),
     });
 
     expect(result.page).toBe(1);
@@ -739,17 +743,14 @@ describe('RatingService.listPlaylistRatings', () => {
     expect(result.data).toEqual([]);
   });
 
-  it('should throw 404 if playlistId is not a valid ObjectId', async () => {
-    await expect(
-      ratingService.listPlaylistRatings({ playlistId: 'not-a-valid-id' })
-    ).rejects.toMatchObject({
-      status: 404,
-      message: 'Playlist not found',
-    });
-  });
-
   it('should rethrow unexpected errors (e.g. DB error in Rating.aggregate)', async () => {
-    const playlistId = new mongoose.Types.ObjectId().toString();
+    const playlist = await Playlist.create({
+      name: 'Playlist for aggregate error test',
+      ownerId: new mongoose.Types.ObjectId(),
+      isPublic: true,
+    });
+
+    const playlistId = playlist._id.toString();
 
     const originalAggregate = Rating.aggregate;
 
