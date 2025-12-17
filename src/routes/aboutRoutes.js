@@ -14,6 +14,7 @@ import {
   UserMaterializedSchema,
   BeatMaterializedSchema,
   DetailedPlaylistSchema,
+  ModerationReportSchema,
 } from '../models/OASSchemas.js';
 export default function aboutRoutes(app) {
   const API_TITLE = process.env.API_TITLE || 'Microservice API';
@@ -53,6 +54,7 @@ export default function aboutRoutes(app) {
           UserMaterialized: UserMaterializedSchema,
           BeatMaterialized: BeatMaterializedSchema,
           DetailedPlaylist: DetailedPlaylistSchema,
+          ModerationReport: ModerationReportSchema,
         },
       },
     },

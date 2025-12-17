@@ -295,6 +295,55 @@ components:
         - name
         - items
         - collaborators
+    ModerationReport:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 654321abcdef
+        commentId:
+          type: string
+          nullable: true
+          example: commentId1
+        ratingId:
+          type: string
+          nullable: true
+          example: ratingId1
+        playlistId:
+          type: string
+          nullable: true
+          example: playlistId1
+        userId:
+          type: string
+          example: 123456abcdef
+          description: User who files the report
+        authorId:
+          type: string
+          example: abcdef123456
+          description: Author of the content being reported
+        state:
+          type: string
+          enum:
+            - Checking
+            - Rejected
+            - Accepted
+          example: Checking
+        createdAt:
+          type: string
+          format: date-time
+          example: '2025-12-17T23:59:10.000Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2025-12-17T23:59:10.000Z'
+      required:
+        - userId
+        - authorId
+        - state
+      description: >-
+        Represents a moderation report filed by a user against a comment, rating
+        or playlist. Exactly one of commentId, ratingId or playlistId must be
+        present.
 paths:
   /api/v1/about:
     get:
