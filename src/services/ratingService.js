@@ -1,5 +1,11 @@
 import mongoose from 'mongoose';
-import { Rating } from '../models/models.js';
+import {
+  Rating,
+  UserMaterialized,
+  BeatMaterialized,
+  Playlist,
+} from '../models/models.js';
+import { isKafkaEnabled } from './kafkaConsumer.js';
 
 class RatingService {
   async createBeatRating({ beatId, userId, score, comment }) {
@@ -10,7 +16,22 @@ class RatingService {
         throw { status, message };
       }
 
-      // TODO: check if beat exists in DB (404 if not found)
+      // check user and beat existence only if kafka is enabled
+      let user = null;
+      if (isKafkaEnabled()) {
+        user = await UserMaterialized.findById(userId);
+        if (!user) {
+          throw {
+            status: 422,
+            message: 'userId must correspond to an existing user',
+          };
+        }
+
+        const beatExists = await BeatMaterialized.findById(beatId);
+        if (!beatExists) {
+          throw { status: 404, message: 'Beat not found' };
+        }
+      }
 
       // check if user has already rated this beat
       const existing = await Rating.findOne({ beatId, userId });
@@ -29,6 +50,9 @@ class RatingService {
 
       await rating.validate();
       await rating.save();
+
+      rating.user = user;
+
       return rating;
     } catch (err) {
       if (err.name === 'ValidationError') {
@@ -62,6 +86,18 @@ class RatingService {
         throw { status, message };
       }
 
+      // check user existence only if kafka is enabled
+      let user = null;
+      if (isKafkaEnabled()) {
+        user = await UserMaterialized.findById(userId);
+        if (!user) {
+          throw {
+            status: 422,
+            message: 'userId must correspond to an existing user',
+          };
+        }
+      }
+
       const rating = new Rating({
         playlistId,
         userId,
@@ -71,6 +107,9 @@ class RatingService {
 
       await rating.validate();
       await rating.save();
+
+      rating.user = user;
+
       return rating;
     } catch (err) {
       if (err.name === 'ValidationError') {
@@ -80,7 +119,6 @@ class RatingService {
         const status = 422;
         throw { status, message };
       }
-
       // errors thrown from pre-validate hooks (e.g., playlist not found or not public)
       if (err.name === 'Error') {
         const status = 422;
@@ -112,6 +150,19 @@ class RatingService {
         throw { status, message };
       }
 
+      let user = null;
+      if (isKafkaEnabled()) {
+        user = await UserMaterialized.findById(rating.userId);
+        if (!user) {
+          throw {
+            status: 422,
+            message: 'userId must correspond to an existing user',
+          };
+        }
+      }
+
+      rating.user = user;
+
       return rating;
     } catch (err) {
       if (err.status) {
@@ -130,7 +181,13 @@ class RatingService {
         throw { status, message };
       }
 
-      // TODO: check beat existence via Beats microservice
+      // check beat existence only if kafka is enabled
+      if (isKafkaEnabled()) {
+        const beatExists = await BeatMaterialized.findById(beatId);
+        if (!beatExists) {
+          throw { status: 404, message: 'Beat not found' };
+        }
+      }
 
       const rating = await Rating.findOne({ beatId, userId });
 
@@ -139,6 +196,19 @@ class RatingService {
         const message = 'Rating not found';
         throw { status, message };
       }
+
+      let user = null;
+      if (isKafkaEnabled()) {
+        user = await UserMaterialized.findById(rating.userId);
+        if (!user) {
+          throw {
+            status: 422,
+            message: 'userId must correspond to an existing user',
+          };
+        }
+      }
+
+      rating.user = user;
 
       return rating;
     } catch (err) {
@@ -166,6 +236,19 @@ class RatingService {
         throw { status, message };
       }
 
+      let user = null;
+      if (isKafkaEnabled()) {
+        user = await UserMaterialized.findById(rating.userId);
+        if (!user) {
+          throw {
+            status: 422,
+            message: 'userId must correspond to an existing user',
+          };
+        }
+      }
+
+      rating.user = user;
+
       return rating;
     } catch (err) {
       if (err.status) {
@@ -184,8 +267,15 @@ class RatingService {
         throw { status, message };
       }
 
-      // TODO: check if beat exists in DB (404 if not found)
+      // check beat existence only if kafka is enabled
+      if (isKafkaEnabled()) {
+        const beatExists = await BeatMaterialized.findById(beatId);
+        if (!beatExists) {
+          throw { status: 404, message: 'Beat not found' };
+        }
+      }
 
+      // parameter normalization
       page = Number(page);
       limit = Number(limit);
 
@@ -196,6 +286,7 @@ class RatingService {
       const beatObjectId = new mongoose.Types.ObjectId(beatId);
       const match = { beatId: beatObjectId };
 
+      // global stats (NOT paginated)
       const [stats] = await Rating.aggregate([
         { $match: match },
         {
@@ -215,10 +306,31 @@ class RatingService {
 
       const skip = (page - 1) * limit;
 
-      const ratings = await Rating.find(match)
+      let ratings = await Rating.find(match)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit);
+
+      ratings = ratings.map((rating) => {
+        rating.user = null;
+        return rating;
+      });
+
+      // enrich with materialized users if kafka enabled
+      if (isKafkaEnabled() && ratings.length > 0) {
+        const userIds = [...new Set(ratings.map((r) => r.userId.toString()))];
+
+        const users = await UserMaterialized.find({
+          userId: { $in: userIds },
+        }).lean();
+
+        const userMap = new Map(users.map((u) => [u.userId.toString(), u]));
+
+        ratings = ratings.map((rating) => {
+          rating.user = userMap.get(rating.userId.toString()) ?? null;
+          return rating;
+        });
+      }
 
       return {
         data: ratings,
@@ -243,6 +355,13 @@ class RatingService {
         throw { status, message };
       }
 
+      // check playlist existence
+      const playlistExists = await Playlist.findById(playlistId);
+      if (!playlistExists) {
+        throw { status: 404, message: 'Playlist not found' };
+      }
+
+      // parameter normalization
       page = Number(page);
       limit = Number(limit);
 
@@ -253,6 +372,7 @@ class RatingService {
       const playlistObjectId = new mongoose.Types.ObjectId(playlistId);
       const match = { playlistId: playlistObjectId };
 
+      // global stats (NOT paginated)
       const [stats] = await Rating.aggregate([
         { $match: match },
         {
@@ -272,10 +392,31 @@ class RatingService {
 
       const skip = (page - 1) * limit;
 
-      const ratings = await Rating.find(match)
+      let ratings = await Rating.find(match)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit);
+
+      ratings = ratings.map((rating) => {
+        rating.user = null;
+        return rating;
+      });
+
+      // enrich with materialized users if kafka enabled
+      if (isKafkaEnabled() && ratings.length > 0) {
+        const userIds = [...new Set(ratings.map((r) => r.userId.toString()))];
+
+        const users = await UserMaterialized.find({
+          userId: { $in: userIds },
+        }).lean();
+
+        const userMap = new Map(users.map((u) => [u.userId.toString(), u]));
+
+        ratings = ratings.map((rating) => {
+          rating.user = userMap.get(rating.userId.toString()) ?? null;
+          return rating;
+        });
+      }
 
       return {
         data: ratings,
@@ -349,6 +490,20 @@ class RatingService {
 
       await rating.validate();
       await rating.save();
+
+      let user = null;
+      if (isKafkaEnabled()) {
+        user = await UserMaterialized.findById(rating.userId);
+        if (!user) {
+          throw {
+            status: 422,
+            message: 'userId must correspond to an existing user',
+          };
+        }
+      }
+
+      rating.user = user;
+
       return rating;
     } catch (err) {
       if (err.name === 'ValidationError') {

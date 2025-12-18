@@ -97,6 +97,10 @@ export const RatingSchema = {
     beatId: { type: 'string', example: 'beatId1', nullable: true },
     playlistId: { type: 'string', example: 'playlistId1', nullable: true },
     userId: { type: 'string', example: '123456abcdef' },
+    user: {
+      allOf: [{ $ref: '#/components/schemas/UserMaterialized' }],
+      description: 'Full information about the user author.',
+    },
     score: { type: 'number', minimum: 1, maximum: 5, example: 4 },
     comment: {
       type: 'string',
