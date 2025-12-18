@@ -1,11 +1,24 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import mongoose from 'mongoose';
-import { api } from '../setup/setup.js';
 import { Playlist } from '../../src/models/models.js';
+import {
+  setupDockerEnvironment,
+  teardownDockerEnvironment,
+  withAuth,
+} from '../setup/setup-integration.js';
 
 describe('POST /api/v1/playlists (integration)', () => {
-  const withAuth = (req) =>
-    req.set('Authorization', `Bearer ${global.testToken}`);
+  let testContext;
+  let api;
+
+  beforeAll(async () => {
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
 
   it('should create a playlist and return 201', async () => {
     const playlistData = {
@@ -92,8 +105,17 @@ describe('POST /api/v1/playlists (integration)', () => {
 });
 
 describe('GET /api/v1/playlists/me (integration)', () => {
-  const withAuth = (req) =>
-    req.set('Authorization', `Bearer ${global.testToken}`);
+  let testContext;
+  let api;
+
+  beforeAll(async () => {
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
 
   beforeEach(async () => {
     await Playlist.deleteMany({});
@@ -136,8 +158,17 @@ describe('GET /api/v1/playlists/me (integration)', () => {
 });
 
 describe('GET /api/v1/playlists/user/:userId (integration)', () => {
-  const withAuth = (req) =>
-    req.set('Authorization', `Bearer ${global.testToken}`);
+  let testContext;
+  let api;
+
+  beforeAll(async () => {
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
 
   it('should return playlists of the specified user', async () => {
     const targetUserId = new mongoose.Types.ObjectId().toString();
@@ -183,19 +214,27 @@ describe('GET /api/v1/playlists/user/:userId (integration)', () => {
 });
 
 describe('GET /api/v1/playlists/:id (integration)', () => {
+  let testContext;
+  let api;
   let userId;
   let token;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     userId = global.testUserId;
     token = global.testToken;
-  });
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
 
   afterEach(async () => {
     await Playlist.deleteMany({});
   });
 
-  test('should return the playlist if the requester is the owner', async () => {
+  it('should return the playlist if the requester is the owner', async () => {
     const playlist = await Playlist.create({
       name: 'Owner Playlist',
       ownerId: userId,
@@ -203,15 +242,13 @@ describe('GET /api/v1/playlists/:id (integration)', () => {
       collaborators: [],
     });
 
-    const res = await api
-      .get(`/api/v1/playlists/${playlist._id}`)
-      .set('Authorization', `Bearer ${token}`);
+    const res = await withAuth(api.get(`/api/v1/playlists/${playlist._id}`));
 
     expect(res.status).toBe(200);
     expect(res.body._id).toBe(String(playlist._id));
   });
 
-  test('should return the playlist if the requester is a collaborator', async () => {
+  it('should return the playlist if the requester is a collaborator', async () => {
     const playlist = await Playlist.create({
       name: 'Collaborator Playlist',
       ownerId: new mongoose.Types.ObjectId(),
@@ -219,15 +256,13 @@ describe('GET /api/v1/playlists/:id (integration)', () => {
       collaborators: [userId],
     });
 
-    const res = await api
-      .get(`/api/v1/playlists/${playlist._id}`)
-      .set('Authorization', `Bearer ${token}`);
+    const res = await withAuth(api.get(`/api/v1/playlists/${playlist._id}`));
 
     expect(res.status).toBe(200);
     expect(res.body._id).toBe(String(playlist._id));
   });
 
-  test('should return the playlist if it is public', async () => {
+  it('should return the playlist if it is public', async () => {
     const playlist = await Playlist.create({
       name: 'Public Playlist',
       ownerId: new mongoose.Types.ObjectId(),
@@ -235,26 +270,22 @@ describe('GET /api/v1/playlists/:id (integration)', () => {
       collaborators: [],
     });
 
-    const res = await api
-      .get(`/api/v1/playlists/${playlist._id}`)
-      .set('Authorization', `Bearer ${token}`);
+    const res = await withAuth(api.get(`/api/v1/playlists/${playlist._id}`));
 
     expect(res.status).toBe(200);
     expect(res.body._id).toBe(String(playlist._id));
   });
 
-  test('should return 404 if the playlist does not exist', async () => {
+  it('should return 404 if the playlist does not exist', async () => {
     const fakeId = new mongoose.Types.ObjectId();
 
-    const res = await api
-      .get(`/api/v1/playlists/${fakeId}`)
-      .set('Authorization', `Bearer ${token}`);
+    const res = await withAuth(api.get(`/api/v1/playlists/${fakeId}`));
 
     expect(res.status).toBe(404);
     expect(res.body.message).toBe('Playlist not found.');
   });
 
-  test('should return 403 if the playlist is private and the requester has no permission', async () => {
+  it('should return 403 if the playlist is private and the requester has no permission', async () => {
     const playlist = await Playlist.create({
       name: 'Private Playlist',
       ownerId: new mongoose.Types.ObjectId(),
@@ -262,9 +293,7 @@ describe('GET /api/v1/playlists/:id (integration)', () => {
       collaborators: [],
     });
 
-    const res = await api
-      .get(`/api/v1/playlists/${playlist._id}`)
-      .set('Authorization', `Bearer ${token}`);
+    const res = await withAuth(api.get(`/api/v1/playlists/${playlist._id}`));
 
     expect(res.status).toBe(403);
     expect(res.body.message).toBe(
@@ -272,10 +301,8 @@ describe('GET /api/v1/playlists/:id (integration)', () => {
     );
   });
 
-  test('should return 422 if the playlist ID is invalid', async () => {
-    const res = await api
-      .get(`/api/v1/playlists/invalid-id`)
-      .set('Authorization', `Bearer ${token}`);
+  it('should return 422 if the playlist ID is invalid', async () => {
+    const res = await withAuth(api.get(`/api/v1/playlists/invalid-id`));
 
     expect(res.status).toBe(422);
     expect(res.body.message).toBe('Invalid playlist ID format.');
@@ -283,21 +310,29 @@ describe('GET /api/v1/playlists/:id (integration)', () => {
 });
 
 describe('GET /api/v1/playlists/public (integration)', () => {
+  let testContext;
+  let api;
   let userId;
   let token;
   let otherUserId;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     userId = global.testUserId;
     token = global.testToken;
     otherUserId = new mongoose.Types.ObjectId();
-  });
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
 
   afterEach(async () => {
     await Playlist.deleteMany({});
   });
 
-  test('should return all public playlists without filters', async () => {
+  it('should return all public playlists without filters', async () => {
     await Playlist.create([
       {
         name: 'Public Playlist 1',
@@ -319,16 +354,14 @@ describe('GET /api/v1/playlists/public (integration)', () => {
       },
     ]);
 
-    const res = await api
-      .get('/api/v1/playlists/public')
-      .set('Authorization', `Bearer ${token}`);
+    const res = await withAuth(api.get('/api/v1/playlists/public'));
 
     expect(res.status).toBe(200);
     expect(res.body.playlists).toHaveLength(2);
     expect(res.body.playlists.every((p) => p.isPublic)).toBe(true);
   });
 
-  test('should filter playlists by name', async () => {
+  it('should filter playlists by name', async () => {
     await Playlist.create([
       {
         name: 'Rock Classics',
@@ -344,16 +377,14 @@ describe('GET /api/v1/playlists/public (integration)', () => {
       },
     ]);
 
-    const res = await api
-      .get('/api/v1/playlists/public?name=Rock')
-      .set('Authorization', `Bearer ${token}`);
+    const res = await withAuth(api.get('/api/v1/playlists/public?name=Rock'));
 
     expect(res.status).toBe(200);
     expect(res.body.playlists).toHaveLength(1);
     expect(res.body.playlists[0].name).toContain('Rock');
   });
 
-  test('should filter playlists by ownerId', async () => {
+  it('should filter playlists by ownerId', async () => {
     await Playlist.create([
       {
         name: 'My Public Playlist',
@@ -369,16 +400,16 @@ describe('GET /api/v1/playlists/public (integration)', () => {
       },
     ]);
 
-    const res = await api
-      .get(`/api/v1/playlists/public?ownerId=${userId}`)
-      .set('Authorization', `Bearer ${token}`);
+    const res = await withAuth(
+      api.get(`/api/v1/playlists/public?ownerId=${userId}`)
+    );
 
     expect(res.status).toBe(200);
     expect(res.body.playlists).toHaveLength(1);
     expect(res.body.playlists[0].ownerId).toBe(String(userId));
   });
 
-  test('should paginate results correctly', async () => {
+  it('should paginate results correctly', async () => {
     const playlists = Array.from({ length: 25 }, (_, i) => ({
       name: `Playlist ${i + 1}`,
       ownerId: userId,
@@ -387,9 +418,9 @@ describe('GET /api/v1/playlists/public (integration)', () => {
     }));
     await Playlist.create(playlists);
 
-    const res = await api
-      .get('/api/v1/playlists/public?page=1&limit=10')
-      .set('Authorization', `Bearer ${token}`);
+    const res = await withAuth(
+      api.get('/api/v1/playlists/public?page=1&limit=10')
+    );
 
     expect(res.status).toBe(200);
     expect(res.body.playlists).toHaveLength(10);
@@ -397,7 +428,7 @@ describe('GET /api/v1/playlists/public (integration)', () => {
     expect(res.body.currentPage).toBe(1);
   });
 
-  test('should return second page of results', async () => {
+  it('should return second page of results', async () => {
     const playlists = Array.from({ length: 25 }, (_, i) => ({
       name: `Playlist ${i + 1}`,
       ownerId: userId,
@@ -406,16 +437,16 @@ describe('GET /api/v1/playlists/public (integration)', () => {
     }));
     await Playlist.create(playlists);
 
-    const res = await api
-      .get('/api/v1/playlists/public?page=2&limit=10')
-      .set('Authorization', `Bearer ${token}`);
+    const res = await withAuth(
+      api.get('/api/v1/playlists/public?page=2&limit=10')
+    );
 
     expect(res.status).toBe(200);
     expect(res.body.playlists).toHaveLength(10);
     expect(res.body.currentPage).toBe(2);
   });
 
-  test('should use default pagination values when not provided', async () => {
+  it('should use default pagination values when not provided', async () => {
     const playlists = Array.from({ length: 5 }, (_, i) => ({
       name: `Playlist ${i + 1}`,
       ownerId: userId,
@@ -424,16 +455,14 @@ describe('GET /api/v1/playlists/public (integration)', () => {
     }));
     await Playlist.create(playlists);
 
-    const res = await api
-      .get('/api/v1/playlists/public')
-      .set('Authorization', `Bearer ${token}`);
+    const res = await withAuth(api.get('/api/v1/playlists/public'));
 
     expect(res.status).toBe(200);
     expect(res.body.playlists).toHaveLength(5);
     expect(res.body.currentPage).toBe(1);
   });
 
-  test('should return empty array when no public playlists exist', async () => {
+  it('should return empty array when no public playlists exist', async () => {
     await Playlist.create({
       name: 'Private Only',
       ownerId: userId,
@@ -441,15 +470,13 @@ describe('GET /api/v1/playlists/public (integration)', () => {
       collaborators: [],
     });
 
-    const res = await api
-      .get('/api/v1/playlists/public')
-      .set('Authorization', `Bearer ${token}`);
+    const res = await withAuth(api.get('/api/v1/playlists/public'));
 
     expect(res.status).toBe(200);
     expect(res.body.playlists).toHaveLength(0);
   });
 
-  test('should combine multiple filters', async () => {
+  it('should combine multiple filters', async () => {
     await Playlist.create([
       {
         name: 'Rock Classics',
@@ -471,9 +498,9 @@ describe('GET /api/v1/playlists/public (integration)', () => {
       },
     ]);
 
-    const res = await api
-      .get(`/api/v1/playlists/public?name=Rock&ownerId=${userId}`)
-      .set('Authorization', `Bearer ${token}`);
+    const res = await withAuth(
+      api.get(`/api/v1/playlists/public?name=Rock&ownerId=${userId}`)
+    );
 
     expect(res.status).toBe(200);
     expect(res.body.playlists).toHaveLength(1);
@@ -484,17 +511,25 @@ describe('GET /api/v1/playlists/public (integration)', () => {
 describe('PUT /api/v1/playlists/:id (integration)', () => {
   let userId;
   let token;
+  let testContext;
+  let api;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     userId = global.testUserId;
     token = global.testToken;
-  });
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
 
   afterEach(async () => {
     await Playlist.deleteMany({});
   });
 
-  test('should update the playlist if the requester is the owner', async () => {
+  it('should update the playlist if the requester is the owner', async () => {
     const playlist = await Playlist.create({
       name: 'Owner Playlist',
       ownerId: userId,
@@ -504,16 +539,15 @@ describe('PUT /api/v1/playlists/:id (integration)', () => {
 
     const updatedData = { name: 'Updated Name' };
 
-    const res = await api
-      .put(`/api/v1/playlists/${playlist._id}`)
-      .set('Authorization', `Bearer ${token}`)
-      .send(updatedData);
+    const res = await withAuth(
+      api.put(`/api/v1/playlists/${playlist._id}`)
+    ).send(updatedData);
 
     expect(res.status).toBe(200);
     expect(res.body.name).toBe(updatedData.name);
   });
 
-  test('should not update the playlist if the requester is a collaborator', async () => {
+  it('should not update the playlist if the requester is a collaborator', async () => {
     const playlist = await Playlist.create({
       name: 'Collaborator Playlist',
       ownerId: new mongoose.Types.ObjectId(),
@@ -523,10 +557,9 @@ describe('PUT /api/v1/playlists/:id (integration)', () => {
 
     const updatedData = { name: 'Updated Name' };
 
-    const res = await api
-      .put(`/api/v1/playlists/${playlist._id}`)
-      .set('Authorization', `Bearer ${token}`)
-      .send(updatedData);
+    const res = await withAuth(
+      api.put(`/api/v1/playlists/${playlist._id}`)
+    ).send(updatedData);
 
     expect(res.status).toBe(403);
     expect(res.body).toHaveProperty('message');
@@ -535,20 +568,19 @@ describe('PUT /api/v1/playlists/:id (integration)', () => {
     );
   });
 
-  test('should return 404 if the playlist does not exist', async () => {
+  it('should return 404 if the playlist does not exist', async () => {
     const fakeId = new mongoose.Types.ObjectId();
     const updatedData = { name: 'Updated Name' };
 
-    const res = await api
-      .put(`/api/v1/playlists/${fakeId}`)
-      .set('Authorization', `Bearer ${token}`)
-      .send(updatedData);
+    const res = await withAuth(api.put(`/api/v1/playlists/${fakeId}`)).send(
+      updatedData
+    );
 
     expect(res.status).toBe(404);
     expect(res.body.message).toBe('Playlist not found.');
   });
 
-  test('should return 403 if the playlist is private and the requester has no permission', async () => {
+  it('should return 403 if the playlist is private and the requester has no permission', async () => {
     const playlist = await Playlist.create({
       name: 'Private Playlist',
       ownerId: new mongoose.Types.ObjectId(),
@@ -558,10 +590,9 @@ describe('PUT /api/v1/playlists/:id (integration)', () => {
 
     const updatedData = { name: 'Updated Name' };
 
-    const res = await api
-      .put(`/api/v1/playlists/${playlist._id}`)
-      .set('Authorization', `Bearer ${token}`)
-      .send(updatedData);
+    const res = await withAuth(
+      api.put(`/api/v1/playlists/${playlist._id}`)
+    ).send(updatedData);
 
     expect(res.status).toBe(403);
     expect(res.body.message).toBe(
@@ -569,19 +600,18 @@ describe('PUT /api/v1/playlists/:id (integration)', () => {
     );
   });
 
-  test('should return 422 if the playlist ID is invalid', async () => {
+  it('should return 422 if the playlist ID is invalid', async () => {
     const updatedData = { name: 'Updated Name' };
 
-    const res = await api
-      .put(`/api/v1/playlists/invalid-id`)
-      .set('Authorization', `Bearer ${token}`)
-      .send(updatedData);
+    const res = await withAuth(api.put(`/api/v1/playlists/invalid-id`)).send(
+      updatedData
+    );
 
     expect(res.status).toBe(422);
     expect(res.body.message).toBe('Invalid playlist ID format.');
   });
 
-  test('should return 200 if no data is sent', async () => {
+  it('should return 200 if no data is sent', async () => {
     const playlist = await Playlist.create({
       name: 'Owner Playlist',
       ownerId: userId,
@@ -589,10 +619,9 @@ describe('PUT /api/v1/playlists/:id (integration)', () => {
       collaborators: [],
     });
 
-    const res = await api
-      .put(`/api/v1/playlists/${playlist._id}`)
-      .set('Authorization', `Bearer ${token}`)
-      .send({});
+    const res = await withAuth(
+      api.put(`/api/v1/playlists/${playlist._id}`)
+    ).send({});
 
     expect(res.status).toBe(200);
   });
@@ -601,17 +630,25 @@ describe('PUT /api/v1/playlists/:id (integration)', () => {
 describe('PATCH /api/v1/playlists/:id (integration)', () => {
   let userId;
   let token;
+  let testContext;
+  let api;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     userId = global.testUserId;
     token = global.testToken;
-  });
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
 
   afterEach(async () => {
     await Playlist.deleteMany({});
   });
 
-  test('should update the playlist if the requester is the owner', async () => {
+  it('should update the playlist if the requester is the owner', async () => {
     const playlist = await Playlist.create({
       name: 'Owner Playlist',
       ownerId: userId,
@@ -621,16 +658,15 @@ describe('PATCH /api/v1/playlists/:id (integration)', () => {
 
     const updatedData = { name: 'Updated Name' };
 
-    const res = await api
-      .patch(`/api/v1/playlists/${playlist._id}`)
-      .set('Authorization', `Bearer ${token}`)
-      .send(updatedData);
+    const res = await withAuth(
+      api.patch(`/api/v1/playlists/${playlist._id}`)
+    ).send(updatedData);
 
     expect(res.status).toBe(200);
     expect(res.body.name).toBe(updatedData.name);
   });
 
-  test('should not update the playlist if the requester is a collaborator', async () => {
+  it('should not update the playlist if the requester is a collaborator', async () => {
     const playlist = await Playlist.create({
       name: 'Collaborator Playlist',
       ownerId: new mongoose.Types.ObjectId(),
@@ -640,10 +676,9 @@ describe('PATCH /api/v1/playlists/:id (integration)', () => {
 
     const updatedData = { name: 'Updated Name' };
 
-    const res = await api
-      .patch(`/api/v1/playlists/${playlist._id}`)
-      .set('Authorization', `Bearer ${token}`)
-      .send(updatedData);
+    const res = await withAuth(
+      api.patch(`/api/v1/playlists/${playlist._id}`)
+    ).send(updatedData);
 
     expect(res.status).toBe(403);
     expect(res.body).toHaveProperty('message');
@@ -652,20 +687,19 @@ describe('PATCH /api/v1/playlists/:id (integration)', () => {
     );
   });
 
-  test('should return 404 if the playlist does not exist', async () => {
+  it('should return 404 if the playlist does not exist', async () => {
     const fakeId = new mongoose.Types.ObjectId();
     const updatedData = { name: 'Updated Name' };
 
-    const res = await api
-      .patch(`/api/v1/playlists/${fakeId}`)
-      .set('Authorization', `Bearer ${token}`)
-      .send(updatedData);
+    const res = await withAuth(api.patch(`/api/v1/playlists/${fakeId}`)).send(
+      updatedData
+    );
 
     expect(res.status).toBe(404);
     expect(res.body.message).toBe('Playlist not found.');
   });
 
-  test('should return 403 if the playlist is private and the requester has no permission', async () => {
+  it('should return 403 if the playlist is private and the requester has no permission', async () => {
     const playlist = await Playlist.create({
       name: 'Private Playlist',
       ownerId: new mongoose.Types.ObjectId(),
@@ -675,10 +709,9 @@ describe('PATCH /api/v1/playlists/:id (integration)', () => {
 
     const updatedData = { name: 'Updated Name' };
 
-    const res = await api
-      .patch(`/api/v1/playlists/${playlist._id}`)
-      .set('Authorization', `Bearer ${token}`)
-      .send(updatedData);
+    const res = await withAuth(
+      api.patch(`/api/v1/playlists/${playlist._id}`)
+    ).send(updatedData);
 
     expect(res.status).toBe(403);
     expect(res.body.message).toBe(
@@ -686,19 +719,18 @@ describe('PATCH /api/v1/playlists/:id (integration)', () => {
     );
   });
 
-  test('should return 422 if the playlist ID is invalid', async () => {
+  it('should return 422 if the playlist ID is invalid', async () => {
     const updatedData = { name: 'Updated Name' };
 
-    const res = await api
-      .patch(`/api/v1/playlists/invalid-id`)
-      .set('Authorization', `Bearer ${token}`)
-      .send(updatedData);
+    const res = await withAuth(api.patch(`/api/v1/playlists/invalid-id`)).send(
+      updatedData
+    );
 
     expect(res.status).toBe(422);
     expect(res.body.message).toBe('Invalid playlist ID format.');
   });
 
-  test('should return 200 if no data is sent', async () => {
+  it('should return 200 if no data is sent', async () => {
     const playlist = await Playlist.create({
       name: 'Owner Playlist',
       ownerId: userId,
@@ -706,10 +738,9 @@ describe('PATCH /api/v1/playlists/:id (integration)', () => {
       collaborators: [],
     });
 
-    const res = await api
-      .patch(`/api/v1/playlists/${playlist._id}`)
-      .set('Authorization', `Bearer ${token}`)
-      .send({});
+    const res = await withAuth(
+      api.patch(`/api/v1/playlists/${playlist._id}`)
+    ).send({});
 
     expect(res.status).toBe(200);
   });
@@ -718,17 +749,25 @@ describe('PATCH /api/v1/playlists/:id (integration)', () => {
 describe('DELETE /api/v1/playlists/:id (integration)', () => {
   let userId;
   let token;
+  let testContext;
+  let api;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     userId = global.testUserId;
     token = global.testToken;
-  });
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
 
   afterEach(async () => {
     await Playlist.deleteMany({});
   });
 
-  test('should delete the playlist if the requester is the owner', async () => {
+  it('should delete the playlist if the requester is the owner', async () => {
     const playlist = await Playlist.create({
       name: 'Owner Playlist',
       ownerId: userId,
@@ -736,9 +775,7 @@ describe('DELETE /api/v1/playlists/:id (integration)', () => {
       collaborators: [],
     });
 
-    const res = await api
-      .delete(`/api/v1/playlists/${playlist._id}`)
-      .set('Authorization', `Bearer ${token}`);
+    const res = await withAuth(api.delete(`/api/v1/playlists/${playlist._id}`));
 
     expect(res.status).toBe(200);
     expect(res.body.message).toBe('Playlist deleted successfully.');
@@ -747,18 +784,16 @@ describe('DELETE /api/v1/playlists/:id (integration)', () => {
     expect(deleted).toBeNull();
   });
 
-  test('should return 200 if the playlist does not exist or it has been removed', async () => {
+  it('should return 200 if the playlist does not exist or it has been removed', async () => {
     const fakeId = new mongoose.Types.ObjectId();
 
-    const res = await api
-      .delete(`/api/v1/playlists/${fakeId}`)
-      .set('Authorization', `Bearer ${token}`);
+    const res = await withAuth(api.delete(`/api/v1/playlists/${fakeId}`));
 
     expect(res.status).toBe(200);
     expect(res.body.message).toBe('Playlist deleted successfully.');
   });
 
-  test('should return 403 if the requester is not the owner', async () => {
+  it('should return 403 if the requester is not the owner', async () => {
     const playlist = await Playlist.create({
       name: 'Private Playlist',
       ownerId: new mongoose.Types.ObjectId(),
@@ -766,9 +801,7 @@ describe('DELETE /api/v1/playlists/:id (integration)', () => {
       collaborators: [],
     });
 
-    const res = await api
-      .delete(`/api/v1/playlists/${playlist._id}`)
-      .set('Authorization', `Bearer ${token}`);
+    const res = await withAuth(api.delete(`/api/v1/playlists/${playlist._id}`));
 
     expect(res.status).toBe(403);
     expect(res.body.message).toBe(
@@ -779,10 +812,8 @@ describe('DELETE /api/v1/playlists/:id (integration)', () => {
     expect(existing).not.toBeNull();
   });
 
-  test('should return 422 if the playlist ID is invalid', async () => {
-    const res = await api
-      .delete(`/api/v1/playlists/invalid-id`)
-      .set('Authorization', `Bearer ${token}`);
+  it('should return 422 if the playlist ID is invalid', async () => {
+    const res = await withAuth(api.delete(`/api/v1/playlists/invalid-id`));
 
     expect(res.status).toBe(422);
     expect(res.body.message).toBe('Invalid playlist ID format.');
@@ -792,17 +823,25 @@ describe('DELETE /api/v1/playlists/:id (integration)', () => {
 describe('POST /api/v1/playlists/:id/items (integration)', () => {
   let userId;
   let token;
+  let testContext;
+  let api;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     userId = global.testUserId;
     token = global.testToken;
-  });
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
 
   afterEach(async () => {
     await Playlist.deleteMany({});
   });
 
-  test('should add a beat if requester is the owner', async () => {
+  it('should add a beat if requester is the owner', async () => {
     const playlist = await Playlist.create({
       name: 'Owner Playlist',
       ownerId: userId,
@@ -811,17 +850,16 @@ describe('POST /api/v1/playlists/:id/items (integration)', () => {
       items: [],
     });
 
-    const res = await api
-      .post(`/api/v1/playlists/${playlist._id}/items`)
-      .set('Authorization', `Bearer ${token}`)
-      .send({ beatId: new mongoose.Types.ObjectId() });
+    const res = await withAuth(
+      api.post(`/api/v1/playlists/${playlist._id}/items`)
+    ).send({ beatId: new mongoose.Types.ObjectId() });
 
     expect(res.status).toBe(200);
     expect(res.body.items).toHaveLength(1);
     expect(String(res.body.items[0].addedBy)).toBe(userId);
   });
 
-  test('should add a beat if requester is a collaborator', async () => {
+  it('should add a beat if requester is a collaborator', async () => {
     const playlist = await Playlist.create({
       name: 'Collaborator Playlist',
       ownerId: new mongoose.Types.ObjectId(),
@@ -830,28 +868,26 @@ describe('POST /api/v1/playlists/:id/items (integration)', () => {
       items: [],
     });
 
-    const res = await api
-      .post(`/api/v1/playlists/${playlist._id}/items`)
-      .set('Authorization', `Bearer ${token}`)
-      .send({ beatId: new mongoose.Types.ObjectId() });
+    const res = await withAuth(
+      api.post(`/api/v1/playlists/${playlist._id}/items`)
+    ).send({ beatId: new mongoose.Types.ObjectId() });
 
     expect(res.status).toBe(200);
     expect(res.body.items).toHaveLength(1);
   });
 
-  test('should return 404 if playlist does not exist', async () => {
+  it('should return 404 if playlist does not exist', async () => {
     const fakeId = new mongoose.Types.ObjectId();
 
-    const res = await api
-      .post(`/api/v1/playlists/${fakeId}/items`)
-      .set('Authorization', `Bearer ${token}`)
-      .send({ beatId: new mongoose.Types.ObjectId() });
+    const res = await withAuth(
+      api.post(`/api/v1/playlists/${fakeId}/items`)
+    ).send({ beatId: new mongoose.Types.ObjectId() });
 
     expect(res.status).toBe(404);
     expect(res.body.message).toBe('Playlist not found.');
   });
 
-  test('should return 403 if requester has no permission', async () => {
+  it('should return 403 if requester has no permission', async () => {
     const playlist = await Playlist.create({
       name: 'Private Playlist',
       ownerId: new mongoose.Types.ObjectId(),
@@ -860,10 +896,9 @@ describe('POST /api/v1/playlists/:id/items (integration)', () => {
       items: [],
     });
 
-    const res = await api
-      .post(`/api/v1/playlists/${playlist._id}/items`)
-      .set('Authorization', `Bearer ${token}`)
-      .send({ beatId: new mongoose.Types.ObjectId() });
+    const res = await withAuth(
+      api.post(`/api/v1/playlists/${playlist._id}/items`)
+    ).send({ beatId: new mongoose.Types.ObjectId() });
 
     expect(res.status).toBe(403);
     expect(res.body.message).toBe(
@@ -871,17 +906,16 @@ describe('POST /api/v1/playlists/:id/items (integration)', () => {
     );
   });
 
-  test('should return 422 if playlist ID is invalid', async () => {
-    const res = await api
-      .post(`/api/v1/playlists/invalid-id/items`)
-      .set('Authorization', `Bearer ${token}`)
-      .send({ beatId: new mongoose.Types.ObjectId() });
+  it('should return 422 if playlist ID is invalid', async () => {
+    const res = await withAuth(
+      api.post(`/api/v1/playlists/invalid-id/items`)
+    ).send({ beatId: new mongoose.Types.ObjectId() });
 
     expect(res.status).toBe(422);
     expect(res.body.message).toBe('Invalid playlist ID format.');
   });
 
-  test('should return 422 if beatId is missing', async () => {
+  it('should return 422 if beatId is missing', async () => {
     const playlist = await Playlist.create({
       name: 'Owner Playlist',
       ownerId: userId,
@@ -890,16 +924,15 @@ describe('POST /api/v1/playlists/:id/items (integration)', () => {
       items: [],
     });
 
-    const res = await api
-      .post(`/api/v1/playlists/${playlist._id}/items`)
-      .set('Authorization', `Bearer ${token}`)
-      .send({});
+    const res = await withAuth(
+      api.post(`/api/v1/playlists/${playlist._id}/items`)
+    ).send({});
 
     expect(res.status).toBe(422);
     expect(res.body.message).toBe('beatId is required.');
   });
 
-  test('should return 422 if beat is already in the playlist', async () => {
+  it('should return 422 if beat is already in the playlist', async () => {
     const beatId = new mongoose.Types.ObjectId();
     const playlist = await Playlist.create({
       name: 'Owner Playlist',
@@ -909,16 +942,15 @@ describe('POST /api/v1/playlists/:id/items (integration)', () => {
       items: [{ beatId, addedBy: userId, addedAt: Date.now() }],
     });
 
-    const res = await api
-      .post(`/api/v1/playlists/${playlist._id}/items`)
-      .set('Authorization', `Bearer ${token}`)
-      .send({ beatId });
+    const res = await withAuth(
+      api.post(`/api/v1/playlists/${playlist._id}/items`)
+    ).send({ beatId });
 
     expect(res.status).toBe(422);
     expect(res.body.message).toBe('This beat is already in the playlist.');
   });
 
-  test('should return 422 if playlist already has 250 items', async () => {
+  it('should return 422 if playlist already has 250 items', async () => {
     const playlist = await Playlist.create({
       name: 'Full Playlist',
       ownerId: userId,
@@ -931,10 +963,9 @@ describe('POST /api/v1/playlists/:id/items (integration)', () => {
       })),
     });
 
-    const res = await api
-      .post(`/api/v1/playlists/${playlist._id}/items`)
-      .set('Authorization', `Bearer ${token}`)
-      .send({ beatId: new mongoose.Types.ObjectId() });
+    const res = await withAuth(
+      api.post(`/api/v1/playlists/${playlist._id}/items`)
+    ).send({ beatId: new mongoose.Types.ObjectId() });
 
     expect(res.status).toBe(422);
     expect(res.body.message).toBe(
@@ -946,17 +977,25 @@ describe('POST /api/v1/playlists/:id/items (integration)', () => {
 describe('DELETE /api/v1/playlists/:id/items/:beatId (integration)', () => {
   let userId;
   let token;
+  let testContext;
+  let api;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     userId = global.testUserId;
     token = global.testToken;
-  });
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
 
   afterEach(async () => {
     await Playlist.deleteMany({});
   });
 
-  test('should remove a beat if requester is the owner', async () => {
+  it('should remove a beat if requester is the owner', async () => {
     const beatId = new mongoose.Types.ObjectId();
     const playlist = await Playlist.create({
       name: 'Owner Playlist',
@@ -966,15 +1005,15 @@ describe('DELETE /api/v1/playlists/:id/items/:beatId (integration)', () => {
       items: [{ beatId, addedBy: userId, addedAt: Date.now() }],
     });
 
-    const res = await api
-      .delete(`/api/v1/playlists/${playlist._id}/items/${beatId}`)
-      .set('Authorization', `Bearer ${token}`);
+    const res = await withAuth(
+      api.delete(`/api/v1/playlists/${playlist._id}/items/${beatId}`)
+    );
 
     expect(res.status).toBe(200);
     expect(res.body.items).toHaveLength(0);
   });
 
-  test('should remove a beat if requester is a collaborator', async () => {
+  it('should remove a beat if requester is a collaborator', async () => {
     const beatId = new mongoose.Types.ObjectId();
     const playlist = await Playlist.create({
       name: 'Collaborator Playlist',
@@ -984,27 +1023,27 @@ describe('DELETE /api/v1/playlists/:id/items/:beatId (integration)', () => {
       items: [{ beatId, addedBy: userId, addedAt: Date.now() }],
     });
 
-    const res = await api
-      .delete(`/api/v1/playlists/${playlist._id}/items/${beatId}`)
-      .set('Authorization', `Bearer ${token}`);
+    const res = await withAuth(
+      api.delete(`/api/v1/playlists/${playlist._id}/items/${beatId}`)
+    );
 
     expect(res.status).toBe(200);
     expect(res.body.items).toHaveLength(0);
   });
 
-  test('should return 404 if playlist does not exist', async () => {
+  it('should return 404 if playlist does not exist', async () => {
     const fakePlaylistId = new mongoose.Types.ObjectId();
     const beatId = new mongoose.Types.ObjectId();
 
-    const res = await api
-      .delete(`/api/v1/playlists/${fakePlaylistId}/items/${beatId}`)
-      .set('Authorization', `Bearer ${token}`);
+    const res = await withAuth(
+      api.delete(`/api/v1/playlists/${fakePlaylistId}/items/${beatId}`)
+    );
 
     expect(res.status).toBe(404);
     expect(res.body.message).toBe('Playlist not found.');
   });
 
-  test('should return 404 if beat does not exist in playlist', async () => {
+  it('should return 404 if beat does not exist in playlist', async () => {
     const beatId = new mongoose.Types.ObjectId();
     const playlist = await Playlist.create({
       name: 'Owner Playlist',
@@ -1014,15 +1053,15 @@ describe('DELETE /api/v1/playlists/:id/items/:beatId (integration)', () => {
       items: [],
     });
 
-    const res = await api
-      .delete(`/api/v1/playlists/${playlist._id}/items/${beatId}`)
-      .set('Authorization', `Bearer ${token}`);
+    const res = await withAuth(
+      api.delete(`/api/v1/playlists/${playlist._id}/items/${beatId}`)
+    );
 
     expect(res.status).toBe(404);
     expect(res.body.message).toBe('Beat not found in the playlist.');
   });
 
-  test('should return 403 if requester has no permission', async () => {
+  it('should return 403 if requester has no permission', async () => {
     const beatId = new mongoose.Types.ObjectId();
     const playlist = await Playlist.create({
       name: 'Private Playlist',
@@ -1032,9 +1071,9 @@ describe('DELETE /api/v1/playlists/:id/items/:beatId (integration)', () => {
       items: [{ beatId, addedBy: userId, addedAt: Date.now() }],
     });
 
-    const res = await api
-      .delete(`/api/v1/playlists/${playlist._id}/items/${beatId}`)
-      .set('Authorization', `Bearer ${token}`);
+    const res = await withAuth(
+      api.delete(`/api/v1/playlists/${playlist._id}/items/${beatId}`)
+    );
 
     expect(res.status).toBe(403);
     expect(res.body.message).toBe(
@@ -1042,17 +1081,17 @@ describe('DELETE /api/v1/playlists/:id/items/:beatId (integration)', () => {
     );
   });
 
-  test('should return 422 if playlist ID is invalid', async () => {
+  it('should return 422 if playlist ID is invalid', async () => {
     const beatId = new mongoose.Types.ObjectId();
-    const res = await api
-      .delete(`/api/v1/playlists/invalid-id/items/${beatId}`)
-      .set('Authorization', `Bearer ${token}`);
+    const res = await withAuth(
+      api.delete(`/api/v1/playlists/invalid-id/items/${beatId}`)
+    );
 
     expect(res.status).toBe(422);
     expect(res.body.message).toBe('Invalid playlist ID format.');
   });
 
-  test('should return 422 if beat ID is invalid', async () => {
+  it('should return 422 if beat ID is invalid', async () => {
     const playlist = await Playlist.create({
       name: 'Owner Playlist',
       ownerId: userId,
@@ -1061,9 +1100,9 @@ describe('DELETE /api/v1/playlists/:id/items/:beatId (integration)', () => {
       items: [],
     });
 
-    const res = await api
-      .delete(`/api/v1/playlists/${playlist._id}/items/invalid-beat-id`)
-      .set('Authorization', `Bearer ${token}`);
+    const res = await withAuth(
+      api.delete(`/api/v1/playlists/${playlist._id}/items/invalid-beat-id`)
+    );
 
     expect(res.status).toBe(422);
     expect(res.body.message).toBe('Invalid beat ID format.');
