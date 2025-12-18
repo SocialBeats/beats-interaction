@@ -1135,6 +1135,84 @@ paths:
                     type: string
                     format: date-time
                     example: '2025-11-08T13:41:47.074Z'
+  /api/v1/comments/{commentId}/moderationReports:
+    post:
+      tags:
+        - ModerationReports
+      summary: Create a moderation report for a comment
+      description: >
+        Creates a moderation report for the specified comment for the
+        authenticated user. The report is created with state "Checking".
+        `authorId` is automatically derived from the comment's author.
+        `commentId` must be a valid MongoDB ObjectId.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: commentId
+          required: true
+          schema:
+            type: string
+          description: ID of the comment to report.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              description: >-
+                No body is required. The authenticated user becomes the
+                reporter.
+      responses:
+        '201':
+          description: Moderation report successfully created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModerationReport'
+        '401':
+          description: Unauthorized. Token missing or invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Unauthorized access.
+        '404':
+          description: Comment not found (invalid or non-existent `commentId`).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Comment not found.
+        '422':
+          description: >-
+            Validation error (e.g., reporting own content or schema rule
+            violations).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: A user cannot report their own content.
+        '500':
+          description: Internal server error while creating moderation report.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while creating moderation report.
   /api/v1/playlists:
     post:
       tags:
