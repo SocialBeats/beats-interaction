@@ -5,6 +5,7 @@ import {
   Comment,
   ModerationReport,
   Playlist,
+  Rating,
 } from '../../src/models/models.js';
 
 describe('POST /api/v1/comments/:commentId/moderationReports', () => {
@@ -105,6 +106,112 @@ describe('POST /api/v1/comments/:commentId/moderationReports', () => {
 
     await api
       .post(`/api/v1/comments/${comment._id}/moderationReports`)
+      .expect(401);
+  });
+});
+
+describe('POST /api/v1/ratings/:ratingId/moderationReports', () => {
+  it('should create a moderation report and return 201', async () => {
+    const ratingAuthorId = new mongoose.Types.ObjectId();
+
+    const rating = await Rating.create({
+      beatId: new mongoose.Types.ObjectId(),
+      userId: ratingAuthorId,
+      score: 4,
+      comment: 'Nice',
+    });
+
+    const response = await withAuth(
+      api.post(`/api/v1/ratings/${rating._id}/moderationReports`)
+    ).expect(201);
+
+    expect(response.body).toHaveProperty('_id');
+    expect(response.body.ratingId).toBe(rating._id.toString());
+    expect(response.body.userId).toBe(global.testUserId);
+    expect(response.body.authorId).toBe(ratingAuthorId.toString());
+    expect(response.body.state).toBe('Checking');
+
+    const inDb = await ModerationReport.findById(response.body._id);
+    expect(inDb).not.toBeNull();
+  });
+
+  it('should return 404 if ratingId is not a valid ObjectId', async () => {
+    const response = await withAuth(
+      api.post('/api/v1/ratings/not-a-valid-id/moderationReports')
+    ).expect(404);
+
+    expect(response.body).toEqual({
+      message: 'Rating not found',
+    });
+  });
+
+  it('should return 404 if rating does not exist', async () => {
+    const fakeId = new mongoose.Types.ObjectId();
+
+    const response = await withAuth(
+      api.post(`/api/v1/ratings/${fakeId}/moderationReports`)
+    ).expect(404);
+
+    expect(response.body).toEqual({
+      message: 'Rating not found',
+    });
+  });
+
+  it('should return 422 if user reports own rating', async () => {
+    const rating = await Rating.create({
+      beatId: new mongoose.Types.ObjectId(),
+      userId: global.testUserId,
+      score: 5,
+      comment: 'Self rating',
+    });
+
+    const response = await withAuth(
+      api.post(`/api/v1/ratings/${rating._id}/moderationReports`)
+    ).expect(422);
+
+    expect(response.body.message).toBe(
+      'A user cannot report their own content.'
+    );
+  });
+
+  it('should return 422 if the rating belongs to a playlist that became private', async () => {
+    const playlist = await Playlist.create({
+      name: 'Public playlist then private',
+      ownerId: new mongoose.Types.ObjectId(),
+      isPublic: true,
+    });
+
+    const rating = await Rating.create({
+      playlistId: playlist._id,
+      userId: new mongoose.Types.ObjectId(),
+      score: 3,
+      comment: 'Rating on playlist',
+    });
+
+    await Playlist.updateOne(
+      { _id: playlist._id },
+      { $set: { isPublic: false } }
+    );
+
+    const response = await withAuth(
+      api.post(`/api/v1/ratings/${rating._id}/moderationReports`)
+    ).expect(422);
+
+    expect(response.body.message).toBe(
+      'You cannot report a rating from a private playlist.'
+    );
+  });
+
+  it('should return 401 if user is not authenticated', async () => {
+    const rating = await Rating.create({
+      beatId: new mongoose.Types.ObjectId(),
+      userId: new mongoose.Types.ObjectId(),
+      score: 4,
+      comment: 'Unauthorized report',
+    });
+
+    await api
+      .post(`/api/v1/ratings/${rating._id}/moderationReports`)
       .expect(401);
   });
 });

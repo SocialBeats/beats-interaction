@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { ModerationReport, Comment } from '../models/models.js';
+import { ModerationReport, Comment, Rating } from '../models/models.js';
 
 class ModerationReportService {
   async createCommentModerationReport({ commentId, userId }) {

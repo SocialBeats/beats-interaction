@@ -5,6 +5,7 @@ import {
   ModerationReport,
   Comment,
   Playlist,
+  Rating,
 } from '../../src/models/models.js';
 
 describe('ModerationReportService.createCommentModerationReport', () => {
@@ -163,6 +164,172 @@ describe('ModerationReportService.createCommentModerationReport', () => {
     await expect(
       moderationReportService.createCommentModerationReport({
         commentId: comment._id.toString(),
+        userId: reporterId.toString(),
+      })
+    ).rejects.toHaveProperty('message', 'Simulated DB error');
+
+    ModerationReport.prototype.save = originalSave;
+  });
+});
+
+describe('ModerationReportService.createRatingModerationReport', () => {
+  const reporterId = new mongoose.Types.ObjectId();
+  const ratingAuthorId = new mongoose.Types.ObjectId();
+
+  it('should create a moderation report for an existing rating', async () => {
+    const rating = await Rating.create({
+      beatId: new mongoose.Types.ObjectId(),
+      userId: ratingAuthorId,
+      score: 4,
+      comment: 'Good',
+    });
+
+    const report = await moderationReportService.createRatingModerationReport({
+      ratingId: rating._id.toString(),
+      userId: reporterId.toString(),
+    });
+
+    expect(report).toBeDefined();
+    expect(report.ratingId.toString()).toBe(rating._id.toString());
+    expect(report.userId.toString()).toBe(reporterId.toString());
+    expect(report.authorId.toString()).toBe(ratingAuthorId.toString());
+    expect(report.state).toBe('Checking');
+
+    const inDb = await ModerationReport.findById(report._id);
+    expect(inDb).not.toBeNull();
+  });
+
+  it('should throw 404 if ratingId is not a valid ObjectId', async () => {
+    await expect(
+      moderationReportService.createRatingModerationReport({
+        ratingId: 'not-a-valid-id',
+        userId: reporterId.toString(),
+      })
+    ).rejects.toMatchObject({
+      status: 404,
+      message: 'Rating not found',
+    });
+  });
+
+  it('should throw 404 if rating does not exist', async () => {
+    const fakeId = new mongoose.Types.ObjectId();
+
+    await expect(
+      moderationReportService.createRatingModerationReport({
+        ratingId: fakeId.toString(),
+        userId: reporterId.toString(),
+      })
+    ).rejects.toMatchObject({
+      status: 404,
+      message: 'Rating not found',
+    });
+  });
+
+  it('should throw 422 if user reports own rating', async () => {
+    const rating = await Rating.create({
+      beatId: new mongoose.Types.ObjectId(),
+      userId: reporterId,
+      score: 5,
+      comment: 'Self rating',
+    });
+
+    await expect(
+      moderationReportService.createRatingModerationReport({
+        ratingId: rating._id.toString(),
+        userId: reporterId.toString(),
+      })
+    ).rejects.toMatchObject({
+      status: 422,
+      message: 'A user cannot report their own content.',
+    });
+  });
+
+  it('should throw 422 if the rating belongs to a playlist that became private', async () => {
+    const playlist = await Playlist.create({
+      name: 'Public playlist',
+      ownerId: new mongoose.Types.ObjectId(),
+      isPublic: true,
+    });
+
+    const rating = await Rating.create({
+      playlistId: playlist._id,
+      userId: ratingAuthorId,
+      score: 3,
+      comment: 'Rating on playlist',
+    });
+
+    await Playlist.updateOne(
+      { _id: playlist._id },
+      { $set: { isPublic: false } }
+    );
+
+    await expect(
+      moderationReportService.createRatingModerationReport({
+        ratingId: rating._id.toString(),
+        userId: reporterId.toString(),
+      })
+    ).rejects.toMatchObject({
+      status: 422,
+      message: 'You cannot report a rating from a private playlist.',
+    });
+  });
+
+  it('should throw 422 (ValidationError) if userId is missing', async () => {
+    const rating = await Rating.create({
+      beatId: new mongoose.Types.ObjectId(),
+      userId: ratingAuthorId,
+      score: 4,
+      comment: 'Reportable',
+    });
+
+    await expect(
+      moderationReportService.createRatingModerationReport({
+        ratingId: rating._id.toString(),
+        userId: undefined,
+      })
+    ).rejects.toMatchObject({
+      status: 422,
+    });
+  });
+
+  it('should throw 422 (ValidationError) with message built from err.errors', async () => {
+    const rating = await Rating.create({
+      beatId: new mongoose.Types.ObjectId(),
+      userId: ratingAuthorId,
+      score: 4,
+      comment: 'Reportable',
+    });
+
+    await expect(
+      moderationReportService.createRatingModerationReport({
+        ratingId: rating._id.toString(),
+        userId: undefined,
+      })
+    ).rejects.toMatchObject({
+      status: 422,
+      message: expect.stringContaining('userId'),
+    });
+  });
+
+  it('should rethrow unexpected errors (e.g. DB error on save)', async () => {
+    const rating = await Rating.create({
+      beatId: new mongoose.Types.ObjectId(),
+      userId: ratingAuthorId,
+      score: 4,
+      comment: 'Trigger DB error',
+    });
+
+    const originalSave = ModerationReport.prototype.save;
+
+    ModerationReport.prototype.save = async function () {
+      const err = new Error('Simulated DB error');
+      err.name = 'SomeOtherError';
+      throw err;
+    };
+
+    await expect(
+      moderationReportService.createRatingModerationReport({
+        ratingId: rating._id.toString(),
         userId: reporterId.toString(),
       })
     ).rejects.toHaveProperty('message', 'Simulated DB error');
