@@ -1,9 +1,8 @@
-// tests/integration/integration.health.test.js
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import {
   setupDockerEnvironment,
   teardownDockerEnvironment,
-} from '../setup/docker-helper.js';
+} from '../setup/setup-integration';
 
 describe('GET /api/v1/health (integration)', () => {
   let testContext;
@@ -18,11 +17,6 @@ describe('GET /api/v1/health (integration)', () => {
 
   it('should be healthy', async () => {
     const res = await testContext.api.get('/api/v1/health');
-
-    // Debug: imprime la respuesta completa
-    console.log('Status:', res.status);
-    console.log('Body:', JSON.stringify(res.body, null, 2));
-    console.log('Text:', res.text);
 
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('status', 'ok');

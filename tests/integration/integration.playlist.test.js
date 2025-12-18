@@ -1,10 +1,25 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import mongoose from 'mongoose';
-import { api } from '../setup/setup.js';
 import { Playlist } from '../../src/models/models.js';
-import { withAuth } from '../setup/setup.js';
+import {
+  setupDockerEnvironment,
+  teardownDockerEnvironment,
+  withAuth,
+} from '../setup/setup-integration.js';
 
-describe('POST /api/v1/playlists', () => {
+describe('POST /api/v1/playlists (integration)', () => {
+  let testContext;
+  let api;
+
+  beforeAll(async () => {
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
+
   it('should create a playlist and return 201', async () => {
     const playlistData = {
       name: 'Test Playlist',
@@ -89,7 +104,19 @@ describe('POST /api/v1/playlists', () => {
   });
 });
 
-describe('GET /api/v1/playlists/me', () => {
+describe('GET /api/v1/playlists/me (integration)', () => {
+  let testContext;
+  let api;
+
+  beforeAll(async () => {
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
+
   beforeEach(async () => {
     await Playlist.deleteMany({});
   });
@@ -130,7 +157,19 @@ describe('GET /api/v1/playlists/me', () => {
   });
 });
 
-describe('GET /api/v1/playlists/user/:userId', () => {
+describe('GET /api/v1/playlists/user/:userId (integration)', () => {
+  let testContext;
+  let api;
+
+  beforeAll(async () => {
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
+
   it('should return playlists of the specified user', async () => {
     const targetUserId = new mongoose.Types.ObjectId().toString();
 
@@ -174,14 +213,22 @@ describe('GET /api/v1/playlists/user/:userId', () => {
   });
 });
 
-describe('GET /api/v1/playlists/:id', () => {
+describe('GET /api/v1/playlists/:id (integration)', () => {
+  let testContext;
+  let api;
   let userId;
   let token;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     userId = global.testUserId;
     token = global.testToken;
-  });
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
 
   afterEach(async () => {
     await Playlist.deleteMany({});
@@ -262,16 +309,24 @@ describe('GET /api/v1/playlists/:id', () => {
   });
 });
 
-describe('GET /api/v1/playlists/public', () => {
+describe('GET /api/v1/playlists/public (integration)', () => {
+  let testContext;
+  let api;
   let userId;
   let token;
   let otherUserId;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     userId = global.testUserId;
     token = global.testToken;
     otherUserId = new mongoose.Types.ObjectId();
-  });
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
 
   afterEach(async () => {
     await Playlist.deleteMany({});
@@ -453,14 +508,22 @@ describe('GET /api/v1/playlists/public', () => {
   });
 });
 
-describe('PUT /api/v1/playlists/:id', () => {
+describe('PUT /api/v1/playlists/:id (integration)', () => {
   let userId;
   let token;
+  let testContext;
+  let api;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     userId = global.testUserId;
     token = global.testToken;
-  });
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
 
   afterEach(async () => {
     await Playlist.deleteMany({});
@@ -564,14 +627,22 @@ describe('PUT /api/v1/playlists/:id', () => {
   });
 });
 
-describe('PATCH /api/v1/playlists/:id', () => {
+describe('PATCH /api/v1/playlists/:id (integration)', () => {
   let userId;
   let token;
+  let testContext;
+  let api;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     userId = global.testUserId;
     token = global.testToken;
-  });
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
 
   afterEach(async () => {
     await Playlist.deleteMany({});
@@ -675,14 +746,22 @@ describe('PATCH /api/v1/playlists/:id', () => {
   });
 });
 
-describe('DELETE /api/v1/playlists/:id', () => {
+describe('DELETE /api/v1/playlists/:id (integration)', () => {
   let userId;
   let token;
+  let testContext;
+  let api;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     userId = global.testUserId;
     token = global.testToken;
-  });
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
 
   afterEach(async () => {
     await Playlist.deleteMany({});
@@ -741,14 +820,22 @@ describe('DELETE /api/v1/playlists/:id', () => {
   });
 });
 
-describe('POST /api/v1/playlists/:id/items', () => {
+describe('POST /api/v1/playlists/:id/items (integration)', () => {
   let userId;
   let token;
+  let testContext;
+  let api;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     userId = global.testUserId;
     token = global.testToken;
-  });
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
 
   afterEach(async () => {
     await Playlist.deleteMany({});
@@ -887,14 +974,22 @@ describe('POST /api/v1/playlists/:id/items', () => {
   });
 });
 
-describe('DELETE /api/v1/playlists/:id/items/:beatId', () => {
+describe('DELETE /api/v1/playlists/:id/items/:beatId (integration)', () => {
   let userId;
   let token;
+  let testContext;
+  let api;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     userId = global.testUserId;
     token = global.testToken;
-  });
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
 
   afterEach(async () => {
     await Playlist.deleteMany({});

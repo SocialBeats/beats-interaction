@@ -1,10 +1,25 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import mongoose from 'mongoose';
-import { api } from '../setup/setup.js';
 import { Comment, Playlist } from '../../src/models/models.js';
-import { withAuth } from '../setup/setup.js';
+import {
+  setupDockerEnvironment,
+  teardownDockerEnvironment,
+  withAuth,
+} from '../setup/setup-integration.js';
 
-describe('POST /api/v1/beats/:beatId/comments', () => {
+describe('POST /api/v1/beats/:beatId/comments (integration)', () => {
+  let testContext;
+  let api;
+
+  beforeAll(async () => {
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
+
   it('should create a comment and return 201 with the created comment', async () => {
     const beatId = new mongoose.Types.ObjectId().toString();
 
@@ -22,6 +37,7 @@ describe('POST /api/v1/beats/:beatId/comments', () => {
     expect(response.body).toHaveProperty('text', 'Nice beat bro!');
     expect(response.body).toHaveProperty('createdAt');
 
+    // Ahora Mongoose está conectado al MongoDB correcto
     const commentInDb = await Comment.findById(createdId).lean();
     expect(commentInDb).not.toBeNull();
     expect(commentInDb.text).toBe('Nice beat bro!');
@@ -77,7 +93,19 @@ describe('POST /api/v1/beats/:beatId/comments', () => {
   });
 });
 
-describe('POST /api/v1/playlists/:playlistId/comments', () => {
+describe('POST /api/v1/playlists/:playlistId/comments (integration)', () => {
+  let testContext;
+  let api;
+
+  beforeAll(async () => {
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
+
   it('should create a comment on a public playlist', async () => {
     const playlist = await Playlist.create({
       name: 'Public test playlist',
@@ -162,7 +190,19 @@ describe('POST /api/v1/playlists/:playlistId/comments', () => {
   });
 });
 
-describe('GET /api/v1/comments/:commentId', () => {
+describe('GET /api/v1/comments/:commentId (integration)', () => {
+  let testContext;
+  let api;
+
+  beforeAll(async () => {
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
+
   it('should return 200 and the comment when it exists', async () => {
     const authorId = new mongoose.Types.ObjectId();
     const beatId = new mongoose.Types.ObjectId();
@@ -203,7 +243,19 @@ describe('GET /api/v1/comments/:commentId', () => {
   });
 });
 
-describe('GET /api/v1/beats/:beatId/comments', () => {
+describe('GET /api/v1/beats/:beatId/comments (integration)', () => {
+  let testContext;
+  let api;
+
+  beforeAll(async () => {
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
+
   it('should return comments with default pagination', async () => {
     const beatId = new mongoose.Types.ObjectId();
     const authorId = new mongoose.Types.ObjectId();
@@ -330,7 +382,19 @@ describe('GET /api/v1/beats/:beatId/comments', () => {
   });
 });
 
-describe('GET /api/v1/playlists/:playlistId/comments', () => {
+describe('GET /api/v1/playlists/:playlistId/comments (integration)', () => {
+  let testContext;
+  let api;
+
+  beforeAll(async () => {
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
+
   it('should return comments with default pagination', async () => {
     const playlist = await Playlist.create({
       name: 'Playlist for listing',
@@ -477,7 +541,19 @@ describe('GET /api/v1/playlists/:playlistId/comments', () => {
   });
 });
 
-describe('DELETE /api/v1/comments/:commentId', () => {
+describe('DELETE /api/v1/comments/:commentId (integration)', () => {
+  let testContext;
+  let api;
+
+  beforeAll(async () => {
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
+
   it('should delete an existing comment of the authenticated user and return 200', async () => {
     const beatId = new mongoose.Types.ObjectId();
 
@@ -542,7 +618,19 @@ describe('DELETE /api/v1/comments/:commentId', () => {
   });
 });
 
-describe('PUT /api/v1/comments/:commentId', () => {
+describe('PUT /api/v1/comments/:commentId (integration)', () => {
+  let testContext;
+  let api;
+
+  beforeAll(async () => {
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
+
   it('should update the text of an existing comment of the authenticated user and return 200', async () => {
     const beatId = new mongoose.Types.ObjectId();
 
@@ -659,7 +747,19 @@ describe('PUT /api/v1/comments/:commentId', () => {
   });
 });
 
-describe('PATCH /api/v1/comments/:commentId', () => {
+describe('PATCH /api/v1/comments/:commentId (integration)', () => {
+  let testContext;
+  let api;
+
+  beforeAll(async () => {
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
+
   it('should update the text of an existing comment using PATCH and return 200', async () => {
     const beatId = new mongoose.Types.ObjectId();
 

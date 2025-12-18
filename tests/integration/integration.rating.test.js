@@ -1,10 +1,25 @@
 import { describe, it, expect } from 'vitest';
 import mongoose from 'mongoose';
-import { api } from '../setup/setup.js';
 import { Rating, Playlist } from '../../src/models/models.js';
-import { withAuth } from '../setup/setup.js';
+import {
+  setupDockerEnvironment,
+  teardownDockerEnvironment,
+  withAuth,
+} from '../setup/setup-integration.js';
 
-describe('POST /api/v1/beats/:beatId/ratings', () => {
+describe('POST /api/v1/beats/:beatId/ratings (integration)', () => {
+  let testContext;
+  let api;
+
+  beforeAll(async () => {
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
+
   it('should create a rating and return 201 with the created rating', async () => {
     const beatId = new mongoose.Types.ObjectId().toString();
 
@@ -135,7 +150,19 @@ describe('POST /api/v1/beats/:beatId/ratings', () => {
   });
 });
 
-describe('POST /api/v1/playlists/:playlistId/ratings', () => {
+describe('POST /api/v1/playlists/:playlistId/ratings (integration)', () => {
+  let testContext;
+  let api;
+
+  beforeAll(async () => {
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
+
   it('should create a rating on a public playlist and return 201', async () => {
     const playlist = await Playlist.create({
       name: 'Public playlist for rating',
@@ -334,7 +361,19 @@ describe('POST /api/v1/playlists/:playlistId/ratings', () => {
   });
 });
 
-describe('GET /api/v1/ratings/:ratingId', () => {
+describe('GET /api/v1/ratings/:ratingId (integration)', () => {
+  let testContext;
+  let api;
+
+  beforeAll(async () => {
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
+
   it('should return 200 and the rating when it exists', async () => {
     const beatId = new mongoose.Types.ObjectId();
     const userId = new mongoose.Types.ObjectId();
@@ -377,7 +416,19 @@ describe('GET /api/v1/ratings/:ratingId', () => {
   });
 });
 
-describe('GET /api/v1/beats/:beatId/ratings/me', () => {
+describe('GET /api/v1/beats/:beatId/ratings/me (integration)', () => {
+  let testContext;
+  let api;
+
+  beforeAll(async () => {
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
+
   it('should return 200 and the rating of the authenticated user for the beat', async () => {
     const beatId = new mongoose.Types.ObjectId().toString();
 
@@ -423,7 +474,19 @@ describe('GET /api/v1/beats/:beatId/ratings/me', () => {
   });
 });
 
-describe('GET /api/v1/playlists/:playlistId/ratings/me', () => {
+describe('GET /api/v1/playlists/:playlistId/ratings/me (integration)', () => {
+  let testContext;
+  let api;
+
+  beforeAll(async () => {
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
+
   it('should return the rating when it exists for this playlist and user', async () => {
     const playlist = await Playlist.create({
       name: 'Playlist for my rating',
@@ -477,7 +540,19 @@ describe('GET /api/v1/playlists/:playlistId/ratings/me', () => {
   });
 });
 
-describe('GET /api/v1/beats/:beatId/ratings', () => {
+describe('GET /api/v1/beats/:beatId/ratings (integration)', () => {
+  let testContext;
+  let api;
+
+  beforeAll(async () => {
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
+
   it('should return ratings with average, count and default pagination for a beat', async () => {
     const beatId = new mongoose.Types.ObjectId();
     const otherBeatId = new mongoose.Types.ObjectId();
@@ -560,16 +635,28 @@ describe('GET /api/v1/beats/:beatId/ratings', () => {
   });
 });
 
-describe('GET /api/v1/playlists/:playlistId/ratings', () => {
+describe('GET /api/v1/playlists/:playlistId/ratings (integration)', () => {
+  let testContext;
+  let api;
+
+  beforeAll(async () => {
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
+
   it('should return ratings with average, count and default pagination for a playlist', async () => {
     const playlist = await Playlist.create({
-      name: 'Playlist for ratings',
+      name: 'Playlist for ratings (integration)',
       ownerId: new mongoose.Types.ObjectId(),
       isPublic: true,
     });
 
     const otherPlaylist = await Playlist.create({
-      name: 'Other playlist',
+      name: 'Other playlist (integration)',
       ownerId: new mongoose.Types.ObjectId(),
       isPublic: true,
     });
@@ -656,7 +743,19 @@ describe('GET /api/v1/playlists/:playlistId/ratings', () => {
   });
 });
 
-describe('DELETE /api/v1/ratings/:ratingId', () => {
+describe('DELETE /api/v1/ratings/:ratingId (integration)', () => {
+  let testContext;
+  let api;
+
+  beforeAll(async () => {
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
+
   it('should delete an existing rating of the authenticated user and return 200', async () => {
     const beatId = new mongoose.Types.ObjectId().toString();
 
@@ -723,7 +822,19 @@ describe('DELETE /api/v1/ratings/:ratingId', () => {
   });
 });
 
-describe('PUT /api/v1/ratings/:ratingId', () => {
+describe('PUT /api/v1/ratings/:ratingId (integration)', () => {
+  let testContext;
+  let api;
+
+  beforeAll(async () => {
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
+
   it('should update the score and comment of an existing rating of the authenticated user and return 200', async () => {
     const beatId = new mongoose.Types.ObjectId().toString();
 
@@ -844,7 +955,19 @@ describe('PUT /api/v1/ratings/:ratingId', () => {
   });
 });
 
-describe('PATCH /api/v1/ratings/:ratingId', () => {
+describe('PATCH /api/v1/ratings/:ratingId (integration)', () => {
+  let testContext;
+  let api;
+
+  beforeAll(async () => {
+    testContext = await setupDockerEnvironment();
+    api = testContext.api;
+  }, 90000);
+
+  afterAll(async () => {
+    await teardownDockerEnvironment(testContext);
+  }, 30000);
+
   it('should update the score and comment of an existing rating using PATCH and return 200', async () => {
     const beatId = new mongoose.Types.ObjectId().toString();
 
