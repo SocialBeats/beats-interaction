@@ -30,9 +30,9 @@ describe('POST /api/v1/beats/:beatId/ratings (integration)', () => {
       })
       .expect(201);
 
-    const createdId = response.body.id;
+    const createdId = response.body._id;
 
-    expect(response.body).toHaveProperty('id');
+    expect(response.body).toHaveProperty('_id');
     expect(response.body).toHaveProperty('beatId', beatId);
     expect(response.body).toHaveProperty('userId');
     expect(response.body).toHaveProperty('score', 5);
@@ -126,7 +126,7 @@ describe('POST /api/v1/beats/:beatId/ratings (integration)', () => {
       })
       .expect(201);
 
-    expect(firstResponse.body).toHaveProperty('id');
+    expect(firstResponse.body).toHaveProperty('_id');
 
     // segundo rating sobre el mismo beat y mismo usuario → 422
     const secondResponse = await withAuth(
@@ -179,9 +179,9 @@ describe('POST /api/v1/playlists/:playlistId/ratings (integration)', () => {
       })
       .expect(201);
 
-    const createdId = response.body.id;
+    const createdId = response.body._id;
 
-    expect(response.body).toHaveProperty('id');
+    expect(response.body).toHaveProperty('_id');
     expect(response.body).toHaveProperty('playlistId', playlist._id.toString());
     expect(response.body).toHaveProperty('userId');
     expect(response.body).toHaveProperty('score', 5);
@@ -335,7 +335,7 @@ describe('POST /api/v1/playlists/:playlistId/ratings (integration)', () => {
       })
       .expect(201);
 
-    expect(firstResponse.body).toHaveProperty('id');
+    expect(firstResponse.body).toHaveProperty('_id');
 
     // second rating on the same playlist and same user: 422
     const secondResponse = await withAuth(
@@ -389,7 +389,7 @@ describe('GET /api/v1/ratings/:ratingId (integration)', () => {
       api.get(`/api/v1/ratings/${created._id}`)
     ).expect(200);
 
-    expect(response.body).toHaveProperty('id', created._id.toString());
+    expect(response.body).toHaveProperty('_id', created._id.toString());
     expect(response.body).toHaveProperty('userId', userId.toString());
     expect(response.body).toHaveProperty('score', 5);
     expect(response.body).toHaveProperty('comment', 'Existing rating');
@@ -441,7 +441,7 @@ describe('GET /api/v1/beats/:beatId/ratings/me (integration)', () => {
       })
       .expect(201);
 
-    expect(createResponse.body).toHaveProperty('id');
+    expect(createResponse.body).toHaveProperty('_id');
 
     const response = await withAuth(
       api.get(`/api/v1/beats/${beatId}/ratings/me`)
@@ -503,7 +503,7 @@ describe('GET /api/v1/playlists/:playlistId/ratings/me (integration)', () => {
       })
       .expect(201);
 
-    expect(createResponse.body).toHaveProperty('id');
+    expect(createResponse.body).toHaveProperty('_id');
 
     const response = await withAuth(
       api.get(`/api/v1/playlists/${playlist._id}/ratings/me`)
@@ -766,7 +766,7 @@ describe('DELETE /api/v1/ratings/:ratingId (integration)', () => {
       .send({ score: 5, comment: 'Rating to delete' })
       .expect(201);
 
-    const ratingId = createResponse.body.id;
+    const ratingId = createResponse.body._id;
 
     const deleteResponse = await withAuth(
       api.delete(`/api/v1/ratings/${ratingId}`)
@@ -844,7 +844,7 @@ describe('PUT /api/v1/ratings/:ratingId (integration)', () => {
       .send({ score: 3, comment: 'Old comment' })
       .expect(201);
 
-    const ratingId = createResponse.body.id;
+    const ratingId = createResponse.body._id;
 
     const updateResponse = await withAuth(
       api.put(`/api/v1/ratings/${ratingId}`)
@@ -852,7 +852,7 @@ describe('PUT /api/v1/ratings/:ratingId (integration)', () => {
       .send({ score: 5, comment: 'New comment from PUT' })
       .expect(200);
 
-    expect(updateResponse.body).toHaveProperty('id', ratingId);
+    expect(updateResponse.body).toHaveProperty('_id', ratingId);
     expect(updateResponse.body).toHaveProperty('score', 5);
     expect(updateResponse.body).toHaveProperty(
       'comment',
@@ -919,7 +919,7 @@ describe('PUT /api/v1/ratings/:ratingId (integration)', () => {
       .send({ score: 3, comment: 'Initial comment' })
       .expect(201);
 
-    const ratingId = createResponse.body.id;
+    const ratingId = createResponse.body._id;
 
     const response = await withAuth(api.put(`/api/v1/ratings/${ratingId}`))
       .send({ score: 6, comment: 'Invalid score' })
@@ -942,7 +942,7 @@ describe('PUT /api/v1/ratings/:ratingId (integration)', () => {
       .send({ score: 4, comment: 'Initial comment' })
       .expect(201);
 
-    const ratingId = createResponse.body.id;
+    const ratingId = createResponse.body._id;
 
     const response = await withAuth(api.put(`/api/v1/ratings/${ratingId}`))
       .send({ score: 4, comment: longComment })
@@ -977,7 +977,7 @@ describe('PATCH /api/v1/ratings/:ratingId (integration)', () => {
       .send({ score: 2, comment: 'Old text (patch)' })
       .expect(201);
 
-    const ratingId = createResponse.body.id;
+    const ratingId = createResponse.body._id;
 
     const patchResponse = await withAuth(
       api.patch(`/api/v1/ratings/${ratingId}`)
@@ -985,7 +985,7 @@ describe('PATCH /api/v1/ratings/:ratingId (integration)', () => {
       .send({ score: 4, comment: 'New text from PATCH' })
       .expect(200);
 
-    expect(patchResponse.body).toHaveProperty('id', ratingId);
+    expect(patchResponse.body).toHaveProperty('_id', ratingId);
     expect(patchResponse.body).toHaveProperty('score', 4);
     expect(patchResponse.body).toHaveProperty('comment', 'New text from PATCH');
 
@@ -1052,7 +1052,7 @@ describe('PATCH /api/v1/ratings/:ratingId (integration)', () => {
       .send({ score: 3, comment: 'Initial patch text' })
       .expect(201);
 
-    const ratingId = createResponse.body.id;
+    const ratingId = createResponse.body._id;
 
     const response = await withAuth(api.patch(`/api/v1/ratings/${ratingId}`))
       .send({ score: 0, comment: 'Invalid score' })
@@ -1075,7 +1075,7 @@ describe('PATCH /api/v1/ratings/:ratingId (integration)', () => {
       .send({ score: 4, comment: 'Initial patch text' })
       .expect(201);
 
-    const ratingId = createResponse.body.id;
+    const ratingId = createResponse.body._id;
 
     const response = await withAuth(api.patch(`/api/v1/ratings/${ratingId}`))
       .send({ score: 4, comment: longComment })
