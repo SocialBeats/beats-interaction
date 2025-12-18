@@ -337,3 +337,166 @@ describe('ModerationReportService.createRatingModerationReport', () => {
     ModerationReport.prototype.save = originalSave;
   });
 });
+
+describe('ModerationReportService.createPlaylistModerationReport', () => {
+  const reporterId = new mongoose.Types.ObjectId();
+  const ownerId = new mongoose.Types.ObjectId();
+
+  it('should create a moderation report for an existing public playlist', async () => {
+    const playlist = await Playlist.create({
+      name: 'Public playlist',
+      ownerId,
+      description: 'desc',
+      isPublic: true,
+      items: [],
+    });
+
+    const report = await moderationReportService.createPlaylistModerationReport(
+      {
+        playlistId: playlist._id.toString(),
+        userId: reporterId.toString(),
+      }
+    );
+
+    expect(report).toBeDefined();
+    expect(report.playlistId.toString()).toBe(playlist._id.toString());
+    expect(report.userId.toString()).toBe(reporterId.toString());
+    expect(report.authorId.toString()).toBe(ownerId.toString());
+    expect(report.state).toBe('Checking');
+
+    const inDb = await ModerationReport.findById(report._id);
+    expect(inDb).not.toBeNull();
+  });
+
+  it('should throw 404 if playlistId is not a valid ObjectId', async () => {
+    await expect(
+      moderationReportService.createPlaylistModerationReport({
+        playlistId: 'not-a-valid-id',
+        userId: reporterId.toString(),
+      })
+    ).rejects.toMatchObject({
+      status: 404,
+      message: 'Playlist not found',
+    });
+  });
+
+  it('should throw 404 if playlist does not exist', async () => {
+    const fakeId = new mongoose.Types.ObjectId();
+
+    await expect(
+      moderationReportService.createPlaylistModerationReport({
+        playlistId: fakeId.toString(),
+        userId: reporterId.toString(),
+      })
+    ).rejects.toMatchObject({
+      status: 404,
+      message: 'Playlist not found',
+    });
+  });
+
+  it('should throw 422 if user reports own playlist', async () => {
+    const playlist = await Playlist.create({
+      name: 'My playlist',
+      ownerId: reporterId,
+      description: 'desc',
+      isPublic: true,
+      items: [],
+    });
+
+    await expect(
+      moderationReportService.createPlaylistModerationReport({
+        playlistId: playlist._id.toString(),
+        userId: reporterId.toString(),
+      })
+    ).rejects.toMatchObject({
+      status: 422,
+      message: 'A user cannot report their own content.',
+    });
+  });
+
+  it('should throw 422 if playlist is private', async () => {
+    const playlist = await Playlist.create({
+      name: 'Private playlist',
+      ownerId,
+      description: 'desc',
+      isPublic: false,
+      items: [],
+    });
+
+    await expect(
+      moderationReportService.createPlaylistModerationReport({
+        playlistId: playlist._id.toString(),
+        userId: reporterId.toString(),
+      })
+    ).rejects.toMatchObject({
+      status: 422,
+      message: 'You cannot report a private playlist.',
+    });
+  });
+
+  it('should throw 422 (ValidationError) if userId is missing', async () => {
+    const playlist = await Playlist.create({
+      name: 'Public playlist',
+      ownerId,
+      description: 'desc',
+      isPublic: true,
+      items: [],
+    });
+
+    await expect(
+      moderationReportService.createPlaylistModerationReport({
+        playlistId: playlist._id.toString(),
+        userId: undefined,
+      })
+    ).rejects.toMatchObject({
+      status: 422,
+    });
+  });
+
+  it('should throw 422 (ValidationError) with message built from err.errors', async () => {
+    const playlist = await Playlist.create({
+      name: 'Public playlist',
+      ownerId,
+      description: 'desc',
+      isPublic: true,
+      items: [],
+    });
+
+    await expect(
+      moderationReportService.createPlaylistModerationReport({
+        playlistId: playlist._id.toString(),
+        userId: undefined,
+      })
+    ).rejects.toMatchObject({
+      status: 422,
+      message: expect.stringContaining('userId'),
+    });
+  });
+
+  it('should rethrow unexpected errors (e.g. DB error on save)', async () => {
+    const playlist = await Playlist.create({
+      name: 'Public playlist',
+      ownerId,
+      description: 'desc',
+      isPublic: true,
+      items: [],
+    });
+
+    const originalSave = ModerationReport.prototype.save;
+
+    ModerationReport.prototype.save = async function () {
+      const err = new Error('Simulated DB error');
+      err.name = 'SomeOtherError';
+      throw err;
+    };
+
+    await expect(
+      moderationReportService.createPlaylistModerationReport({
+        playlistId: playlist._id.toString(),
+        userId: reporterId.toString(),
+      })
+    ).rejects.toHaveProperty('message', 'Simulated DB error');
+
+    ModerationReport.prototype.save = originalSave;
+  });
+});

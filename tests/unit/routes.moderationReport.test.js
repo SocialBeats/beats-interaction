@@ -215,3 +215,102 @@ describe('POST /api/v1/ratings/:ratingId/moderationReports', () => {
       .expect(401);
   });
 });
+
+describe('POST /api/v1/playlists/:playlistId/moderationReports', () => {
+  it('should create a moderation report and return 201', async () => {
+    const ownerId = new mongoose.Types.ObjectId();
+
+    const playlist = await Playlist.create({
+      name: 'Public playlist',
+      ownerId,
+      description: 'desc',
+      isPublic: true,
+      items: [],
+    });
+
+    const response = await withAuth(
+      api.post(`/api/v1/playlists/${playlist._id}/moderationReports`)
+    ).expect(201);
+
+    expect(response.body).toHaveProperty('_id');
+    expect(response.body.playlistId).toBe(playlist._id.toString());
+    expect(response.body.userId).toBe(global.testUserId);
+    expect(response.body.authorId).toBe(ownerId.toString());
+    expect(response.body.state).toBe('Checking');
+
+    const inDb = await ModerationReport.findById(response.body._id);
+    expect(inDb).not.toBeNull();
+  });
+
+  it('should return 404 if playlistId is not a valid ObjectId', async () => {
+    const response = await withAuth(
+      api.post('/api/v1/playlists/not-a-valid-id/moderationReports')
+    ).expect(404);
+
+    expect(response.body).toEqual({
+      message: 'Playlist not found',
+    });
+  });
+
+  it('should return 404 if playlist does not exist', async () => {
+    const fakeId = new mongoose.Types.ObjectId();
+
+    const response = await withAuth(
+      api.post(`/api/v1/playlists/${fakeId}/moderationReports`)
+    ).expect(404);
+
+    expect(response.body).toEqual({
+      message: 'Playlist not found',
+    });
+  });
+
+  it('should return 422 if user reports own playlist', async () => {
+    const playlist = await Playlist.create({
+      name: 'My playlist',
+      ownerId: global.testUserId,
+      description: 'desc',
+      isPublic: true,
+      items: [],
+    });
+
+    const response = await withAuth(
+      api.post(`/api/v1/playlists/${playlist._id}/moderationReports`)
+    ).expect(422);
+
+    expect(response.body.message).toBe(
+      'A user cannot report their own content.'
+    );
+  });
+
+  it('should return 422 if playlist is private', async () => {
+    const ownerId = new mongoose.Types.ObjectId();
+
+    const playlist = await Playlist.create({
+      name: 'Private playlist',
+      ownerId,
+      description: 'desc',
+      isPublic: false,
+      items: [],
+    });
+
+    const response = await withAuth(
+      api.post(`/api/v1/playlists/${playlist._id}/moderationReports`)
+    ).expect(422);
+
+    expect(response.body.message).toBe('You cannot report a private playlist.');
+  });
+
+  it('should return 401 if user is not authenticated', async () => {
+    const playlist = await Playlist.create({
+      name: 'Public playlist',
+      ownerId: new mongoose.Types.ObjectId(),
+      description: 'desc',
+      isPublic: true,
+      items: [],
+    });
+
+    await api
+      .post(`/api/v1/playlists/${playlist._id}/moderationReports`)
+      .expect(401);
+  });
+});
