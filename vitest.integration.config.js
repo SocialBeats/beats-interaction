@@ -2,7 +2,7 @@ export default {
   test: {
     globals: true,
     environment: 'node',
-    setupFiles: ['./tests/setup/setup-tests.js'],
+    setupFiles: ['./tests/setup/setup-integration.js'],
     hookTimeout: 30000,
     isolate: true,
     threads: false,
