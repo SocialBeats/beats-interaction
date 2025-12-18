@@ -1,5 +1,10 @@
 import mongoose from 'mongoose';
-import { ModerationReport, Comment, Rating } from '../models/models.js';
+import {
+  ModerationReport,
+  Comment,
+  Rating,
+  Playlist,
+} from '../models/models.js';
 
 class ModerationReportService {
   async createCommentModerationReport({ commentId, userId }) {
@@ -56,6 +61,45 @@ class ModerationReportService {
         ratingId,
         userId,
         authorId: rating.userId,
+        // state defaults to 'Checking'
+      });
+
+      await report.validate();
+      await report.save();
+
+      return report;
+    } catch (err) {
+      if (err.name === 'ValidationError') {
+        const message = Object.values(err.errors)
+          .map((e) => e.message)
+          .join(', ');
+        throw { status: 422, message };
+      }
+
+      if (err.name === 'Error') {
+        throw { status: 422, message: err.message };
+      }
+
+      if (err.status) throw err;
+      throw err;
+    }
+  }
+
+  async createPlaylistModerationReport({ playlistId, userId }) {
+    try {
+      if (!mongoose.Types.ObjectId.isValid(playlistId)) {
+        throw { status: 404, message: 'Playlist not found' };
+      }
+
+      const playlist = await Playlist.findById(playlistId).select('ownerId');
+      if (!playlist) {
+        throw { status: 404, message: 'Playlist not found' };
+      }
+
+      const report = new ModerationReport({
+        playlistId,
+        userId,
+        authorId: playlist.ownerId,
         // state defaults to 'Checking'
       });
 
