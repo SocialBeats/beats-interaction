@@ -1,6 +1,7 @@
 # Release v0.0.1
 
 ## Features
+
 - feat: add functionality to edit a rating (put and patch)
 - feat: add functionality to delete a rating
 - feat: add functionality to get all ratings of a playlist
@@ -24,6 +25,7 @@
 - feat: create entities with database validations
 
 ## Tests
+
 - test: add test for functionality to edit a rating (put and patch)
 - test: add test for functionality to delete a rating
 - test: add test for functionality to get all ratings of a playlist
@@ -50,22 +52,26 @@
 - test: test entities validations
 
 ## Documentation
+
 - docs: update jsdoc in ratingRoutes to use OASSchemas
 - docs: upgrade comment and playlist documentation to contain refs
 - docs: add models schemas to the swagger configuration
 - docs: add oas to playlist routes
 
 ## Fixes
+
 - fix: exclude also commitlint.config.cjs from coverage analysis
 - fix: fix mispelling in a variable
 - fix: add error validation in create playlist comment
 - fix: add / to main.js logs
 
 ## Continuous integration (CI)
+
 - ci: add secure shutdown to main.js (COMMIT FROM TEMPLATE)
 - ci: add docker development enviroment
 
 ## Other changes
+
 - Merge pull request #13 from SocialBeats/develop
 - chore: change PORT from 3000 to 300 in .env.examples
 - Merge pull request #11 from SocialBeats/3-crud-rating
@@ -87,4 +93,3 @@
 ## Full commit history
 
 For full commit history, see [here](https://github.com/SocialBeats/beats-interaction/compare/...v0.0.1).
-

@@ -2,11 +2,9 @@ import { describe, it, expect } from 'vitest';
 import mongoose from 'mongoose';
 import { api } from '../setup/setup.js';
 import { Rating, Playlist } from '../../src/models/models.js';
+import { withAuth } from '../setup/setup.js';
 
-describe('POST /api/v1/beats/:beatId/ratings (integration)', () => {
-  const withAuth = (req) =>
-    req.set('Authorization', `Bearer ${global.testToken}`);
-
+describe('POST /api/v1/beats/:beatId/ratings', () => {
   it('should create a rating and return 201 with the created rating', async () => {
     const beatId = new mongoose.Types.ObjectId().toString();
 
@@ -17,9 +15,9 @@ describe('POST /api/v1/beats/:beatId/ratings (integration)', () => {
       })
       .expect(201);
 
-    const createdId = response.body.id;
+    const createdId = response.body._id;
 
-    expect(response.body).toHaveProperty('id');
+    expect(response.body).toHaveProperty('_id');
     expect(response.body).toHaveProperty('beatId', beatId);
     expect(response.body).toHaveProperty('userId');
     expect(response.body).toHaveProperty('score', 5);
@@ -113,9 +111,8 @@ describe('POST /api/v1/beats/:beatId/ratings (integration)', () => {
       })
       .expect(201);
 
-    expect(firstResponse.body).toHaveProperty('id');
+    expect(firstResponse.body).toHaveProperty('_id');
 
-    // segundo rating sobre el mismo beat y mismo usuario → 422
     const secondResponse = await withAuth(
       api.post(`/api/v1/beats/${beatId}/ratings`)
     )
@@ -137,10 +134,7 @@ describe('POST /api/v1/beats/:beatId/ratings (integration)', () => {
   });
 });
 
-describe('POST /api/v1/playlists/:playlistId/ratings (integration)', () => {
-  const withAuth = (req) =>
-    req.set('Authorization', `Bearer ${global.testToken}`);
-
+describe('POST /api/v1/playlists/:playlistId/ratings', () => {
   it('should create a rating on a public playlist and return 201', async () => {
     const playlist = await Playlist.create({
       name: 'Public playlist for rating',
@@ -157,9 +151,9 @@ describe('POST /api/v1/playlists/:playlistId/ratings (integration)', () => {
       })
       .expect(201);
 
-    const createdId = response.body.id;
+    const createdId = response.body._id;
 
-    expect(response.body).toHaveProperty('id');
+    expect(response.body).toHaveProperty('_id');
     expect(response.body).toHaveProperty('playlistId', playlist._id.toString());
     expect(response.body).toHaveProperty('userId');
     expect(response.body).toHaveProperty('score', 5);
@@ -313,7 +307,7 @@ describe('POST /api/v1/playlists/:playlistId/ratings (integration)', () => {
       })
       .expect(201);
 
-    expect(firstResponse.body).toHaveProperty('id');
+    expect(firstResponse.body).toHaveProperty('_id');
 
     // second rating on the same playlist and same user: 422
     const secondResponse = await withAuth(
@@ -339,10 +333,7 @@ describe('POST /api/v1/playlists/:playlistId/ratings (integration)', () => {
   });
 });
 
-describe('GET /api/v1/ratings/:ratingId (integration)', () => {
-  const withAuth = (req) =>
-    req.set('Authorization', `Bearer ${global.testToken}`);
-
+describe('GET /api/v1/ratings/:ratingId', () => {
   it('should return 200 and the rating when it exists', async () => {
     const beatId = new mongoose.Types.ObjectId();
     const userId = new mongoose.Types.ObjectId();
@@ -358,7 +349,7 @@ describe('GET /api/v1/ratings/:ratingId (integration)', () => {
       api.get(`/api/v1/ratings/${created._id}`)
     ).expect(200);
 
-    expect(response.body).toHaveProperty('id', created._id.toString());
+    expect(response.body).toHaveProperty('_id', created._id.toString());
     expect(response.body).toHaveProperty('userId', userId.toString());
     expect(response.body).toHaveProperty('score', 5);
     expect(response.body).toHaveProperty('comment', 'Existing rating');
@@ -385,10 +376,7 @@ describe('GET /api/v1/ratings/:ratingId (integration)', () => {
   });
 });
 
-describe('GET /api/v1/beats/:beatId/ratings/me (integration)', () => {
-  const withAuth = (req) =>
-    req.set('Authorization', `Bearer ${global.testToken}`);
-
+describe('GET /api/v1/beats/:beatId/ratings/me', () => {
   it('should return 200 and the rating of the authenticated user for the beat', async () => {
     const beatId = new mongoose.Types.ObjectId().toString();
 
@@ -401,7 +389,7 @@ describe('GET /api/v1/beats/:beatId/ratings/me (integration)', () => {
       })
       .expect(201);
 
-    expect(createResponse.body).toHaveProperty('id');
+    expect(createResponse.body).toHaveProperty('_id');
 
     const response = await withAuth(
       api.get(`/api/v1/beats/${beatId}/ratings/me`)
@@ -434,10 +422,7 @@ describe('GET /api/v1/beats/:beatId/ratings/me (integration)', () => {
   });
 });
 
-describe('GET /api/v1/playlists/:playlistId/ratings/me (integration)', () => {
-  const withAuth = (req) =>
-    req.set('Authorization', `Bearer ${global.testToken}`);
-
+describe('GET /api/v1/playlists/:playlistId/ratings/me', () => {
   it('should return the rating when it exists for this playlist and user', async () => {
     const playlist = await Playlist.create({
       name: 'Playlist for my rating',
@@ -454,7 +439,7 @@ describe('GET /api/v1/playlists/:playlistId/ratings/me (integration)', () => {
       })
       .expect(201);
 
-    expect(createResponse.body).toHaveProperty('id');
+    expect(createResponse.body).toHaveProperty('_id');
 
     const response = await withAuth(
       api.get(`/api/v1/playlists/${playlist._id}/ratings/me`)
@@ -491,11 +476,8 @@ describe('GET /api/v1/playlists/:playlistId/ratings/me (integration)', () => {
   });
 });
 
-describe('GET /api/v1/beats/:beatId/ratings (integration)', () => {
-  const withAuth = (req) =>
-    req.set('Authorization', `Bearer ${global.testToken}`);
-
-  it('should return ratings with average and count for a beat', async () => {
+describe('GET /api/v1/beats/:beatId/ratings', () => {
+  it('should return ratings with average, count and default pagination for a beat', async () => {
     const beatId = new mongoose.Types.ObjectId();
     const otherBeatId = new mongoose.Types.ObjectId();
     const user1 = new mongoose.Types.ObjectId();
@@ -531,6 +513,9 @@ describe('GET /api/v1/beats/:beatId/ratings (integration)', () => {
     expect(response.body).toHaveProperty('average');
     expect(response.body.average).toBeCloseTo(4.5);
 
+    expect(response.body.page).toBe(1);
+    expect(response.body.limit).toBe(20);
+
     expect(response.body.data).toHaveLength(2);
 
     const userIdsFromResponse = response.body.data.map((r) => r.userId);
@@ -541,14 +526,13 @@ describe('GET /api/v1/beats/:beatId/ratings (integration)', () => {
     response.body.data.forEach((r) => {
       expect(r).toHaveProperty('userId');
       expect(r).toHaveProperty('score');
-      // comment is optional we only check its value if present
       if (r.userId === user1.toString()) {
         expect(r.comment).toBe('El bajo tapa la voz');
       }
     });
   });
 
-  it('should return empty data, average 0 and count 0 when there are no ratings for the beat', async () => {
+  it('should return empty data, average 0, count 0 and default pagination when there are no ratings for the beat', async () => {
     const beatId = new mongoose.Types.ObjectId();
 
     const response = await withAuth(
@@ -559,6 +543,8 @@ describe('GET /api/v1/beats/:beatId/ratings (integration)', () => {
       data: [],
       average: 0,
       count: 0,
+      page: 1,
+      limit: 20,
     });
   });
 
@@ -571,19 +557,16 @@ describe('GET /api/v1/beats/:beatId/ratings (integration)', () => {
   });
 });
 
-describe('GET /api/v1/playlists/:playlistId/ratings (integration)', () => {
-  const withAuth = (req) =>
-    req.set('Authorization', `Bearer ${global.testToken}`);
-
-  it('should return ratings with average and count for a playlist', async () => {
+describe('GET /api/v1/playlists/:playlistId/ratings', () => {
+  it('should return ratings with average, count and default pagination for a playlist', async () => {
     const playlist = await Playlist.create({
-      name: 'Playlist for ratings (integration)',
+      name: 'Playlist for ratings',
       ownerId: new mongoose.Types.ObjectId(),
       isPublic: true,
     });
 
     const otherPlaylist = await Playlist.create({
-      name: 'Other playlist (integration)',
+      name: 'Other playlist',
       ownerId: new mongoose.Types.ObjectId(),
       isPublic: true,
     });
@@ -621,6 +604,9 @@ describe('GET /api/v1/playlists/:playlistId/ratings (integration)', () => {
     expect(response.body).toHaveProperty('average');
     expect(response.body.average).toBeCloseTo(4.5);
 
+    expect(response.body.page).toBe(1);
+    expect(response.body.limit).toBe(20);
+
     expect(response.body.data).toHaveLength(2);
 
     const userIdsFromResponse = response.body.data.map((r) => r.userId);
@@ -631,14 +617,13 @@ describe('GET /api/v1/playlists/:playlistId/ratings (integration)', () => {
     response.body.data.forEach((r) => {
       expect(r).toHaveProperty('userId');
       expect(r).toHaveProperty('score');
-      // comment is optional we only check its value if present
       if (r.userId === user1.toString()) {
         expect(r.comment).toBe('El bajo tapa la voz');
       }
     });
   });
 
-  it('should return empty data, average 0 and count 0 when there are no ratings for the playlist', async () => {
+  it('should return empty data, average 0, count 0 and default pagination when there are no ratings for the playlist', async () => {
     const playlist = await Playlist.create({
       name: 'Playlist without ratings',
       ownerId: new mongoose.Types.ObjectId(),
@@ -653,6 +638,8 @@ describe('GET /api/v1/playlists/:playlistId/ratings (integration)', () => {
       data: [],
       average: 0,
       count: 0,
+      page: 1,
+      limit: 20,
     });
   });
 
@@ -665,10 +652,7 @@ describe('GET /api/v1/playlists/:playlistId/ratings (integration)', () => {
   });
 });
 
-describe('DELETE /api/v1/ratings/:ratingId (integration)', () => {
-  const withAuth = (req) =>
-    req.set('Authorization', `Bearer ${global.testToken}`);
-
+describe('DELETE /api/v1/ratings/:ratingId', () => {
   it('should delete an existing rating of the authenticated user and return 200', async () => {
     const beatId = new mongoose.Types.ObjectId().toString();
 
@@ -679,7 +663,7 @@ describe('DELETE /api/v1/ratings/:ratingId (integration)', () => {
       .send({ score: 5, comment: 'Rating to delete' })
       .expect(201);
 
-    const ratingId = createResponse.body.id;
+    const ratingId = createResponse.body._id;
 
     const deleteResponse = await withAuth(
       api.delete(`/api/v1/ratings/${ratingId}`)
@@ -735,10 +719,7 @@ describe('DELETE /api/v1/ratings/:ratingId (integration)', () => {
   });
 });
 
-describe('PUT /api/v1/ratings/:ratingId (integration)', () => {
-  const withAuth = (req) =>
-    req.set('Authorization', `Bearer ${global.testToken}`);
-
+describe('PUT /api/v1/ratings/:ratingId', () => {
   it('should update the score and comment of an existing rating of the authenticated user and return 200', async () => {
     const beatId = new mongoose.Types.ObjectId().toString();
 
@@ -748,7 +729,7 @@ describe('PUT /api/v1/ratings/:ratingId (integration)', () => {
       .send({ score: 3, comment: 'Old comment' })
       .expect(201);
 
-    const ratingId = createResponse.body.id;
+    const ratingId = createResponse.body._id;
 
     const updateResponse = await withAuth(
       api.put(`/api/v1/ratings/${ratingId}`)
@@ -756,7 +737,7 @@ describe('PUT /api/v1/ratings/:ratingId (integration)', () => {
       .send({ score: 5, comment: 'New comment from PUT' })
       .expect(200);
 
-    expect(updateResponse.body).toHaveProperty('id', ratingId);
+    expect(updateResponse.body).toHaveProperty('_id', ratingId);
     expect(updateResponse.body).toHaveProperty('score', 5);
     expect(updateResponse.body).toHaveProperty(
       'comment',
@@ -823,7 +804,7 @@ describe('PUT /api/v1/ratings/:ratingId (integration)', () => {
       .send({ score: 3, comment: 'Initial comment' })
       .expect(201);
 
-    const ratingId = createResponse.body.id;
+    const ratingId = createResponse.body._id;
 
     const response = await withAuth(api.put(`/api/v1/ratings/${ratingId}`))
       .send({ score: 6, comment: 'Invalid score' })
@@ -846,7 +827,7 @@ describe('PUT /api/v1/ratings/:ratingId (integration)', () => {
       .send({ score: 4, comment: 'Initial comment' })
       .expect(201);
 
-    const ratingId = createResponse.body.id;
+    const ratingId = createResponse.body._id;
 
     const response = await withAuth(api.put(`/api/v1/ratings/${ratingId}`))
       .send({ score: 4, comment: longComment })
@@ -859,10 +840,7 @@ describe('PUT /api/v1/ratings/:ratingId (integration)', () => {
   });
 });
 
-describe('PATCH /api/v1/ratings/:ratingId (integration)', () => {
-  const withAuth = (req) =>
-    req.set('Authorization', `Bearer ${global.testToken}`);
-
+describe('PATCH /api/v1/ratings/:ratingId', () => {
   it('should update the score and comment of an existing rating using PATCH and return 200', async () => {
     const beatId = new mongoose.Types.ObjectId().toString();
 
@@ -872,7 +850,7 @@ describe('PATCH /api/v1/ratings/:ratingId (integration)', () => {
       .send({ score: 2, comment: 'Old text (patch)' })
       .expect(201);
 
-    const ratingId = createResponse.body.id;
+    const ratingId = createResponse.body._id;
 
     const patchResponse = await withAuth(
       api.patch(`/api/v1/ratings/${ratingId}`)
@@ -880,7 +858,7 @@ describe('PATCH /api/v1/ratings/:ratingId (integration)', () => {
       .send({ score: 4, comment: 'New text from PATCH' })
       .expect(200);
 
-    expect(patchResponse.body).toHaveProperty('id', ratingId);
+    expect(patchResponse.body).toHaveProperty('_id', ratingId);
     expect(patchResponse.body).toHaveProperty('score', 4);
     expect(patchResponse.body).toHaveProperty('comment', 'New text from PATCH');
 
@@ -947,7 +925,7 @@ describe('PATCH /api/v1/ratings/:ratingId (integration)', () => {
       .send({ score: 3, comment: 'Initial patch text' })
       .expect(201);
 
-    const ratingId = createResponse.body.id;
+    const ratingId = createResponse.body._id;
 
     const response = await withAuth(api.patch(`/api/v1/ratings/${ratingId}`))
       .send({ score: 0, comment: 'Invalid score' })
@@ -970,7 +948,7 @@ describe('PATCH /api/v1/ratings/:ratingId (integration)', () => {
       .send({ score: 4, comment: 'Initial patch text' })
       .expect(201);
 
-    const ratingId = createResponse.body.id;
+    const ratingId = createResponse.body._id;
 
     const response = await withAuth(api.patch(`/api/v1/ratings/${ratingId}`))
       .send({ score: 4, comment: longComment })

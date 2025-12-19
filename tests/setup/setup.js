@@ -24,3 +24,9 @@ afterAll(async () => {
 });
 
 export const api = request(app);
+
+export const withAuth = (req) => {
+  req.set('x-gateway-authenticated', `true`);
+  req.set('x-user-id', global.testUserId);
+  return req;
+};

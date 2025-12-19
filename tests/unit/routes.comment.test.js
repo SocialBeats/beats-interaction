@@ -2,11 +2,9 @@ import { describe, it, expect } from 'vitest';
 import mongoose from 'mongoose';
 import { api } from '../setup/setup.js';
 import { Comment, Playlist } from '../../src/models/models.js';
+import { withAuth } from '../setup/setup.js';
 
-describe('POST /api/v1/beats/:beatId/comments (integration)', () => {
-  const withAuth = (req) =>
-    req.set('Authorization', `Bearer ${global.testToken}`);
-
+describe('POST /api/v1/beats/:beatId/comments', () => {
   it('should create a comment and return 201 with the created comment', async () => {
     const beatId = new mongoose.Types.ObjectId().toString();
 
@@ -16,9 +14,9 @@ describe('POST /api/v1/beats/:beatId/comments (integration)', () => {
       .send({ text: 'Nice beat bro!' })
       .expect(201);
 
-    const createdId = response.body.id;
+    const createdId = response.body._id;
 
-    expect(response.body).toHaveProperty('id');
+    expect(response.body).toHaveProperty('_id');
     expect(response.body).toHaveProperty('beatId', beatId);
     expect(response.body).toHaveProperty('authorId');
     expect(response.body).toHaveProperty('text', 'Nice beat bro!');
@@ -79,10 +77,7 @@ describe('POST /api/v1/beats/:beatId/comments (integration)', () => {
   });
 });
 
-describe('POST /api/v1/playlists/:playlistId/comments (integration)', () => {
-  const withAuth = (req) =>
-    req.set('Authorization', `Bearer ${global.testToken}`);
-
+describe('POST /api/v1/playlists/:playlistId/comments', () => {
   it('should create a comment on a public playlist', async () => {
     const playlist = await Playlist.create({
       name: 'Public test playlist',
@@ -96,7 +91,7 @@ describe('POST /api/v1/playlists/:playlistId/comments (integration)', () => {
       .send({ text: 'Awesome playlist!' })
       .expect(201);
 
-    const createdId = response.body.id;
+    const createdId = response.body._id;
 
     expect(response.body).toHaveProperty('playlistId', playlist._id.toString());
     expect(response.body).toHaveProperty('text', 'Awesome playlist!');
@@ -167,10 +162,7 @@ describe('POST /api/v1/playlists/:playlistId/comments (integration)', () => {
   });
 });
 
-describe('GET /api/v1/comments/:commentId (integration)', () => {
-  const withAuth = (req) =>
-    req.set('Authorization', `Bearer ${global.testToken}`);
-
+describe('GET /api/v1/comments/:commentId', () => {
   it('should return 200 and the comment when it exists', async () => {
     const authorId = new mongoose.Types.ObjectId();
     const beatId = new mongoose.Types.ObjectId();
@@ -185,7 +177,7 @@ describe('GET /api/v1/comments/:commentId (integration)', () => {
       api.get(`/api/v1/comments/${created._id}`)
     ).expect(200);
 
-    expect(response.body).toHaveProperty('id', created._id.toString());
+    expect(response.body).toHaveProperty('_id', created._id.toString());
     expect(response.body).toHaveProperty('text', 'Existing comment');
     expect(response.body).toHaveProperty('authorId', authorId.toString());
     expect(response.body).toHaveProperty('createdAt');
@@ -211,10 +203,7 @@ describe('GET /api/v1/comments/:commentId (integration)', () => {
   });
 });
 
-describe('GET /api/v1/beats/:beatId/comments (integration)', () => {
-  const withAuth = (req) =>
-    req.set('Authorization', `Bearer ${global.testToken}`);
-
+describe('GET /api/v1/beats/:beatId/comments', () => {
   it('should return comments with default pagination', async () => {
     const beatId = new mongoose.Types.ObjectId();
     const authorId = new mongoose.Types.ObjectId();
@@ -237,7 +226,7 @@ describe('GET /api/v1/beats/:beatId/comments (integration)', () => {
     expect(response.body.data).toHaveLength(3);
 
     response.body.data.forEach((c) => {
-      expect(c).toHaveProperty('id');
+      expect(c).toHaveProperty('_id');
       expect(c).toHaveProperty('authorId');
       expect(c).toHaveProperty('text');
       expect(c).toHaveProperty('createdAt');
@@ -341,10 +330,7 @@ describe('GET /api/v1/beats/:beatId/comments (integration)', () => {
   });
 });
 
-describe('GET /api/v1/playlists/:playlistId/comments (integration)', () => {
-  const withAuth = (req) =>
-    req.set('Authorization', `Bearer ${global.testToken}`);
-
+describe('GET /api/v1/playlists/:playlistId/comments', () => {
   it('should return comments with default pagination', async () => {
     const playlist = await Playlist.create({
       name: 'Playlist for listing',
@@ -371,7 +357,7 @@ describe('GET /api/v1/playlists/:playlistId/comments (integration)', () => {
     expect(response.body.data).toHaveLength(3);
 
     response.body.data.forEach((c) => {
-      expect(c).toHaveProperty('id');
+      expect(c).toHaveProperty('_id');
       expect(c).toHaveProperty('authorId');
       expect(c).toHaveProperty('text');
       expect(c).toHaveProperty('createdAt');
@@ -491,10 +477,7 @@ describe('GET /api/v1/playlists/:playlistId/comments (integration)', () => {
   });
 });
 
-describe('DELETE /api/v1/comments/:commentId (integration)', () => {
-  const withAuth = (req) =>
-    req.set('Authorization', `Bearer ${global.testToken}`);
-
+describe('DELETE /api/v1/comments/:commentId', () => {
   it('should delete an existing comment of the authenticated user and return 200', async () => {
     const beatId = new mongoose.Types.ObjectId();
 
@@ -505,7 +488,7 @@ describe('DELETE /api/v1/comments/:commentId (integration)', () => {
       .send({ text: 'Comment to delete' })
       .expect(201);
 
-    const commentId = createResponse.body.id;
+    const commentId = createResponse.body._id;
 
     const deleteResponse = await withAuth(
       api.delete(`/api/v1/comments/${commentId}`)
@@ -559,10 +542,7 @@ describe('DELETE /api/v1/comments/:commentId (integration)', () => {
   });
 });
 
-describe('PUT /api/v1/comments/:commentId (integration)', () => {
-  const withAuth = (req) =>
-    req.set('Authorization', `Bearer ${global.testToken}`);
-
+describe('PUT /api/v1/comments/:commentId', () => {
   it('should update the text of an existing comment of the authenticated user and return 200', async () => {
     const beatId = new mongoose.Types.ObjectId();
 
@@ -573,7 +553,7 @@ describe('PUT /api/v1/comments/:commentId (integration)', () => {
       .send({ text: 'Old text' })
       .expect(201);
 
-    const commentId = createResponse.body.id;
+    const commentId = createResponse.body._id;
 
     const updateResponse = await withAuth(
       api.put(`/api/v1/comments/${commentId}`)
@@ -581,7 +561,7 @@ describe('PUT /api/v1/comments/:commentId (integration)', () => {
       .send({ text: 'New text from PUT' })
       .expect(200);
 
-    expect(updateResponse.body).toHaveProperty('id', commentId);
+    expect(updateResponse.body).toHaveProperty('_id', commentId);
     expect(updateResponse.body).toHaveProperty('text', 'New text from PUT');
     expect(updateResponse.body).toHaveProperty('updatedAt');
 
@@ -641,7 +621,7 @@ describe('PUT /api/v1/comments/:commentId (integration)', () => {
       .send({ text: 'Initial text' })
       .expect(201);
 
-    const commentId = createResponse.body.id;
+    const commentId = createResponse.body._id;
 
     const response = await withAuth(api.put(`/api/v1/comments/${commentId}`))
       .send({ text: '   ' })
@@ -666,7 +646,7 @@ describe('PUT /api/v1/comments/:commentId (integration)', () => {
       .send({ text: 'Initial text' })
       .expect(201);
 
-    const commentId = createResponse.body.id;
+    const commentId = createResponse.body._id;
 
     const response = await withAuth(api.put(`/api/v1/comments/${commentId}`))
       .send({ text: longText })
@@ -679,10 +659,7 @@ describe('PUT /api/v1/comments/:commentId (integration)', () => {
   });
 });
 
-describe('PATCH /api/v1/comments/:commentId (integration)', () => {
-  const withAuth = (req) =>
-    req.set('Authorization', `Bearer ${global.testToken}`);
-
+describe('PATCH /api/v1/comments/:commentId', () => {
   it('should update the text of an existing comment using PATCH and return 200', async () => {
     const beatId = new mongoose.Types.ObjectId();
 
@@ -692,7 +669,7 @@ describe('PATCH /api/v1/comments/:commentId (integration)', () => {
       .send({ text: 'Old text (patch)' })
       .expect(201);
 
-    const commentId = createResponse.body.id;
+    const commentId = createResponse.body._id;
 
     const patchResponse = await withAuth(
       api.patch(`/api/v1/comments/${commentId}`)
@@ -700,7 +677,7 @@ describe('PATCH /api/v1/comments/:commentId (integration)', () => {
       .send({ text: 'New text from PATCH' })
       .expect(200);
 
-    expect(patchResponse.body).toHaveProperty('id', commentId);
+    expect(patchResponse.body).toHaveProperty('_id', commentId);
     expect(patchResponse.body).toHaveProperty('text', 'New text from PATCH');
 
     const inDb = await Comment.findById(commentId);
@@ -765,7 +742,7 @@ describe('PATCH /api/v1/comments/:commentId (integration)', () => {
       .send({ text: 'Initial patch text' })
       .expect(201);
 
-    const commentId = createResponse.body.id;
+    const commentId = createResponse.body._id;
 
     const response = await withAuth(api.patch(`/api/v1/comments/${commentId}`))
       .send({ text: '   ' })

@@ -1,4 +1,5 @@
 import { getVersion } from '../utils/versionUtils.js';
+import { isKafkaConnected } from '../services/kafkaConsumer.js';
 import mongoose from 'mongoose';
 
 export default function healthRoutes(app) {
@@ -54,6 +55,53 @@ export default function healthRoutes(app) {
       timestamp: new Date().toISOString(),
       environment: process.env.NODE_ENV,
       db: dbStatus,
+    });
+  });
+
+  /**
+   * @swagger
+   * /api/v1/kafka/health:
+   *   get:
+   *     tags:
+   *       - Kafka
+   *     summary: Kafka health check
+   *     description: Verifies whether Kafka is currently reachable and responding.
+   *     responses:
+   *       200:
+   *         description: Kafka is running and the connection is successful.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 kafka:
+   *                   type: string
+   *                   example: connected
+   *                 timestamp:
+   *                   type: string
+   *                   format: date-time
+   *                   example: "2025-11-08T13:41:47.074Z"
+   *       503:
+   *         description: Kafka is not reachable or connection failed.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 kafka:
+   *                   type: string
+   *                   example: disconnected
+   *                 timestamp:
+   *                   type: string
+   *                   format: date-time
+   *                   example: "2025-11-08T13:41:47.074Z"
+   */
+  app.get('/api/v1/kafka/health', async (req, res) => {
+    const status = await isKafkaConnected();
+
+    res.status(status ? 200 : 503).json({
+      kafka: status ? 'connected' : 'disconnected',
+      timestamp: new Date().toISOString(),
     });
   });
 }

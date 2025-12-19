@@ -1,5 +1,11 @@
 import mongoose from 'mongoose';
-import { Comment } from '../models/models.js';
+import {
+  Comment,
+  UserMaterialized,
+  BeatMaterialized,
+  Playlist,
+} from '../models/models.js';
+import { isKafkaEnabled } from './kafkaConsumer.js';
 
 class CommentService {
   async createBeatComment({ beatId, authorId, text }) {
@@ -10,7 +16,22 @@ class CommentService {
         throw { status, message };
       }
 
-      // TODO: check if beat exists in DB (404 if not found)
+      // check author and beat existence only if kafka is enabled
+      let author = null;
+      if (isKafkaEnabled()) {
+        author = await UserMaterialized.findById(authorId);
+        if (!author) {
+          throw {
+            status: 422,
+            message: 'authorId must correspond to an existing user',
+          };
+        }
+
+        const beatExists = await BeatMaterialized.findById(beatId);
+        if (!beatExists) {
+          throw { status: 404, message: 'Beat not found' };
+        }
+      }
 
       const comment = new Comment({
         beatId,
@@ -20,6 +41,9 @@ class CommentService {
 
       await comment.validate();
       await comment.save();
+
+      comment.author = author;
+
       return comment;
     } catch (err) {
       if (err.name === 'ValidationError') {
@@ -46,6 +70,18 @@ class CommentService {
         throw { status, message };
       }
 
+      // check author existence only if kafka is enabled
+      let author = null;
+      if (isKafkaEnabled()) {
+        author = await UserMaterialized.findById(authorId);
+        if (!author) {
+          throw {
+            status: 422,
+            message: 'authorId must correspond to an existing user',
+          };
+        }
+      }
+
       // comment model validation will ensure to check if playlist exists and if playlist is public
       const comment = new Comment({
         playlistId,
@@ -55,6 +91,9 @@ class CommentService {
 
       await comment.validate();
       await comment.save();
+
+      comment.author = author;
+
       return comment;
     } catch (err) {
       if (err.name === 'ValidationError') {
@@ -95,6 +134,19 @@ class CommentService {
         throw { status, message };
       }
 
+      let author = null;
+      if (isKafkaEnabled()) {
+        author = await UserMaterialized.findById(comment.authorId);
+        if (!author) {
+          throw {
+            status: 422,
+            message: 'authorId must correspond to an existing user',
+          };
+        }
+      }
+
+      comment.author = author;
+
       return comment;
     } catch (err) {
       if (err.status) {
@@ -113,7 +165,13 @@ class CommentService {
         throw { status, message };
       }
 
-      // TODO: check if beat exists in DB (404 if not found)
+      // check beat existence only if kafka is enabled
+      if (isKafkaEnabled()) {
+        const beatExists = await BeatMaterialized.findById(beatId);
+        if (!beatExists) {
+          throw { status: 404, message: 'Beat not found' };
+        }
+      }
 
       // parameter normalization
       page = Number(page);
@@ -135,10 +193,33 @@ class CommentService {
 
       const skip = (page - 1) * limit;
 
-      const comments = await Comment.find(filter)
+      let comments = await Comment.find(filter)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit);
+
+      comments = comments.map((comment) => {
+        comment.author = null;
+        return comment;
+      });
+
+      // if Kafka is enabled, try to enrich with materialized user data in one query
+      if (isKafkaEnabled() && comments.length > 0) {
+        const authorIds = [
+          ...new Set(comments.map((c) => c.authorId.toString())),
+        ];
+
+        const authors = await UserMaterialized.find({
+          userId: { $in: authorIds },
+        }).lean();
+
+        const authorMap = new Map(authors.map((a) => [a.userId.toString(), a]));
+
+        comments = comments.map((comment) => {
+          comment.author = authorMap.get(comment.authorId.toString()) ?? null;
+          return comment;
+        });
+      }
 
       return {
         data: comments,
@@ -163,6 +244,12 @@ class CommentService {
         throw { status, message };
       }
 
+      // check playlist existence
+      const playlistExists = await Playlist.findById(playlistId);
+      if (!playlistExists) {
+        throw { status: 404, message: 'Playlist not found' };
+      }
+
       // parameter normalization
       page = Number(page);
       limit = Number(limit);
@@ -181,10 +268,32 @@ class CommentService {
 
       const skip = (page - 1) * limit;
 
-      const comments = await Comment.find(filter)
+      let comments = await Comment.find(filter)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit);
+
+      comments = comments.map((comment) => {
+        comment.author = null;
+        return comment;
+      });
+
+      if (isKafkaEnabled() && comments.length > 0) {
+        const authorIds = [
+          ...new Set(comments.map((c) => c.authorId.toString())),
+        ];
+
+        const authors = await UserMaterialized.find({
+          userId: { $in: authorIds },
+        }).lean();
+
+        const authorMap = new Map(authors.map((a) => [a.userId.toString(), a]));
+
+        comments = comments.map((comment) => {
+          comment.author = authorMap.get(comment.authorId.toString()) ?? null;
+          return comment;
+        });
+      }
 
       return {
         data: comments,
@@ -204,13 +313,13 @@ class CommentService {
   async deleteCommentById(commentId, userId) {
     try {
       if (!mongoose.Types.ObjectId.isValid(commentId)) {
-        return { deleted: false }; // idempotente
+        return { deleted: false };
       }
 
       const comment = await Comment.findById(commentId);
 
       if (!comment) {
-        return { deleted: false }; // idempotente
+        return { deleted: false };
       }
 
       if (comment.authorId.toString() !== userId.toString()) {
@@ -256,6 +365,19 @@ class CommentService {
 
       await comment.validate();
       await comment.save();
+
+      let author = null;
+      if (isKafkaEnabled()) {
+        author = await UserMaterialized.findById(comment.authorId);
+        if (!author) {
+          throw {
+            status: 422,
+            message: 'authorId must correspond to an existing user',
+          };
+        }
+      }
+
+      comment.author = author;
 
       return comment;
     } catch (err) {

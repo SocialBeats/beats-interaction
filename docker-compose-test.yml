@@ -1,0 +1,65 @@
+version: "3.8"
+
+services:
+  mongodb:
+    restart: unless-stopped
+    image: mongo:latest
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=
+      - MONGO_INITDB_ROOT_PASSWORD=
+    networks:
+      - socialbeats-network
+    ports:
+      - "0:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - mongo-data-test:/data/db
+
+  beats-interaction:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - MONGOURL=mongodb://mongodb:27017/beats-interaction
+      - MONGOADMIN=
+      - MONGOPASS=
+      - NODE_ENV=development
+      - PORT=3002
+      - LOG_LEVEL=info
+      - JWT_SECRET=secret
+      - API_TITLE=beats-interaction microservice API
+      - API_DESCRIPTION=This is an OAS description of this beats-interaction microservice REST API
+      - KAFKA_CONNECTION_MAX_RETRIES=10
+      - KAFKA_CONNECTION_RETRY_DELAY=3000
+      - KAFKA_COOLDOWN=30000
+      - KAFKA_BROKER=kafka:9092
+      - ENABLE_KAFKA=false
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - socialbeats-network
+    ports:
+      - "0:${PORT}"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3002/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    volumes:
+      - ./:/app:cached
+      - /app/node_modules
+    command: node main.js
+
+volumes:
+  mongo-data-test:
+
+networks:
+  socialbeats-network:
+    driver: bridge

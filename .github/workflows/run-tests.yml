@@ -34,7 +34,7 @@ jobs:
           node-version: ${{ matrix.node-version }}
 
       - name: Create .env
-        run: cp .env.example .env
+        run: cp .env.development.example .env
 
       - name: Install dependencies
         run: npm ci
