@@ -576,4 +576,98 @@ export default function moderationReportRoutes(app) {
       }
     }
   );
+
+  /**
+   * @swagger
+   * /api/v1/moderationReports:
+   *   get:
+   *     tags:
+   *       - ModerationReports
+   *     summary: Get all moderation reports
+   *     description: >
+   *       Retrieves all moderation reports in the database, sorted by createdAt in descending order.
+   *       No pagination is applied.
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       200:
+   *         description: List of all moderation reports.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: array
+   *               items:
+   *                 $ref: '#/components/schemas/ModerationReport'
+   *             examples:
+   *               exampleList:
+   *                 summary: Example list of moderation reports
+   *                 value:
+   *                   - _id: "6946f225a458033638ada8ab"
+   *                     commentId: "6946f225a458033638ada8aa"
+   *                     ratingId: null
+   *                     playlistId: null
+   *                     userId: "6946f225a458033638ada800"
+   *                     authorId: "6946f225a458033638ada999"
+   *                     state: "Checking"
+   *                     createdAt: "2025-12-20T10:00:00.000Z"
+   *                     updatedAt: "2025-12-20T10:00:00.000Z"
+   *                   - _id: "6946f225a458033638ada8ae"
+   *                     commentId: null
+   *                     ratingId: "6946f225a458033638ada8ad"
+   *                     playlistId: null
+   *                     userId: "6946f225a458033638ada800"
+   *                     authorId: "6946f225a458033638ada998"
+   *                     state: "Checking"
+   *                     createdAt: "2025-12-20T09:30:00.000Z"
+   *                     updatedAt: "2025-12-20T09:30:00.000Z"
+   *       401:
+   *         description: Unauthorized. Token missing or invalid.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               additionalProperties: false
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Unauthorized access.
+   *       500:
+   *         description: Internal server error while fetching moderation reports.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               additionalProperties: false
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Internal server error while fetching moderation reports
+   */
+  app.get(`${baseAPIURL}/moderationReports`, async (req, res) => {
+    try {
+      const reports = await moderationReportService.getAllModerationReports();
+
+      return res.status(200).send(
+        reports.map((report) => ({
+          _id: report._id,
+          commentId: report.commentId ?? null,
+          ratingId: report.ratingId ?? null,
+          playlistId: report.playlistId ?? null,
+          userId: report.userId,
+          authorId: report.authorId,
+          state: report.state,
+          createdAt: report.createdAt,
+          updatedAt: report.updatedAt,
+        }))
+      );
+    } catch (err) {
+      logger.error(
+        `Internal server error while fetching moderation reports: ${err}`
+      );
+
+      return res.status(500).send({
+        message: 'Internal server error while fetching moderation reports',
+      });
+    }
+  });
 }
