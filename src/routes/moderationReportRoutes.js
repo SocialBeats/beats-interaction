@@ -348,4 +348,98 @@ export default function moderationReportRoutes(app) {
       }
     }
   );
+
+  /**
+   * @swagger
+   * /api/v1/moderationReports/{moderationReportId}:
+   *   get:
+   *     tags:
+   *       - ModerationReports
+   *     summary: Get a moderation report by id
+   *     description: >
+   *       Retrieves a moderation report by its id.
+   *       Authentication is required.
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: moderationReportId
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: ID of the moderation report.
+   *     responses:
+   *       200:
+   *         description: Moderation report found.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ModerationReport'
+   *       401:
+   *         description: Unauthorized.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Unauthorized access.
+   *       404:
+   *         description: Moderation report not found.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Moderation report not found.
+   *       500:
+   *         description: Internal server error.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Internal server error while fetching moderation report.
+   */
+  app.get(
+    `${baseAPIURL}/moderationReports/:moderationReportId`,
+    async (req, res) => {
+      try {
+        const { moderationReportId } = req.params;
+
+        const report = await moderationReportService.getModerationReportById({
+          moderationReportId,
+        });
+
+        return res.status(200).send({
+          _id: report._id,
+          commentId: report.commentId ?? null,
+          ratingId: report.ratingId ?? null,
+          playlistId: report.playlistId ?? null,
+          userId: report.userId,
+          authorId: report.authorId,
+          state: report.state,
+          createdAt: report.createdAt,
+          updatedAt: report.updatedAt,
+        });
+      } catch (err) {
+        if (err.status) {
+          return res.status(err.status).send({ message: err.message });
+        }
+
+        logger.error(
+          `Internal server error while fetching moderation report: ${err}`
+        );
+
+        return res.status(500).send({
+          message: 'Internal server error while fetching moderation report',
+        });
+      }
+    }
+  );
 }

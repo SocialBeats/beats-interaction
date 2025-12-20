@@ -123,6 +123,24 @@ class ModerationReportService {
       throw err;
     }
   }
+
+  async getModerationReportById({ moderationReportId }) {
+    try {
+      if (!mongoose.Types.ObjectId.isValid(moderationReportId)) {
+        throw { status: 404, message: 'Moderation report not found' };
+      }
+
+      const report = await ModerationReport.findById(moderationReportId);
+      if (!report) {
+        throw { status: 404, message: 'Moderation report not found' };
+      }
+
+      return report;
+    } catch (err) {
+      if (err.status) throw err;
+      throw err;
+    }
+  }
 }
 
 export default new ModerationReportService();
