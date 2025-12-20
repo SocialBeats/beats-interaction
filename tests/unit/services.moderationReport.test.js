@@ -500,3 +500,72 @@ describe('ModerationReportService.createPlaylistModerationReport', () => {
     ModerationReport.prototype.save = originalSave;
   });
 });
+
+describe('ModerationReportService.getModerationReportById', () => {
+  it('should return a moderation report by id', async () => {
+    const reporterId = new mongoose.Types.ObjectId();
+    const authorId = new mongoose.Types.ObjectId();
+
+    const comment = await Comment.create({
+      beatId: new mongoose.Types.ObjectId(),
+      authorId,
+      text: 'Reportable comment',
+    });
+
+    const report = await ModerationReport.create({
+      commentId: comment._id,
+      userId: reporterId,
+      authorId,
+      state: 'Checking',
+    });
+
+    const found = await moderationReportService.getModerationReportById({
+      moderationReportId: report._id.toString(),
+    });
+
+    expect(found).toBeDefined();
+    expect(found._id.toString()).toBe(report._id.toString());
+  });
+
+  it('should throw 404 if moderationReportId is not a valid ObjectId', async () => {
+    await expect(
+      moderationReportService.getModerationReportById({
+        moderationReportId: 'not-a-valid-id',
+      })
+    ).rejects.toMatchObject({
+      status: 404,
+      message: 'Moderation report not found',
+    });
+  });
+
+  it('should throw 404 if moderation report does not exist', async () => {
+    const fakeId = new mongoose.Types.ObjectId();
+
+    await expect(
+      moderationReportService.getModerationReportById({
+        moderationReportId: fakeId.toString(),
+      })
+    ).rejects.toMatchObject({
+      status: 404,
+      message: 'Moderation report not found',
+    });
+  });
+
+  it('should rethrow unexpected errors (e.g. DB error on findById)', async () => {
+    const originalFindById = ModerationReport.findById;
+
+    ModerationReport.findById = async () => {
+      throw new Error('Simulated DB error');
+    };
+
+    const someId = new mongoose.Types.ObjectId().toString();
+
+    await expect(
+      moderationReportService.getModerationReportById({
+        moderationReportId: someId,
+      })
+    ).rejects.toHaveProperty('message', 'Simulated DB error');
+
+    ModerationReport.findById = originalFindById;
+  });
+});

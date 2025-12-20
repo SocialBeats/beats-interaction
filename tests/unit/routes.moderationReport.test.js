@@ -314,3 +314,64 @@ describe('POST /api/v1/playlists/:playlistId/moderationReports', () => {
       .expect(401);
   });
 });
+
+describe('GET /api/v1/moderationReports/:moderationReportId', () => {
+  it('should return 200 and the moderation report', async () => {
+    const reporterId = new mongoose.Types.ObjectId();
+    const authorId = new mongoose.Types.ObjectId();
+
+    const comment = await Comment.create({
+      beatId: new mongoose.Types.ObjectId(),
+      authorId,
+      text: 'Reportable comment',
+    });
+
+    const report = await ModerationReport.create({
+      commentId: comment._id,
+      userId: reporterId,
+      authorId,
+      state: 'Checking',
+    });
+
+    const response = await withAuth(
+      api.get(`/api/v1/moderationReports/${report._id}`)
+    ).expect(200);
+
+    expect(response.body._id).toBe(report._id.toString());
+    expect(response.body.commentId).toBe(comment._id.toString());
+    expect(response.body.ratingId).toBeNull();
+    expect(response.body.playlistId).toBeNull();
+    expect(response.body.userId).toBe(reporterId.toString());
+    expect(response.body.authorId).toBe(authorId.toString());
+    expect(response.body.state).toBe('Checking');
+    expect(response.body).toHaveProperty('createdAt');
+    expect(response.body).toHaveProperty('updatedAt');
+  });
+
+  it('should return 404 if moderationReportId is not a valid ObjectId', async () => {
+    const response = await withAuth(
+      api.get('/api/v1/moderationReports/not-a-valid-id')
+    ).expect(404);
+
+    expect(response.body).toEqual({
+      message: 'Moderation report not found',
+    });
+  });
+
+  it('should return 404 if moderation report does not exist', async () => {
+    const fakeId = new mongoose.Types.ObjectId();
+
+    const response = await withAuth(
+      api.get(`/api/v1/moderationReports/${fakeId}`)
+    ).expect(404);
+
+    expect(response.body).toEqual({
+      message: 'Moderation report not found',
+    });
+  });
+
+  it('should return 401 if user is not authenticated', async () => {
+    const fakeId = new mongoose.Types.ObjectId();
+    await api.get(`/api/v1/moderationReports/${fakeId}`).expect(401);
+  });
+});
