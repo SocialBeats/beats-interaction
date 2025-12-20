@@ -1,3 +1,80 @@
+# Release v0.0.2
+
+## Features
+- feat: adapt auth middleware to use api-gateway custom headers
+- feat: add author attributte for update a rating by id and its validations
+- feat: add author attribute for get all ratings of a playlist and its validations
+- feat: add author attribute for get all ratings of a beat and its validations
+- feat: add author attribute for get my rating of a playlist
+- feat: add author attribute for get my rating of a beat
+- feat: add author attribute for get a rating by its id
+- feat: add author attribute for post a rating of a playlist
+- feat: add author attribute for post a rating of a beat
+- feat: add author attributte for update a comment by id and its validations
+- feat: add author attributte for get all comments of a playlist and its validations
+- feat: add author attributte for get all comments of a beat and its validations
+- feat: add author attributte for get a comment by its id
+- feat: add author attributte for post a comment of a playlist and its validations
+- feat: add author attributte for post a comment of a beat
+- feat: add the deletion of comments and ratings associated with a playlist
+- feat: add pagination to ratings list
+- feat: add extra validations thanks to materialized view
+- feat: add kafka connection to the API environment
+- feat: improve kafka management to include DLQ
+- feat: manage beat deletion using kafka
+- feat: remove playlists when user is deleted
+- feat: add basic Materialized view for Beats and Users
+
+## Tests
+- test: adapt integration.rating.test.js to work with _id instead of .id
+- test: add comment, rating and playlists integration tests
+- test: adapt routes tests to adapt to new middleware
+- test: prepare basic structure for integration tests
+- test: move routes tests to /unit
+- test: add tests for checking the deletion of comments and ratings associated with a playlist
+- test: add tests for pagination of ratings list
+- test: add unknown event case in kafka service tests
+- test: add tests to check correct kafka event management
+
+## Documentation
+- docs: add user attribute to rating schema
+- docs: fix documentation of get all ratings by playlist or beat
+- docs: add author attribute to comment schema
+
+## Fixes
+- fix: change response in ratings endpoints of id for _id
+- fix: change response of id for _id
+- fix: fix bug author attributte for post a comment of a beat
+- fix: fix author attributte for post a comment of a beat
+- fix: fix problem with .env.example in testing workflow
+- fix: add port configuration in OAS  server url
+- fix: ignore scripts to avoid linter workflow trying to execute tests without environment and database
+- fix: add permissions to linter workflow to enable commit and push
+
+## Continuous integration (CI)
+- ci: fix linter workflow to not try to commit when linter fails
+- ci: fix problem with linter workflow
+
+## Other changes
+- Merge pull request #19 from SocialBeats/develop
+- chore: remove useless comments
+- Merge pull request #18 from SocialBeats/integrations
+- Merge remote-tracking branch 'origin/develop' into integrations
+- Merge pull request #17 from SocialBeats/3-crud-rating
+- chore: rename integration tests setup file
+- Merge remote-tracking branch 'origin/develop' into integrations
+- Merge pull request #16 from SocialBeats/2-crud-comment
+- Merge pull request #15 from SocialBeats/integrations
+- Merge branch 'develop' into integrations
+- style: fix CHANGELOG.md lint
+- Merge pull request #14 from SocialBeats/3-crud-rating
+- chore: rename health routes test file
+- chore: remove duplicated index
+
+## Full commit history
+
+For full commit history, see [here](https://github.com/SocialBeats/beats-interaction/compare/v0.0.1...v0.0.2).
+
 # Release v0.0.1
 
 ## Features

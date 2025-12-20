@@ -116,7 +116,6 @@ describe('POST /api/v1/beats/:beatId/ratings (integration)', () => {
   it('should return 422 if the user has already rated this beat', async () => {
     const beatId = new mongoose.Types.ObjectId().toString();
 
-    // primer rating OK
     const firstResponse = await withAuth(
       api.post(`/api/v1/beats/${beatId}/ratings`)
     )
@@ -128,7 +127,6 @@ describe('POST /api/v1/beats/:beatId/ratings (integration)', () => {
 
     expect(firstResponse.body).toHaveProperty('_id');
 
-    // segundo rating sobre el mismo beat y mismo usuario → 422
     const secondResponse = await withAuth(
       api.post(`/api/v1/beats/${beatId}/ratings`)
     )
@@ -325,7 +323,6 @@ describe('POST /api/v1/playlists/:playlistId/ratings (integration)', () => {
       isPublic: true,
     });
 
-    // first rating OK
     const firstResponse = await withAuth(
       api.post(`/api/v1/playlists/${playlist._id}/ratings`)
     )
@@ -589,7 +586,6 @@ describe('GET /api/v1/beats/:beatId/ratings (integration)', () => {
     expect(response.body).toHaveProperty('average');
     expect(response.body.average).toBeCloseTo(4.5);
 
-    // paginación
     expect(response.body.page).toBe(1);
     expect(response.body.limit).toBe(20);
 
@@ -603,7 +599,6 @@ describe('GET /api/v1/beats/:beatId/ratings (integration)', () => {
     response.body.data.forEach((r) => {
       expect(r).toHaveProperty('userId');
       expect(r).toHaveProperty('score');
-      // comment opcional, solo comprobamos si coincide para user1
       if (r.userId === user1.toString()) {
         expect(r.comment).toBe('El bajo tapa la voz');
       }
@@ -694,7 +689,6 @@ describe('GET /api/v1/playlists/:playlistId/ratings (integration)', () => {
     expect(response.body).toHaveProperty('average');
     expect(response.body.average).toBeCloseTo(4.5);
 
-    // paginación
     expect(response.body.page).toBe(1);
     expect(response.body.limit).toBe(20);
 

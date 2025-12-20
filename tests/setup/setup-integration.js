@@ -1,4 +1,3 @@
-// tests/setup/setup-tests.js
 import { beforeAll, afterAll } from 'vitest';
 import { DockerComposeEnvironment, Wait } from 'testcontainers';
 import supertest from 'supertest';
