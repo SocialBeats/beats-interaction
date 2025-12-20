@@ -713,3 +713,88 @@ describe('ModerationReportService.getModerationReportsByUserId', () => {
     });
   });
 });
+
+describe('ModerationReportService.getAllModerationReports', () => {
+  it('should return all moderation reports (sorted desc by createdAt)', async () => {
+    await ModerationReport.deleteMany({});
+
+    const reportedUserA = new mongoose.Types.ObjectId();
+    const reportedUserB = new mongoose.Types.ObjectId();
+    const reporterA = new mongoose.Types.ObjectId();
+    const reporterB = new mongoose.Types.ObjectId();
+
+    const commentA = await Comment.create({
+      beatId: new mongoose.Types.ObjectId(),
+      authorId: reportedUserA,
+      text: 'Reported comment A',
+    });
+
+    const ratingB = await Rating.create({
+      beatId: new mongoose.Types.ObjectId(),
+      userId: reportedUserB,
+      score: 4,
+      comment: 'Reported rating B',
+    });
+
+    const playlistA = await Playlist.create({
+      name: 'Reported playlist A',
+      ownerId: reportedUserA,
+      description: 'desc',
+      isPublic: true,
+      items: [],
+    });
+
+    const first = await ModerationReport.create({
+      commentId: commentA._id,
+      userId: reporterA,
+      authorId: reportedUserA,
+      createdAt: new Date('2020-01-01'),
+      updatedAt: new Date('2020-01-01'),
+    });
+
+    const second = await ModerationReport.create({
+      ratingId: ratingB._id,
+      userId: reporterB,
+      authorId: reportedUserB,
+      createdAt: new Date('2021-01-01'),
+      updatedAt: new Date('2021-01-01'),
+    });
+
+    const third = await ModerationReport.create({
+      playlistId: playlistA._id,
+      userId: reporterA,
+      authorId: reportedUserA,
+      createdAt: new Date('2022-01-01'),
+      updatedAt: new Date('2022-01-01'),
+    });
+
+    const reports = await moderationReportService.getAllModerationReports();
+
+    expect(Array.isArray(reports)).toBe(true);
+    expect(reports.length).toBe(3);
+
+    expect(reports[0]._id.toString()).toBe(third._id.toString());
+    expect(reports[1]._id.toString()).toBe(second._id.toString());
+    expect(reports[2]._id.toString()).toBe(first._id.toString());
+  });
+
+  it('should return an empty array if there are no moderation reports', async () => {
+    await ModerationReport.deleteMany({});
+    const reports = await moderationReportService.getAllModerationReports();
+    expect(reports).toEqual([]);
+  });
+
+  it('should rethrow unexpected errors (e.g. DB error on find)', async () => {
+    const originalFind = ModerationReport.find;
+
+    ModerationReport.find = () => {
+      throw new Error('Simulated DB error');
+    };
+
+    await expect(
+      moderationReportService.getAllModerationReports()
+    ).rejects.toHaveProperty('message', 'Simulated DB error');
+
+    ModerationReport.find = originalFind;
+  });
+});

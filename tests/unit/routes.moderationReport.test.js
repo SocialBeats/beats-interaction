@@ -578,3 +578,84 @@ describe('GET /api/v1/moderationReports/users/:userId', () => {
       .expect(401);
   });
 });
+
+describe('GET /api/v1/moderationReports', () => {
+  it('should return 200 and list all moderation reports (sorted desc by createdAt)', async () => {
+    await ModerationReport.deleteMany({});
+
+    const reportedUserA = new mongoose.Types.ObjectId();
+    const reportedUserB = new mongoose.Types.ObjectId();
+    const reporterA = new mongoose.Types.ObjectId();
+    const reporterB = new mongoose.Types.ObjectId();
+
+    const commentA = await Comment.create({
+      beatId: new mongoose.Types.ObjectId(),
+      authorId: reportedUserA,
+      text: 'Reported comment A',
+    });
+
+    const ratingB = await Rating.create({
+      beatId: new mongoose.Types.ObjectId(),
+      userId: reportedUserB,
+      score: 4,
+      comment: 'Reported rating B',
+    });
+
+    const playlistA = await Playlist.create({
+      name: 'Reported playlist A',
+      ownerId: reportedUserA,
+      description: 'desc',
+      isPublic: true,
+      items: [],
+    });
+
+    const first = await ModerationReport.create({
+      commentId: commentA._id,
+      userId: reporterA,
+      authorId: reportedUserA,
+      createdAt: new Date('2020-01-01'),
+      updatedAt: new Date('2020-01-01'),
+    });
+
+    const second = await ModerationReport.create({
+      ratingId: ratingB._id,
+      userId: reporterB,
+      authorId: reportedUserB,
+      createdAt: new Date('2021-01-01'),
+      updatedAt: new Date('2021-01-01'),
+    });
+
+    const third = await ModerationReport.create({
+      playlistId: playlistA._id,
+      userId: reporterA,
+      authorId: reportedUserA,
+      createdAt: new Date('2022-01-01'),
+      updatedAt: new Date('2022-01-01'),
+    });
+
+    const response = await withAuth(
+      api.get('/api/v1/moderationReports')
+    ).expect(200);
+
+    expect(Array.isArray(response.body)).toBe(true);
+    expect(response.body.length).toBe(3);
+
+    expect(response.body[0]._id).toBe(third._id.toString());
+    expect(response.body[1]._id).toBe(second._id.toString());
+    expect(response.body[2]._id).toBe(first._id.toString());
+  });
+
+  it('should return 200 and an empty array if there are no moderation reports', async () => {
+    await ModerationReport.deleteMany({});
+
+    const response = await withAuth(
+      api.get('/api/v1/moderationReports')
+    ).expect(200);
+
+    expect(response.body).toEqual([]);
+  });
+
+  it('should return 401 if user is not authenticated', async () => {
+    await api.get('/api/v1/moderationReports').expect(401);
+  });
+});
