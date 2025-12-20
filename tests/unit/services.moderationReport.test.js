@@ -571,93 +571,145 @@ describe('ModerationReportService.getModerationReportById', () => {
 });
 
 describe('ModerationReportService.getModerationReportsByUser', () => {
-  it('should return only reports created by the given userId', async () => {
-    const userId = new mongoose.Types.ObjectId().toString();
-    const otherUserId = new mongoose.Types.ObjectId().toString();
+  it('should return only reports where the given userId is the reported user', async () => {
+    const reportedUserId = new mongoose.Types.ObjectId();
+    const otherUserId = new mongoose.Types.ObjectId();
+    const reporter = new mongoose.Types.ObjectId();
 
-    const commentAuthorId = new mongoose.Types.ObjectId();
-    const ratingAuthorId = new mongoose.Types.ObjectId();
-    const playlistOwnerId = new mongoose.Types.ObjectId();
-
-    const comment = await Comment.create({
+    const c1 = await Comment.create({
       beatId: new mongoose.Types.ObjectId(),
-      authorId: commentAuthorId,
-      text: 'Reportable comment',
+      authorId: reportedUserId,
+      text: 'A',
     });
 
-    const rating = await Rating.create({
+    const c2 = await Comment.create({
       beatId: new mongoose.Types.ObjectId(),
-      userId: ratingAuthorId,
-      score: 5,
-      comment: 'Reportable rating',
-    });
-
-    const playlist = await Playlist.create({
-      name: 'Public playlist',
-      ownerId: playlistOwnerId,
-      description: 'desc',
-      isPublic: true,
-      items: [],
+      authorId: reportedUserId,
+      text: 'B',
     });
 
     const r1 = await ModerationReport.create({
-      commentId: comment._id,
-      userId,
-      authorId: commentAuthorId,
+      commentId: c1._id,
+      userId: reporter,
+      authorId: c1.authorId,
+      state: 'Checking',
     });
 
     const r2 = await ModerationReport.create({
-      ratingId: rating._id,
-      userId,
-      authorId: ratingAuthorId,
+      commentId: c2._id,
+      userId: reporter,
+      authorId: c2.authorId,
+      state: 'Checking',
+    });
+
+    const c3 = await Comment.create({
+      beatId: new mongoose.Types.ObjectId(),
+      authorId: otherUserId,
+      text: 'C',
     });
 
     await ModerationReport.create({
-      playlistId: playlist._id,
-      userId: otherUserId,
-      authorId: playlistOwnerId,
+      commentId: c3._id,
+      userId: reporter,
+      authorId: c3.authorId,
+      state: 'Checking',
     });
 
     const reports = await moderationReportService.getModerationReportsByUser({
-      userId,
+      userId: reportedUserId.toString(),
     });
 
-    expect(Array.isArray(reports)).toBe(true);
     expect(reports.length).toBe(2);
 
     const ids = reports.map((x) => x._id.toString());
     expect(ids).toEqual(
       expect.arrayContaining([r1._id.toString(), r2._id.toString()])
     );
-
-    for (const rep of reports) {
-      expect(rep.userId.toString()).toBe(userId);
-    }
   });
 
-  it('should return an empty array if userId has no reports', async () => {
-    const userId = new mongoose.Types.ObjectId().toString();
+  it('should return an empty array if userId has no received reports', async () => {
+    const reportedUserId = new mongoose.Types.ObjectId();
 
     const reports = await moderationReportService.getModerationReportsByUser({
-      userId,
+      userId: reportedUserId.toString(),
     });
 
     expect(reports).toEqual([]);
   });
 
-  it('should rethrow unexpected errors (e.g. DB error on find)', async () => {
+  it('should rethrow unexpected errors', async () => {
     const originalFind = ModerationReport.find;
 
     ModerationReport.find = () => {
       throw new Error('Simulated DB error');
     };
 
-    const userId = new mongoose.Types.ObjectId().toString();
-
     await expect(
-      moderationReportService.getModerationReportsByUser({ userId })
+      moderationReportService.getModerationReportsByUser({
+        userId: new mongoose.Types.ObjectId().toString(),
+      })
     ).rejects.toHaveProperty('message', 'Simulated DB error');
 
     ModerationReport.find = originalFind;
+  });
+});
+
+describe('ModerationReportService.getModerationReportsByUserId', () => {
+  it('should return reports sorted desc by createdAt', async () => {
+    const reportedUserId = new mongoose.Types.ObjectId();
+    const reporter = new mongoose.Types.ObjectId();
+
+    const comment = await Comment.create({
+      beatId: new mongoose.Types.ObjectId(),
+      authorId: reportedUserId,
+      text: 'Reported',
+    });
+
+    const first = await ModerationReport.create({
+      commentId: comment._id,
+      userId: reporter,
+      authorId: comment.authorId,
+      createdAt: new Date('2020-01-01'),
+      updatedAt: new Date('2020-01-01'),
+      state: 'Checking',
+    });
+
+    const second = await ModerationReport.create({
+      commentId: comment._id,
+      userId: reporter,
+      authorId: comment.authorId,
+      createdAt: new Date('2021-01-01'),
+      updatedAt: new Date('2021-01-01'),
+      state: 'Checking',
+    });
+
+    const reports = await moderationReportService.getModerationReportsByUserId({
+      userId: reportedUserId.toString(),
+    });
+
+    expect(reports.length).toBe(2);
+    expect(reports[0]._id.toString()).toBe(second._id.toString());
+    expect(reports[1]._id.toString()).toBe(first._id.toString());
+  });
+
+  it('should return an empty array if user has no received reports', async () => {
+    const reportedUserId = new mongoose.Types.ObjectId();
+
+    const reports = await moderationReportService.getModerationReportsByUserId({
+      userId: reportedUserId.toString(),
+    });
+
+    expect(reports).toEqual([]);
+  });
+
+  it('should throw 404 if userId is not a valid ObjectId', async () => {
+    await expect(
+      moderationReportService.getModerationReportsByUserId({
+        userId: 'not-a-valid-id',
+      })
+    ).rejects.toMatchObject({
+      status: 404,
+      message: 'User not found',
+    });
   });
 });
