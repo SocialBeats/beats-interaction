@@ -1369,6 +1369,45 @@ paths:
                   message:
                     type: string
                     example: Internal server error while creating moderation report.
+  /api/v1/moderationReports/me:
+    get:
+      tags:
+        - ModerationReports
+      summary: Get all moderation reports created by the authenticated user
+      description: >
+        Retrieves all moderation reports created by the authenticated user. No
+        pagination is applied.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of moderation reports created by the user.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModerationReport'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Unauthorized access.
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error while fetching moderation reports.
   /api/v1/moderationReports/{moderationReportId}:
     get:
       tags:
@@ -1422,45 +1461,6 @@ paths:
                   message:
                     type: string
                     example: Internal server error while fetching moderation report.
-  /api/v1/moderationReports/me:
-    get:
-      tags:
-        - ModerationReports
-      summary: Get all moderation reports created by the authenticated user
-      description: >
-        Retrieves all moderation reports created by the authenticated user. No
-        pagination is applied.
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: List of moderation reports created by the user.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ModerationReport'
-        '401':
-          description: Unauthorized.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: Unauthorized access.
-        '500':
-          description: Internal server error.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: Internal server error while fetching moderation reports.
   /api/v1/playlists:
     post:
       tags:
