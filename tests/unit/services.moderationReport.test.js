@@ -569,3 +569,95 @@ describe('ModerationReportService.getModerationReportById', () => {
     ModerationReport.findById = originalFindById;
   });
 });
+
+describe('ModerationReportService.getModerationReportsByUser', () => {
+  it('should return only reports created by the given userId', async () => {
+    const userId = new mongoose.Types.ObjectId().toString();
+    const otherUserId = new mongoose.Types.ObjectId().toString();
+
+    const commentAuthorId = new mongoose.Types.ObjectId();
+    const ratingAuthorId = new mongoose.Types.ObjectId();
+    const playlistOwnerId = new mongoose.Types.ObjectId();
+
+    const comment = await Comment.create({
+      beatId: new mongoose.Types.ObjectId(),
+      authorId: commentAuthorId,
+      text: 'Reportable comment',
+    });
+
+    const rating = await Rating.create({
+      beatId: new mongoose.Types.ObjectId(),
+      userId: ratingAuthorId,
+      score: 5,
+      comment: 'Reportable rating',
+    });
+
+    const playlist = await Playlist.create({
+      name: 'Public playlist',
+      ownerId: playlistOwnerId,
+      description: 'desc',
+      isPublic: true,
+      items: [],
+    });
+
+    const r1 = await ModerationReport.create({
+      commentId: comment._id,
+      userId,
+      authorId: commentAuthorId,
+    });
+
+    const r2 = await ModerationReport.create({
+      ratingId: rating._id,
+      userId,
+      authorId: ratingAuthorId,
+    });
+
+    await ModerationReport.create({
+      playlistId: playlist._id,
+      userId: otherUserId,
+      authorId: playlistOwnerId,
+    });
+
+    const reports = await moderationReportService.getModerationReportsByUser({
+      userId,
+    });
+
+    expect(Array.isArray(reports)).toBe(true);
+    expect(reports.length).toBe(2);
+
+    const ids = reports.map((x) => x._id.toString());
+    expect(ids).toEqual(
+      expect.arrayContaining([r1._id.toString(), r2._id.toString()])
+    );
+
+    for (const rep of reports) {
+      expect(rep.userId.toString()).toBe(userId);
+    }
+  });
+
+  it('should return an empty array if userId has no reports', async () => {
+    const userId = new mongoose.Types.ObjectId().toString();
+
+    const reports = await moderationReportService.getModerationReportsByUser({
+      userId,
+    });
+
+    expect(reports).toEqual([]);
+  });
+
+  it('should rethrow unexpected errors (e.g. DB error on find)', async () => {
+    const originalFind = ModerationReport.find;
+
+    ModerationReport.find = () => {
+      throw new Error('Simulated DB error');
+    };
+
+    const userId = new mongoose.Types.ObjectId().toString();
+
+    await expect(
+      moderationReportService.getModerationReportsByUser({ userId })
+    ).rejects.toHaveProperty('message', 'Simulated DB error');
+
+    ModerationReport.find = originalFind;
+  });
+});

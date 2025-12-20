@@ -375,3 +375,93 @@ describe('GET /api/v1/moderationReports/:moderationReportId', () => {
     await api.get(`/api/v1/moderationReports/${fakeId}`).expect(401);
   });
 });
+
+describe('GET /api/v1/moderationReports/me', () => {
+  it('should return 200 and list only moderation reports created by the authenticated user', async () => {
+    const authorCommentId = new mongoose.Types.ObjectId();
+    const authorRatingId = new mongoose.Types.ObjectId();
+    const playlistOwnerId = new mongoose.Types.ObjectId();
+
+    const comment = await Comment.create({
+      beatId: new mongoose.Types.ObjectId(),
+      authorId: authorCommentId,
+      text: 'Reportable comment',
+    });
+
+    const rating = await Rating.create({
+      beatId: new mongoose.Types.ObjectId(),
+      userId: authorRatingId,
+      score: 4,
+      comment: 'Reportable rating',
+    });
+
+    const playlist = await Playlist.create({
+      name: 'Public playlist',
+      ownerId: playlistOwnerId,
+      description: 'desc',
+      isPublic: true,
+      items: [],
+    });
+
+    const myCommentReport = await ModerationReport.create({
+      commentId: comment._id,
+      userId: global.testUserId,
+      authorId: authorCommentId,
+    });
+
+    const myRatingReport = await ModerationReport.create({
+      ratingId: rating._id,
+      userId: global.testUserId,
+      authorId: authorRatingId,
+    });
+
+    const myPlaylistReport = await ModerationReport.create({
+      playlistId: playlist._id,
+      userId: global.testUserId,
+      authorId: playlistOwnerId,
+    });
+
+    await ModerationReport.create({
+      commentId: comment._id,
+      userId: new mongoose.Types.ObjectId(),
+      authorId: authorCommentId,
+    });
+
+    const response = await withAuth(
+      api.get('/api/v1/moderationReports/me')
+    ).expect(200);
+
+    expect(Array.isArray(response.body)).toBe(true);
+
+    for (const r of response.body) {
+      expect(r.userId).toBe(global.testUserId);
+      expect(r).toHaveProperty('_id');
+      expect(r).toHaveProperty('state');
+      expect(r).toHaveProperty('createdAt');
+      expect(r).toHaveProperty('updatedAt');
+    }
+
+    const returnedIds = response.body.map((r) => r._id);
+    expect(returnedIds).toEqual(
+      expect.arrayContaining([
+        myCommentReport._id.toString(),
+        myRatingReport._id.toString(),
+        myPlaylistReport._id.toString(),
+      ])
+    );
+  });
+
+  it('should return 200 and an empty array if user has no reports', async () => {
+    await ModerationReport.deleteMany({ userId: global.testUserId });
+
+    const response = await withAuth(
+      api.get('/api/v1/moderationReports/me')
+    ).expect(200);
+
+    expect(response.body).toEqual([]);
+  });
+
+  it('should return 401 if user is not authenticated', async () => {
+    await api.get('/api/v1/moderationReports/me').expect(401);
+  });
+});
