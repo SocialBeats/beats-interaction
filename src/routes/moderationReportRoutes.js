@@ -351,19 +351,26 @@ export default function moderationReportRoutes(app) {
 
   /**
    * @swagger
-   * /api/v1/moderationReports/me:
+   * /api/v1/moderationReports/users/{userId}:
    *   get:
    *     tags:
    *       - ModerationReports
-   *     summary: Get all moderation reports created by the authenticated user
+   *     summary: Get all moderation reports where the specified user is the reported user
    *     description: >
-   *       Retrieves all moderation reports created by the authenticated user.
+   *       Retrieves all moderation reports where the specified user is the reported user (authorId).
    *       No pagination is applied.
    *     security:
    *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: userId
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: ID of the reported user (authorId).
    *     responses:
    *       200:
-   *         description: List of moderation reports created by the user.
+   *         description: List of moderation reports where the user is the reported user (authorId).
    *         content:
    *           application/json:
    *             schema:
@@ -372,24 +379,73 @@ export default function moderationReportRoutes(app) {
    *                 $ref: '#/components/schemas/ModerationReport'
    *       401:
    *         description: Unauthorized.
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 message:
-   *                   type: string
-   *                   example: Unauthorized access.
+   *       404:
+   *         description: User not found (invalid userId).
    *       500:
    *         description: Internal server error.
+   */
+  app.get(`${baseAPIURL}/moderationReports/users/:userId`, async (req, res) => {
+    try {
+      const { userId } = req.params;
+
+      const reports =
+        await moderationReportService.getModerationReportsByUserId({
+          userId,
+        });
+
+      return res.status(200).send(
+        reports.map((report) => ({
+          _id: report._id,
+          commentId: report.commentId ?? null,
+          ratingId: report.ratingId ?? null,
+          playlistId: report.playlistId ?? null,
+          userId: report.userId,
+          authorId: report.authorId,
+          state: report.state,
+          createdAt: report.createdAt,
+          updatedAt: report.updatedAt,
+        }))
+      );
+    } catch (err) {
+      if (err.status) {
+        return res.status(err.status).send({ message: err.message });
+      }
+
+      logger.error(
+        `Internal server error while fetching moderation reports: ${err}`
+      );
+
+      return res.status(500).send({
+        message: 'Internal server error while fetching moderation reports',
+      });
+    }
+  });
+
+  /**
+   * @swagger
+   * /api/v1/moderationReports/me:
+   *   get:
+   *     tags:
+   *       - ModerationReports
+   *     summary: Get all moderation reports where the authenticated user is the reported user
+   *     description: >
+   *       Retrieves all moderation reports where the authenticated user is the reported user (authorId).
+   *       No pagination is applied.
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       200:
+   *         description: List of moderation reports where the user is the reported user (authorId).
    *         content:
    *           application/json:
    *             schema:
-   *               type: object
-   *               properties:
-   *                 message:
-   *                   type: string
-   *                   example: Internal server error while fetching moderation reports.
+   *               type: array
+   *               items:
+   *                 $ref: '#/components/schemas/ModerationReport'
+   *       401:
+   *         description: Unauthorized.
+   *       500:
+   *         description: Internal server error.
    */
   app.get(`${baseAPIURL}/moderationReports/me`, async (req, res) => {
     try {
@@ -413,6 +469,10 @@ export default function moderationReportRoutes(app) {
         }))
       );
     } catch (err) {
+      if (err.status) {
+        return res.status(err.status).send({ message: err.message });
+      }
+
       logger.error(
         `Internal server error while fetching moderation reports: ${err}`
       );

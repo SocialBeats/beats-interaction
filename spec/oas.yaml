@@ -1369,19 +1369,28 @@ paths:
                   message:
                     type: string
                     example: Internal server error while creating moderation report.
-  /api/v1/moderationReports/me:
+  /api/v1/moderationReports/users/{userId}:
     get:
       tags:
         - ModerationReports
-      summary: Get all moderation reports created by the authenticated user
+      summary: Get all moderation reports where the specified user is the reported user
       description: >
-        Retrieves all moderation reports created by the authenticated user. No
-        pagination is applied.
+        Retrieves all moderation reports where the specified user is the
+        reported user (authorId). No pagination is applied.
       security:
         - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+          description: ID of the reported user (authorId).
       responses:
         '200':
-          description: List of moderation reports created by the user.
+          description: >-
+            List of moderation reports where the user is the reported user
+            (authorId).
           content:
             application/json:
               schema:
@@ -1390,24 +1399,37 @@ paths:
                   $ref: '#/components/schemas/ModerationReport'
         '401':
           description: Unauthorized.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: Unauthorized access.
+        '404':
+          description: User not found (invalid userId).
         '500':
           description: Internal server error.
+  /api/v1/moderationReports/me:
+    get:
+      tags:
+        - ModerationReports
+      summary: >-
+        Get all moderation reports where the authenticated user is the reported
+        user
+      description: >
+        Retrieves all moderation reports where the authenticated user is the
+        reported user (authorId). No pagination is applied.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: >-
+            List of moderation reports where the user is the reported user
+            (authorId).
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: Internal server error while fetching moderation reports.
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModerationReport'
+        '401':
+          description: Unauthorized.
+        '500':
+          description: Internal server error.
   /api/v1/moderationReports/{moderationReportId}:
     get:
       tags:

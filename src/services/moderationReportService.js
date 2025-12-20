@@ -144,12 +144,28 @@ class ModerationReportService {
 
   async getModerationReportsByUser({ userId }) {
     try {
-      const reports = await ModerationReport.find({ userId }).sort({
+      const reports = await ModerationReport.find({ authorId: userId }).sort({
+        createdAt: -1,
+      });
+      return reports;
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  async getModerationReportsByUserId({ userId }) {
+    try {
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+        throw { status: 404, message: 'User not found' };
+      }
+
+      const reports = await ModerationReport.find({ authorId: userId }).sort({
         createdAt: -1,
       });
 
       return reports;
     } catch (err) {
+      if (err.status) throw err;
       throw err;
     }
   }
