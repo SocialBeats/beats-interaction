@@ -141,6 +141,18 @@ class ModerationReportService {
       throw err;
     }
   }
+
+  async getModerationReportsByUser({ userId }) {
+    try {
+      const reports = await ModerationReport.find({ userId }).sort({
+        createdAt: -1,
+      });
+
+      return reports;
+    } catch (err) {
+      throw err;
+    }
+  }
 }
 
 export default new ModerationReportService();
