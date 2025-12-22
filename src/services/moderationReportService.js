@@ -4,13 +4,27 @@ import {
   Comment,
   Rating,
   Playlist,
+  UserMaterialized,
 } from '../models/models.js';
+import { isKafkaEnabled } from './kafkaConsumer.js';
 
 class ModerationReportService {
   async createCommentModerationReport({ commentId, userId }) {
     try {
       if (!mongoose.Types.ObjectId.isValid(commentId)) {
         throw { status: 404, message: 'Comment not found' };
+      }
+
+      // check author existence only if kafka is enabled
+      let user = null;
+      if (isKafkaEnabled()) {
+        user = await UserMaterialized.findById(userId);
+        if (!user) {
+          throw {
+            status: 422,
+            message: 'userId must correspond to an existing user',
+          };
+        }
       }
 
       const comment = await Comment.findById(commentId).select('authorId');
@@ -52,6 +66,18 @@ class ModerationReportService {
         throw { status: 404, message: 'Rating not found' };
       }
 
+      // check author existence only if kafka is enabled
+      let user = null;
+      if (isKafkaEnabled()) {
+        user = await UserMaterialized.findById(userId);
+        if (!user) {
+          throw {
+            status: 422,
+            message: 'userId must correspond to an existing user',
+          };
+        }
+      }
+
       const rating = await Rating.findById(ratingId).select('userId');
       if (!rating) {
         throw { status: 404, message: 'Rating not found' };
@@ -89,6 +115,18 @@ class ModerationReportService {
     try {
       if (!mongoose.Types.ObjectId.isValid(playlistId)) {
         throw { status: 404, message: 'Playlist not found' };
+      }
+
+      // check author existence only if kafka is enabled
+      let user = null;
+      if (isKafkaEnabled()) {
+        user = await UserMaterialized.findById(userId);
+        if (!user) {
+          throw {
+            status: 422,
+            message: 'userId must correspond to an existing user',
+          };
+        }
       }
 
       const playlist = await Playlist.findById(playlistId).select('ownerId');
@@ -144,6 +182,18 @@ class ModerationReportService {
 
   async getModerationReportsByUser({ userId }) {
     try {
+      // check author existence only if kafka is enabled
+      let user = null;
+      if (isKafkaEnabled()) {
+        user = await UserMaterialized.findById(userId);
+        if (!user) {
+          throw {
+            status: 422,
+            message: 'userId must correspond to an existing user',
+          };
+        }
+      }
+
       const reports = await ModerationReport.find({ authorId: userId }).sort({
         createdAt: -1,
       });
@@ -157,6 +207,18 @@ class ModerationReportService {
     try {
       if (!mongoose.Types.ObjectId.isValid(userId)) {
         throw { status: 404, message: 'User not found' };
+      }
+
+      // check author existence only if kafka is enabled
+      let user = null;
+      if (isKafkaEnabled()) {
+        user = await UserMaterialized.findById(userId);
+        if (!user) {
+          throw {
+            status: 422,
+            message: 'userId must correspond to an existing user',
+          };
+        }
       }
 
       const reports = await ModerationReport.find({ authorId: userId }).sort({

@@ -13,9 +13,11 @@ export default function moderationReportRoutes(app) {
    *     summary: Create a moderation report for a comment
    *     description: >
    *       Creates a moderation report for the specified comment for the authenticated user.
+   *       The authenticated user becomes the reporter (`userId`).
    *       The report is created with state "Checking".
-   *       `authorId` is automatically derived from the comment's author.
+   *       The reported user (`authorId`) is automatically derived from the content owner.
    *       `commentId` must be a valid MongoDB ObjectId.
+   *       When Kafka is enabled, `userId` must correspond to an existing user in the materialized store.
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -46,6 +48,7 @@ export default function moderationReportRoutes(app) {
    *           application/json:
    *             schema:
    *               type: object
+   *               additionalProperties: false
    *               properties:
    *                 message:
    *                   type: string
@@ -56,26 +59,41 @@ export default function moderationReportRoutes(app) {
    *           application/json:
    *             schema:
    *               type: object
+   *               additionalProperties: false
    *               properties:
    *                 message:
    *                   type: string
    *                   example: Comment not found.
    *       422:
-   *         description: Validation error (e.g., reporting own content or schema rule violations).
+   *         description: Validation error.
    *         content:
    *           application/json:
    *             schema:
    *               type: object
+   *               additionalProperties: false
    *               properties:
    *                 message:
    *                   type: string
-   *                   example: A user cannot report their own content.
+   *             examples:
+   *               reportingOwnContent:
+   *                 summary: User tries to report their own content
+   *                 value:
+   *                   message: A user cannot report their own content.
+   *               userIdNotExistingKafkaEnabled:
+   *                 summary: Kafka enabled and userId does not exist in materialized users
+   *                 value:
+   *                   message: userId must correspond to an existing user
+   *               schemaValidation:
+   *                 summary: Schema validation error (example)
+   *                 value:
+   *                   message: userId is required
    *       500:
    *         description: Internal server error while creating moderation report.
    *         content:
    *           application/json:
    *             schema:
    *               type: object
+   *               additionalProperties: false
    *               properties:
    *                 message:
    *                   type: string
@@ -128,9 +146,11 @@ export default function moderationReportRoutes(app) {
    *     summary: Create a moderation report for a rating
    *     description: >
    *       Creates a moderation report for the specified rating for the authenticated user.
+   *       The authenticated user becomes the reporter (`userId`).
    *       The report is created with state "Checking".
-   *       `authorId` is automatically derived from the rating's userId.
+   *       The reported user (`authorId`) is automatically derived from the rating's owner (`rating.userId`).
    *       `ratingId` must be a valid MongoDB ObjectId.
+   *       When Kafka is enabled, `userId` must correspond to an existing user in the materialized store.
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -161,6 +181,7 @@ export default function moderationReportRoutes(app) {
    *           application/json:
    *             schema:
    *               type: object
+   *               additionalProperties: false
    *               properties:
    *                 message:
    *                   type: string
@@ -171,26 +192,41 @@ export default function moderationReportRoutes(app) {
    *           application/json:
    *             schema:
    *               type: object
+   *               additionalProperties: false
    *               properties:
    *                 message:
    *                   type: string
    *                   example: Rating not found.
    *       422:
-   *         description: Validation error (e.g., reporting own content or schema rule violations).
+   *         description: Validation error.
    *         content:
    *           application/json:
    *             schema:
    *               type: object
+   *               additionalProperties: false
    *               properties:
    *                 message:
    *                   type: string
-   *                   example: A user cannot report their own content.
+   *             examples:
+   *               reportingOwnContent:
+   *                 summary: User tries to report their own content
+   *                 value:
+   *                   message: A user cannot report their own content.
+   *               userIdNotExistingKafkaEnabled:
+   *                 summary: Kafka enabled and userId does not exist in materialized users
+   *                 value:
+   *                   message: userId must correspond to an existing user
+   *               schemaValidation:
+   *                 summary: Schema validation error (example)
+   *                 value:
+   *                   message: userId is required
    *       500:
    *         description: Internal server error while creating moderation report.
    *         content:
    *           application/json:
    *             schema:
    *               type: object
+   *               additionalProperties: false
    *               properties:
    *                 message:
    *                   type: string
@@ -243,9 +279,11 @@ export default function moderationReportRoutes(app) {
    *     summary: Create a moderation report for a playlist
    *     description: >
    *       Creates a moderation report for the specified playlist for the authenticated user.
+   *       The authenticated user becomes the reporter (`userId`).
    *       The report is created with state "Checking".
-   *       `authorId` is automatically derived from the playlist's ownerId.
+   *       The reported user (`authorId`) is automatically derived from the playlist's owner (`ownerId`).
    *       `playlistId` must be a valid MongoDB ObjectId.
+   *       When Kafka is enabled, `userId` must correspond to an existing user in the materialized store.
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -276,6 +314,7 @@ export default function moderationReportRoutes(app) {
    *           application/json:
    *             schema:
    *               type: object
+   *               additionalProperties: false
    *               properties:
    *                 message:
    *                   type: string
@@ -286,26 +325,41 @@ export default function moderationReportRoutes(app) {
    *           application/json:
    *             schema:
    *               type: object
+   *               additionalProperties: false
    *               properties:
    *                 message:
    *                   type: string
    *                   example: Playlist not found.
    *       422:
-   *         description: Validation error (e.g., reporting own content or schema rule violations).
+   *         description: Validation error.
    *         content:
    *           application/json:
    *             schema:
    *               type: object
+   *               additionalProperties: false
    *               properties:
    *                 message:
    *                   type: string
-   *                   example: A user cannot report their own content.
+   *             examples:
+   *               reportingOwnContent:
+   *                 summary: User tries to report their own content
+   *                 value:
+   *                   message: A user cannot report their own content.
+   *               userIdNotExistingKafkaEnabled:
+   *                 summary: Kafka enabled and userId does not exist in materialized users
+   *                 value:
+   *                   message: userId must correspond to an existing user
+   *               schemaValidation:
+   *                 summary: Schema validation error (example)
+   *                 value:
+   *                   message: userId is required
    *       500:
    *         description: Internal server error while creating moderation report.
    *         content:
    *           application/json:
    *             schema:
    *               type: object
+   *               additionalProperties: false
    *               properties:
    *                 message:
    *                   type: string
@@ -357,8 +411,10 @@ export default function moderationReportRoutes(app) {
    *       - ModerationReports
    *     summary: Get all moderation reports where the specified user is the reported user
    *     description: >
-   *       Retrieves all moderation reports where the specified user is the reported user (authorId).
+   *       Retrieves all moderation reports where the specified user is the reported user (`authorId`).
+   *       Results are sorted by `createdAt` in descending order.
    *       No pagination is applied.
+   *       When Kafka is enabled, `userId` must correspond to an existing user in the materialized store.
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -378,11 +434,35 @@ export default function moderationReportRoutes(app) {
    *               items:
    *                 $ref: '#/components/schemas/ModerationReport'
    *       401:
-   *         description: Unauthorized.
+   *         description: Unauthorized. Token missing or invalid.
    *       404:
    *         description: User not found (invalid userId).
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               additionalProperties: false
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: User not found
+   *       422:
+   *         description: Validation error when Kafka is enabled.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               additionalProperties: false
+   *               properties:
+   *                 message:
+   *                   type: string
+   *             examples:
+   *               userIdNotExistingKafkaEnabled:
+   *                 summary: Kafka enabled and userId does not exist in materialized users
+   *                 value:
+   *                   message: userId must correspond to an existing user
    *       500:
-   *         description: Internal server error.
+   *         description: Internal server error while fetching moderation reports.
    */
   app.get(`${baseAPIURL}/moderationReports/users/:userId`, async (req, res) => {
     try {
@@ -429,8 +509,10 @@ export default function moderationReportRoutes(app) {
    *       - ModerationReports
    *     summary: Get all moderation reports where the authenticated user is the reported user
    *     description: >
-   *       Retrieves all moderation reports where the authenticated user is the reported user (authorId).
+   *       Retrieves all moderation reports where the authenticated user is the reported user (`authorId`).
+   *       Results are sorted by `createdAt` in descending order.
    *       No pagination is applied.
+   *       When Kafka is enabled, the authenticated user must exist in the materialized users store.
    *     security:
    *       - bearerAuth: []
    *     responses:
@@ -443,9 +525,24 @@ export default function moderationReportRoutes(app) {
    *               items:
    *                 $ref: '#/components/schemas/ModerationReport'
    *       401:
-   *         description: Unauthorized.
+   *         description: Unauthorized. Token missing or invalid.
+   *       422:
+   *         description: Validation error when Kafka is enabled.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               additionalProperties: false
+   *               properties:
+   *                 message:
+   *                   type: string
+   *             examples:
+   *               userIdNotExistingKafkaEnabled:
+   *                 summary: Kafka enabled and authenticated user does not exist in materialized users
+   *                 value:
+   *                   message: userId must correspond to an existing user
    *       500:
-   *         description: Internal server error.
+   *         description: Internal server error while fetching moderation reports.
    */
   app.get(`${baseAPIURL}/moderationReports/me`, async (req, res) => {
     try {
@@ -493,6 +590,7 @@ export default function moderationReportRoutes(app) {
    *     description: >
    *       Retrieves a moderation report by its id.
    *       Authentication is required.
+   *       `moderationReportId` must be a valid MongoDB ObjectId.
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -510,31 +608,34 @@ export default function moderationReportRoutes(app) {
    *             schema:
    *               $ref: '#/components/schemas/ModerationReport'
    *       401:
-   *         description: Unauthorized.
+   *         description: Unauthorized. Token missing or invalid.
    *         content:
    *           application/json:
    *             schema:
    *               type: object
+   *               additionalProperties: false
    *               properties:
    *                 message:
    *                   type: string
    *                   example: Unauthorized access.
    *       404:
-   *         description: Moderation report not found.
+   *         description: Moderation report not found (invalid id or does not exist).
    *         content:
    *           application/json:
    *             schema:
    *               type: object
+   *               additionalProperties: false
    *               properties:
    *                 message:
    *                   type: string
-   *                   example: Moderation report not found.
+   *                   example: Moderation report not found
    *       500:
-   *         description: Internal server error.
+   *         description: Internal server error while fetching moderation report.
    *         content:
    *           application/json:
    *             schema:
    *               type: object
+   *               additionalProperties: false
    *               properties:
    *                 message:
    *                   type: string
@@ -585,7 +686,7 @@ export default function moderationReportRoutes(app) {
    *       - ModerationReports
    *     summary: Get all moderation reports
    *     description: >
-   *       Retrieves all moderation reports in the database, sorted by createdAt in descending order.
+   *       Retrieves all moderation reports in the database, sorted by `createdAt` in descending order.
    *       No pagination is applied.
    *     security:
    *       - bearerAuth: []
