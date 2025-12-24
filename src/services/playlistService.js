@@ -114,7 +114,7 @@ class PlaylistService {
 
         if (isKafkaEnabled()) {
           existingUsers = await UserMaterialized.find({
-            _id: { $in: data.collaborators },
+            userId: { $in: data.collaborators },
           }).select('_id');
 
           if (existingUsers.length !== data.collaborators.length) {
@@ -127,9 +127,9 @@ class PlaylistService {
       }
 
       if (isKafkaEnabled() && beatIds.length > 0) {
-        existingBeats = await Beat.find({ _id: { $in: beatIds } }).select(
-          '_id'
-        );
+        existingBeats = await BeatMaterialized.find({
+          beatId: { $in: beatIds },
+        }).select('_id');
         if (existingBeats.length !== beatIds.length) {
           throw {
             status: 422,
@@ -334,13 +334,15 @@ class PlaylistService {
       if (isKafkaEnabled()) {
         if (playlist.collaborators && playlist.collaborators.length > 0) {
           existingUsers = await UserMaterialized.find({
-            _id: { $in: playlist.collaborators },
+            userId: { $in: playlist.collaborators },
           }).lean();
         }
 
         const beatIds = (playlist.items || []).map((i) => String(i.beatId));
         if (beatIds.length > 0) {
-          existingBeats = await Beat.find({ _id: { $in: beatIds } }).lean();
+          existingBeats = await BeatMaterialized.find({
+            beatId: { $in: beatIds },
+          }).lean();
         }
       }
 
@@ -457,7 +459,7 @@ class PlaylistService {
 
         if (isKafkaEnabled() && data.collaborators.length > 0) {
           existingUsers = await UserMaterialized.find({
-            _id: { $in: data.collaborators },
+            userId: { $in: data.collaborators },
           }).lean();
 
           if (existingUsers.length !== data.collaborators.length) {
@@ -514,7 +516,9 @@ class PlaylistService {
         playlist.items = items;
 
         if (isKafkaEnabled() && beatIds.length > 0) {
-          existingBeats = await Beat.find({ _id: { $in: beatIds } }).lean();
+          existingBeats = await BeatMaterialized.find({
+            beatId: { $in: beatIds },
+          }).lean();
           if (existingBeats.length !== beatIds.length) {
             throw {
               status: 422,
@@ -673,13 +677,15 @@ class PlaylistService {
       if (isKafkaEnabled()) {
         if (playlist.collaborators && playlist.collaborators.length > 0) {
           collaboratorsData = await UserMaterialized.find({
-            _id: { $in: playlist.collaborators },
+            userId: { $in: playlist.collaborators },
           }).lean();
         }
 
         const beatIds = playlist.items.map((i) => String(i.beatId));
         if (beatIds.length > 0) {
-          beatsData = await Beat.find({ _id: { $in: beatIds } }).lean();
+          beatsData = await BeatMaterialized.find({
+            beatId: { $in: beatIds },
+          }).lean();
         }
       }
 
@@ -762,13 +768,15 @@ class PlaylistService {
       if (isKafkaEnabled()) {
         if (playlist.collaborators && playlist.collaborators.length > 0) {
           collaboratorsData = await UserMaterialized.find({
-            _id: { $in: playlist.collaborators },
+            userId: { $in: playlist.collaborators },
           }).lean();
         }
 
         const beatIds = playlist.items.map((i) => String(i.beatId));
         if (beatIds.length > 0) {
-          beatsData = await Beat.find({ _id: { $in: beatIds } }).lean();
+          beatsData = await BeatMaterialized.find({
+            beatId: { $in: beatIds },
+          }).lean();
         }
       }
 
