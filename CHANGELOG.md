@@ -1,17 +1,27 @@
 # Release v0.0.3
 
 ## Features
+
 No new features.
+
 ## Tests
+
 No test changes.
+
 ## Documentation
+
 No documentation changes.
+
 ## Fixes
+
 - fix: fix problem in mongo queries with userId and beatId
 
 ## Continuous integration (CI)
+
 No CI changes.
+
 ## Other changes
+
 - Merge pull request #20 from SocialBeats/develop
 - Merge branch 'develop' of https://github.com/SocialBeats/beats-interaction into develop
 - style: auto formatted by CI
