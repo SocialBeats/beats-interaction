@@ -19,7 +19,7 @@ class RatingService {
       // check user and beat existence only if kafka is enabled
       let user = null;
       if (isKafkaEnabled()) {
-        user = await UserMaterialized.findById(userId);
+        user = await UserMaterialized.findOne({ userId: userId });
         if (!user) {
           throw {
             status: 422,
@@ -27,7 +27,7 @@ class RatingService {
           };
         }
 
-        const beatExists = await BeatMaterialized.findById(beatId);
+        const beatExists = await BeatMaterialized.findOne({ beatId: beatId });
         if (!beatExists) {
           throw { status: 404, message: 'Beat not found' };
         }
@@ -89,7 +89,7 @@ class RatingService {
       // check user existence only if kafka is enabled
       let user = null;
       if (isKafkaEnabled()) {
-        user = await UserMaterialized.findById(userId);
+        user = await UserMaterialized.findOne({ userId: userId });
         if (!user) {
           throw {
             status: 422,
@@ -152,7 +152,7 @@ class RatingService {
 
       let user = null;
       if (isKafkaEnabled()) {
-        user = await UserMaterialized.findById(rating.userId);
+        user = await UserMaterialized.findOne({ userId: rating.userId });
         if (!user) {
           throw {
             status: 422,
@@ -183,7 +183,7 @@ class RatingService {
 
       // check beat existence only if kafka is enabled
       if (isKafkaEnabled()) {
-        const beatExists = await BeatMaterialized.findById(beatId);
+        const beatExists = await BeatMaterialized.findOne({ beatId: beatId });
         if (!beatExists) {
           throw { status: 404, message: 'Beat not found' };
         }
@@ -199,7 +199,7 @@ class RatingService {
 
       let user = null;
       if (isKafkaEnabled()) {
-        user = await UserMaterialized.findById(rating.userId);
+        user = await UserMaterialized.findOne({ userId: rating.userId });
         if (!user) {
           throw {
             status: 422,
@@ -238,7 +238,7 @@ class RatingService {
 
       let user = null;
       if (isKafkaEnabled()) {
-        user = await UserMaterialized.findById(rating.userId);
+        user = await UserMaterialized.findOne({ userId: rating.userId });
         if (!user) {
           throw {
             status: 422,
@@ -269,7 +269,7 @@ class RatingService {
 
       // check beat existence only if kafka is enabled
       if (isKafkaEnabled()) {
-        const beatExists = await BeatMaterialized.findById(beatId);
+        const beatExists = await BeatMaterialized.findOne({ beatId: beatId });
         if (!beatExists) {
           throw { status: 404, message: 'Beat not found' };
         }
@@ -493,7 +493,7 @@ class RatingService {
 
       let user = null;
       if (isKafkaEnabled()) {
-        user = await UserMaterialized.findById(rating.userId);
+        user = await UserMaterialized.findOne({ userId: rating.userId });
         if (!user) {
           throw {
             status: 422,

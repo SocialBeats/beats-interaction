@@ -1,6 +1,7 @@
 # Release v0.0.2
 
 ## Features
+
 - feat: adapt auth middleware to use api-gateway custom headers
 - feat: add author attributte for update a rating by id and its validations
 - feat: add author attribute for get all ratings of a playlist and its validations
@@ -26,7 +27,8 @@
 - feat: add basic Materialized view for Beats and Users
 
 ## Tests
-- test: adapt integration.rating.test.js to work with _id instead of .id
+
+- test: adapt integration.rating.test.js to work with \_id instead of .id
 - test: add comment, rating and playlists integration tests
 - test: adapt routes tests to adapt to new middleware
 - test: prepare basic structure for integration tests
@@ -37,25 +39,29 @@
 - test: add tests to check correct kafka event management
 
 ## Documentation
+
 - docs: add user attribute to rating schema
 - docs: fix documentation of get all ratings by playlist or beat
 - docs: add author attribute to comment schema
 
 ## Fixes
-- fix: change response in ratings endpoints of id for _id
-- fix: change response of id for _id
+
+- fix: change response in ratings endpoints of id for \_id
+- fix: change response of id for \_id
 - fix: fix bug author attributte for post a comment of a beat
 - fix: fix author attributte for post a comment of a beat
 - fix: fix problem with .env.example in testing workflow
-- fix: add port configuration in OAS  server url
+- fix: add port configuration in OAS server url
 - fix: ignore scripts to avoid linter workflow trying to execute tests without environment and database
 - fix: add permissions to linter workflow to enable commit and push
 
 ## Continuous integration (CI)
+
 - ci: fix linter workflow to not try to commit when linter fails
 - ci: fix problem with linter workflow
 
 ## Other changes
+
 - Merge pull request #19 from SocialBeats/develop
 - chore: remove useless comments
 - Merge pull request #18 from SocialBeats/integrations

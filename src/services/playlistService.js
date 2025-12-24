@@ -16,7 +16,7 @@ class PlaylistService {
       }
 
       if (isKafkaEnabled()) {
-        const UserExists = await UserMaterialized.findById(userId);
+        const UserExists = await UserMaterialized.findOne({ userId: userId });
         if (!UserExists) {
           throw { status: 422, message: 'ownerId must be an existing user' };
         }
@@ -172,7 +172,9 @@ class PlaylistService {
         };
       }
       if (isKafkaEnabled()) {
-        const targetUserExists = await UserMaterialized.findById(targetUserId);
+        const targetUserExists = await UserMaterialized.findOne({
+          userId: targetUserId,
+        });
         if (!targetUserExists) {
           throw {
             status: 422,
@@ -187,7 +189,9 @@ class PlaylistService {
         };
       }
       if (isKafkaEnabled()) {
-        const askerUserExists = await UserMaterialized.findById(askerUserId);
+        const askerUserExists = await UserMaterialized.findOne({
+          userId: askerUserId,
+        });
         if (!askerUserExists) {
           throw {
             status: 422,
@@ -238,7 +242,9 @@ class PlaylistService {
             throw { status: 422, message: 'Invalid ownerId format.' };
           }
           if (isKafkaEnabled()) {
-            const ownerExists = await UserMaterialized.findById(ownerIdStr);
+            const ownerExists = await UserMaterialized.findOne({
+              userId: ownerIdStr,
+            });
             if (!ownerExists) {
               throw {
                 status: 422,
@@ -286,8 +292,9 @@ class PlaylistService {
         throw { status: 422, message: 'requesterId is required.' };
       }
       if (isKafkaEnabled()) {
-        const requesterUserExists =
-          await UserMaterialized.findById(requesterId);
+        const requesterUserExists = await UserMaterialized.findOne({
+          userId: requesterId,
+        });
         if (!requesterUserExists) {
           throw {
             status: 422,
@@ -361,7 +368,7 @@ class PlaylistService {
       }
 
       if (isKafkaEnabled()) {
-        const UserExists = await UserMaterialized.findById(userId);
+        const UserExists = await UserMaterialized.findOne({ userId: userId });
         if (!UserExists) {
           throw {
             status: 422,
@@ -549,7 +556,7 @@ class PlaylistService {
       }
 
       if (isKafkaEnabled()) {
-        const UserExists = await UserMaterialized.findById(userId);
+        const UserExists = await UserMaterialized.findOne({ userId: userId });
         if (!UserExists) {
           throw {
             status: 422,
@@ -601,7 +608,7 @@ class PlaylistService {
       }
 
       if (isKafkaEnabled()) {
-        const UserExists = await UserMaterialized.findById(userId);
+        const UserExists = await UserMaterialized.findOne({ userId: userId });
         if (!UserExists) {
           throw {
             status: 422,
@@ -609,7 +616,7 @@ class PlaylistService {
           };
         }
 
-        const beatExists = await BeatMaterialized.findById(beatId);
+        const beatExists = await BeatMaterialized.findOne({ beatId: beatId });
         if (!beatExists) {
           throw { status: 404, message: 'Beat not found' };
         }
@@ -704,7 +711,7 @@ class PlaylistService {
       if (!userId) throw { status: 422, message: 'userId is required.' };
 
       if (isKafkaEnabled()) {
-        const UserExists = await UserMaterialized.findById(userId);
+        const UserExists = await UserMaterialized.findOne({ userId: userId });
         if (!UserExists) {
           throw {
             status: 422,
