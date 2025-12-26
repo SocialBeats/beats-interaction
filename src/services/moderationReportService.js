@@ -18,7 +18,7 @@ class ModerationReportService {
       // check author existence only if kafka is enabled
       let user = null;
       if (isKafkaEnabled()) {
-        user = await UserMaterialized.findById(userId);
+        user = await UserMaterialized.findOne({ userId: userId });
         if (!user) {
           throw {
             status: 422,
@@ -69,7 +69,7 @@ class ModerationReportService {
       // check author existence only if kafka is enabled
       let user = null;
       if (isKafkaEnabled()) {
-        user = await UserMaterialized.findById(userId);
+        user = await UserMaterialized.findOne({ userId: userId });
         if (!user) {
           throw {
             status: 422,
@@ -120,7 +120,7 @@ class ModerationReportService {
       // check author existence only if kafka is enabled
       let user = null;
       if (isKafkaEnabled()) {
-        user = await UserMaterialized.findById(userId);
+        user = await UserMaterialized.findOne({ userId: userId });
         if (!user) {
           throw {
             status: 422,
@@ -185,7 +185,7 @@ class ModerationReportService {
       // check author existence only if kafka is enabled
       let user = null;
       if (isKafkaEnabled()) {
-        user = await UserMaterialized.findById(userId);
+        user = await UserMaterialized.findOne({ userId: userId });
         if (!user) {
           throw {
             status: 422,
@@ -212,7 +212,7 @@ class ModerationReportService {
       // check author existence only if kafka is enabled
       let user = null;
       if (isKafkaEnabled()) {
-        user = await UserMaterialized.findById(userId);
+        user = await UserMaterialized.findOne({ userId: userId });
         if (!user) {
           throw {
             status: 422,
