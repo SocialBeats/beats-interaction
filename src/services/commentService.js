@@ -19,7 +19,7 @@ class CommentService {
       // check author and beat existence only if kafka is enabled
       let author = null;
       if (isKafkaEnabled()) {
-        author = await UserMaterialized.findById(authorId);
+        author = await UserMaterialized.findOne({ userId: authorId });
         if (!author) {
           throw {
             status: 422,
@@ -27,7 +27,7 @@ class CommentService {
           };
         }
 
-        const beatExists = await BeatMaterialized.findById(beatId);
+        const beatExists = await BeatMaterialized.findOne({ beatId: beatId });
         if (!beatExists) {
           throw { status: 404, message: 'Beat not found' };
         }
@@ -73,7 +73,7 @@ class CommentService {
       // check author existence only if kafka is enabled
       let author = null;
       if (isKafkaEnabled()) {
-        author = await UserMaterialized.findById(authorId);
+        author = await UserMaterialized.findOne({ userId: authorId });
         if (!author) {
           throw {
             status: 422,
@@ -136,7 +136,7 @@ class CommentService {
 
       let author = null;
       if (isKafkaEnabled()) {
-        author = await UserMaterialized.findById(comment.authorId);
+        author = await UserMaterialized.findOne({ userId: comment.authorId });
         if (!author) {
           throw {
             status: 422,
@@ -167,7 +167,7 @@ class CommentService {
 
       // check beat existence only if kafka is enabled
       if (isKafkaEnabled()) {
-        const beatExists = await BeatMaterialized.findById(beatId);
+        const beatExists = await BeatMaterialized.findOne({ beatId: beatId });
         if (!beatExists) {
           throw { status: 404, message: 'Beat not found' };
         }
@@ -368,7 +368,7 @@ class CommentService {
 
       let author = null;
       if (isKafkaEnabled()) {
-        author = await UserMaterialized.findById(comment.authorId);
+        author = await UserMaterialized.findOne({ userId: comment.authorId });
         if (!author) {
           throw {
             status: 422,
