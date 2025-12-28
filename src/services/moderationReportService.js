@@ -1,3 +1,4 @@
+// src\services\moderationReportService.js
 import mongoose from 'mongoose';
 import {
   ModerationReport,
@@ -7,6 +8,8 @@ import {
   UserMaterialized,
 } from '../models/models.js';
 import { isKafkaEnabled } from './kafkaConsumer.js';
+import { processModeration } from '../utils/moderationWorker.js';
+import { isRedisEnabled } from '../cache.js';
 
 class ModerationReportService {
   async createCommentModerationReport({ commentId, userId }) {
@@ -15,10 +18,9 @@ class ModerationReportService {
         throw { status: 404, message: 'Comment not found' };
       }
 
-      // check author existence only if kafka is enabled
       let user = null;
       if (isKafkaEnabled()) {
-        user = await UserMaterialized.findOne({ userId: userId });
+        user = await UserMaterialized.findById(userId);
         if (!user) {
           throw {
             status: 422,
@@ -41,7 +43,9 @@ class ModerationReportService {
 
       await report.validate();
       await report.save();
-
+      if (isRedisEnabled()) {
+        setImmediate(() => processModeration(report._id));
+      }
       return report;
     } catch (err) {
       if (err.name === 'ValidationError') {
@@ -69,7 +73,7 @@ class ModerationReportService {
       // check author existence only if kafka is enabled
       let user = null;
       if (isKafkaEnabled()) {
-        user = await UserMaterialized.findOne({ userId: userId });
+        user = await UserMaterialized.findById(userId);
         if (!user) {
           throw {
             status: 422,
@@ -92,7 +96,9 @@ class ModerationReportService {
 
       await report.validate();
       await report.save();
-
+      if (isRedisEnabled()) {
+        setImmediate(() => processModeration(report._id));
+      }
       return report;
     } catch (err) {
       if (err.name === 'ValidationError') {
@@ -120,7 +126,7 @@ class ModerationReportService {
       // check author existence only if kafka is enabled
       let user = null;
       if (isKafkaEnabled()) {
-        user = await UserMaterialized.findOne({ userId: userId });
+        user = await UserMaterialized.findById(userId);
         if (!user) {
           throw {
             status: 422,
@@ -143,7 +149,9 @@ class ModerationReportService {
 
       await report.validate();
       await report.save();
-
+      if (isRedisEnabled()) {
+        setImmediate(() => processModeration(report._id));
+      }
       return report;
     } catch (err) {
       if (err.name === 'ValidationError') {
@@ -185,7 +193,7 @@ class ModerationReportService {
       // check author existence only if kafka is enabled
       let user = null;
       if (isKafkaEnabled()) {
-        user = await UserMaterialized.findOne({ userId: userId });
+        user = await UserMaterialized.findById(userId);
         if (!user) {
           throw {
             status: 422,
@@ -212,7 +220,7 @@ class ModerationReportService {
       // check author existence only if kafka is enabled
       let user = null;
       if (isKafkaEnabled()) {
-        user = await UserMaterialized.findOne({ userId: userId });
+        user = await UserMaterialized.findById(userId);
         if (!user) {
           throw {
             status: 422,

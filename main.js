@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import logger from './logger.js';
 import { connectDB, disconnectDB } from './src/db.js';
+import { connectRedis, disconnectRedis } from './src/cache.js';
 import {
   startKafkaConsumer,
   consumer,
@@ -49,7 +50,11 @@ let server;
 
 if (process.env.NODE_ENV !== 'test') {
   await connectDB();
-
+  if (process.env.ENABLE_REDIS.toLocaleLowerCase() === 'true') {
+    await connectRedis();
+  } else {
+    logger.warn('Redis is not enabled');
+  }
   if (process.env.ENABLE_KAFKA.toLocaleLowerCase() === 'true') {
     logger.warn('Kafka is enabled, trying to connect');
     await startKafkaConsumer();
@@ -86,6 +91,7 @@ async function gracefulShutdown(signal) {
         'Since now new connections are not allowed. Waiting for current operations to finish...'
       );
       try {
+        await disconnectRedis();
         await disconnectDB();
         logger.info('MongoDB disconnected');
       } catch (err) {
