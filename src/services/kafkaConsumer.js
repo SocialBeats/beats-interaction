@@ -26,16 +26,23 @@ async function processEvent(event) {
       await BeatMaterialized.create({
         beatId: data._id,
         title: data.title,
-        artist: data.artist,
+        artist: data.createdBy?.username || 'Unknown Artist',
         genre: data.genre,
-        bpm: data.bpm,
-        key: data.key,
-        duration: data.duration,
-        tags: data.tags,
-        audioUrl: data.audio?.url,
-        isFree: data.pricing?.isFree,
-        price: data.pricing?.price,
-        plays: data.stats?.plays,
+        tags: data.tags || [],
+        description: data.description,
+        audio: {
+          url: data.audio?.url,
+          s3Key: data.audio?.s3Key,
+        },
+        plays: data.stats?.plays || 0,
+        downloads: data.stats?.downloads || 0,
+        isPublic: data.isPublic ?? true,
+        isDownloadable: data.isDownloadable ?? false,
+        createdBy: {
+          userId: data.createdBy?.userId,
+          username: data.createdBy?.username,
+          roles: data.createdBy?.roles || [],
+        },
         updatedAt: new Date(),
       });
       logger.verbose(`New Beat ${data._id} added in Materialized View`);
@@ -46,16 +53,23 @@ async function processEvent(event) {
         { beatId: data._id },
         {
           title: data.title,
-          artist: data.artist,
+          artist: data.createdBy?.username || 'Unknown Artist',
           genre: data.genre,
-          bpm: data.bpm,
-          key: data.key,
-          duration: data.duration,
-          tags: data.tags,
-          audioUrl: data.audio?.url,
-          isFree: data.pricing?.isFree,
-          price: data.pricing?.price,
-          plays: data.stats?.plays,
+          tags: data.tags || [],
+          description: data.description,
+          audio: {
+            url: data.audio?.url,
+            s3Key: data.audio?.s3Key,
+          },
+          plays: data.stats?.plays || 0,
+          downloads: data.stats?.downloads || 0,
+          isPublic: data.isPublic ?? true,
+          isDownloadable: data.isDownloadable ?? false,
+          createdBy: {
+            userId: data.createdBy?.userId,
+            username: data.createdBy?.username,
+            roles: data.createdBy?.roles || [],
+          },
           updatedAt: new Date(),
         },
         { upsert: true, new: true }
@@ -77,6 +91,23 @@ async function processEvent(event) {
       );
       logger.verbose(`Beat ${beatId} removed from all playlists`);
       break;
+
+    case 'BEAT_PLAYS_INCREMENTED':
+      await BeatMaterialized.findOneAndUpdate(
+        { beatId: data._id },
+        { plays: data.stats?.plays, updatedAt: new Date() }
+      );
+      logger.verbose(`Beat ${data._id} plays updated in Materialized View`);
+      break;
+
+    case 'BEAT_DOWNLOADS_INCREMENTED':
+      await BeatMaterialized.findOneAndUpdate(
+        { beatId: data._id },
+        { downloads: data.stats?.downloads, updatedAt: new Date() }
+      );
+      logger.verbose(`Beat ${data._id} downloads updated in Materialized View`);
+      break;
+
     case 'USER_CREATED':
       await UserMaterialized.create({
         userId: data._id,
@@ -120,7 +151,7 @@ async function processEvent(event) {
       logger.verbose(`All ratings by user ${userId} deleted`);
       await UserMaterialized.findOneAndDelete({ userId });
       logger.verbose(`User ${userId} deleted from Materialized View`);
-      await BeatMaterialized.deleteMany({ artist: data.username });
+      await BeatMaterialized.deleteMany({ 'createdBy.userId': userId });
       logger.verbose(
         `All beats from user ${userId} deleted from Materialized View`
       );

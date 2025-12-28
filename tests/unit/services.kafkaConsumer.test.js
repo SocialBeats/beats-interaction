@@ -41,7 +41,6 @@ describe('Kafka Materialized Events Test', async () => {
 
     expect(beat).not.toBeNull();
     expect(beat.title).toBe('Drill Bogotá');
-    expect(beat.isFree).toBe(true);
   });
 
   it('BEAT_UPDATED ➝ should modify existing data', async () => {
@@ -55,7 +54,6 @@ describe('Kafka Materialized Events Test', async () => {
     const beat = await BeatMaterialized.findOne({ beatId: 'update1' });
 
     expect(beat.title).toBe('New Name');
-    expect(beat.bpm).toBe(150);
   });
 
   it('BEAT_DELETED ➝ should remove beat + ratings + comments + remove from playlists', async () => {
