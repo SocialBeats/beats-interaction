@@ -1,17 +1,27 @@
 # Release v0.0.4
 
 ## Features
+
 No new features.
+
 ## Tests
+
 No test changes.
+
 ## Documentation
+
 No documentation changes.
+
 ## Fixes
+
 - fix: fix problem searching collaborators in playlistService if kafka is enabled
 
 ## Continuous integration (CI)
+
 No CI changes.
+
 ## Other changes
+
 - style: auto formatted by CI
 - Merge pull request #21 from SocialBeats/develop
 
