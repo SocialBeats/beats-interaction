@@ -202,15 +202,6 @@ components:
         genre:
           type: string
           example: Hip-hop
-        bpm:
-          type: number
-          example: 94
-        key:
-          type: string
-          example: Cm
-        duration:
-          type: number
-          example: 180
         tags:
           type: array
           items:
@@ -219,18 +210,45 @@ components:
             - chill
             - lofi
             - smooth
-        audioUrl:
+        description:
           type: string
-          example: https://cdn.mysite.com/beat.mp3
-        isFree:
-          type: boolean
-          example: true
-        price:
-          type: number
-          example: 14.99
+          example: A smooth beat for late nights
+        audio:
+          type: object
+          properties:
+            url:
+              type: string
+              example: https://cdn.mysite.com/beat.mp3
+            s3Key:
+              type: string
+              example: users/123/beat.mp3
         plays:
           type: number
           example: 15430
+        downloads:
+          type: number
+          example: 320
+        isPublic:
+          type: boolean
+          example: true
+        isDownloadable:
+          type: boolean
+          example: false
+        createdBy:
+          type: object
+          properties:
+            userId:
+              type: string
+              example: 123456abcdef
+            username:
+              type: string
+              example: beatMaster99
+            roles:
+              type: array
+              items:
+                type: string
+              example:
+                - user
         updatedAt:
           type: string
           format: date-time
@@ -238,7 +256,6 @@ components:
       required:
         - beatId
         - title
-        - artist
         - genre
         - updatedAt
       description: Materialized view of beats used for efficient querying and filtering.

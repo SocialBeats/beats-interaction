@@ -6,21 +6,28 @@ const BeatMaterializedSchema = new mongoose.Schema(
     title: { type: String, index: true },
     artist: { type: String, index: true },
     genre: { type: String, index: true },
-    bpm: Number,
-    key: String,
-    duration: Number,
     tags: { type: [String], index: true },
-    audioUrl: String,
-    isFree: Boolean,
-    price: Number,
-    plays: { type: Number, index: -1 },
+    description: String,
+    audio: {
+      url: String,
+      s3Key: String,
+    },
+    plays: { type: Number, default: 0, index: -1 },
+    downloads: { type: Number, default: 0 },
+    isPublic: { type: Boolean, default: true },
+    isDownloadable: { type: Boolean, default: false },
+    createdBy: {
+      userId: String,
+      username: String,
+      roles: [String],
+    },
     updatedAt: { type: Date, default: Date.now, index: true },
   },
   { collection: 'beats_view' }
 );
 
-BeatMaterializedSchema.index({ genre: 1, bpm: 1 });
-BeatMaterializedSchema.index({ isFree: 1, price: 1 });
+BeatMaterializedSchema.index({ genre: 1 });
+BeatMaterializedSchema.index({ 'createdBy.userId': 1 });
 
 const BeatMaterialized = mongoose.model(
   'BeatMaterialized',
