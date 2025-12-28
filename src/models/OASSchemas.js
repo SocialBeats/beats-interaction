@@ -162,25 +162,38 @@ export const BeatMaterializedSchema = {
     title: { type: 'string', example: 'Midnight Drive' },
     artist: { type: 'string', example: 'John Beatmaker' },
     genre: { type: 'string', example: 'Hip-hop' },
-    bpm: { type: 'number', example: 94 },
-    key: { type: 'string', example: 'Cm' },
-    duration: { type: 'number', example: 180 },
     tags: {
       type: 'array',
       items: { type: 'string' },
       example: ['chill', 'lofi', 'smooth'],
     },
-    audioUrl: { type: 'string', example: 'https://cdn.mysite.com/beat.mp3' },
-    isFree: { type: 'boolean', example: true },
-    price: { type: 'number', example: 14.99 },
+    description: { type: 'string', example: 'A smooth beat for late nights' },
+    audio: {
+      type: 'object',
+      properties: {
+        url: { type: 'string', example: 'https://cdn.mysite.com/beat.mp3' },
+        s3Key: { type: 'string', example: 'users/123/beat.mp3' },
+      },
+    },
     plays: { type: 'number', example: 15430 },
+    downloads: { type: 'number', example: 320 },
+    isPublic: { type: 'boolean', example: true },
+    isDownloadable: { type: 'boolean', example: false },
+    createdBy: {
+      type: 'object',
+      properties: {
+        userId: { type: 'string', example: '123456abcdef' },
+        username: { type: 'string', example: 'beatMaster99' },
+        roles: { type: 'array', items: { type: 'string' }, example: ['user'] },
+      },
+    },
     updatedAt: {
       type: 'string',
       format: 'date-time',
       example: '2025-11-23T11:00:00.000Z',
     },
   },
-  required: ['beatId', 'title', 'artist', 'genre', 'updatedAt'],
+  required: ['beatId', 'title', 'genre', 'updatedAt'],
   description:
     'Materialized view of beats used for efficient querying and filtering.',
 };
