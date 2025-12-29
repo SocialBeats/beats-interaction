@@ -1,4 +1,3 @@
-// src/cache.js
 import Redis from 'ioredis';
 import logger from '../logger.js';
 

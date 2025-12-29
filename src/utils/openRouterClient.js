@@ -1,4 +1,3 @@
-// src/utils/openRouterClient.js
 import axios from 'axios';
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';

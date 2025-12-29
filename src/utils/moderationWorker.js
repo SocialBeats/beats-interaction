@@ -1,4 +1,3 @@
-// src/utils/moderationWorker.js
 import { moderateText } from './moderationEngine.js';
 import {
   Rating,
