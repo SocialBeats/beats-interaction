@@ -15,17 +15,21 @@ export async function processModeration(reportId) {
 
   if (report.commentId) {
     target = await Comment.findById(report.commentId);
-    content = target?.content;
+    content = 'Contenido del comentario: ' + target?.text;
   }
 
   if (report.ratingId) {
     target = await Rating.findById(report.ratingId);
-    content = target?.review;
+    content = 'Contenido de la puntuación: ' + target?.comment;
   }
 
   if (report.playlistId) {
     target = await Playlist.findById(report.playlistId);
-    content = target?.description;
+    content =
+      'Contenido de la playlist: Título: ' +
+      target?.name +
+      ', Descripción: ' +
+      target?.description;
   }
 
   if (!content || !target) {
