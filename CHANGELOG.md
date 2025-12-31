@@ -1,3 +1,87 @@
+# Release v0.0.5
+
+## Features
+No new features.
+## Tests
+No test changes.
+## Documentation
+No documentation changes.
+## Fixes
+- fix: fix problem with beats materialized view
+
+## Continuous integration (CI)
+No CI changes.
+## Other changes
+- style: auto formatted by CI
+- Merge pull request #22 from SocialBeats/develop
+
+## Full commit history
+
+For full commit history, see [here](https://github.com/SocialBeats/beats-interaction/compare/v0.0.4...v0.0.5).
+
+# Release v0.0.4
+
+## Features
+
+No new features.
+
+## Tests
+
+No test changes.
+
+## Documentation
+
+No documentation changes.
+
+## Fixes
+
+- fix: fix problem searching collaborators in playlistService if kafka is enabled
+
+## Continuous integration (CI)
+
+No CI changes.
+
+## Other changes
+
+- style: auto formatted by CI
+- Merge pull request #21 from SocialBeats/develop
+
+## Full commit history
+
+For full commit history, see [here](https://github.com/SocialBeats/beats-interaction/compare/v0.0.3...v0.0.4).
+
+# Release v0.0.3
+
+## Features
+
+No new features.
+
+## Tests
+
+No test changes.
+
+## Documentation
+
+No documentation changes.
+
+## Fixes
+
+- fix: fix problem in mongo queries with userId and beatId
+
+## Continuous integration (CI)
+
+No CI changes.
+
+## Other changes
+
+- Merge pull request #20 from SocialBeats/develop
+- Merge branch 'develop' of https://github.com/SocialBeats/beats-interaction into develop
+- style: auto formatted by CI
+
+## Full commit history
+
+For full commit history, see [here](https://github.com/SocialBeats/beats-interaction/compare/v0.0.2...v0.0.3).
+
 # Release v0.0.2
 
 ## Features
