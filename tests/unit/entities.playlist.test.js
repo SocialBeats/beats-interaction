@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { Playlist } from '../../src/models/models';
 
 describe('Playlist model validations', () => {

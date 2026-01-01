@@ -5,11 +5,17 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import logger from './logger.js';
 import { connectDB, disconnectDB } from './src/db.js';
+import { connectRedis, disconnectRedis } from './src/cache.js';
 import {
   startKafkaConsumer,
   consumer,
   producer,
 } from './src/services/kafkaConsumer.js';
+import {
+  startModerationCron,
+  stopModerationCron,
+} from './src/utils/moderationCron.js';
+
 // import your middlewares here
 import verifyToken from './src/middlewares/authMiddlewares.js';
 // import your routes here
@@ -18,6 +24,7 @@ import healthRoutes from './src/routes/healthRoutes.js';
 import commentRoutes from './src/routes/commentRoutes.js';
 import ratingRoutes from './src/routes/ratingRoutes.js';
 import playlistRoutes from './src/routes/playlistRoutes.js';
+import moderationReportRoutes from './src/routes/moderationReportRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -39,6 +46,7 @@ healthRoutes(app);
 commentRoutes(app);
 ratingRoutes(app);
 playlistRoutes(app);
+moderationReportRoutes(app);
 
 // Export app for tests. Do not remove this line
 export default app;
@@ -47,7 +55,12 @@ let server;
 
 if (process.env.NODE_ENV !== 'test') {
   await connectDB();
-
+  if (process.env.ENABLE_REDIS.toLocaleLowerCase() === 'true') {
+    await connectRedis();
+    startModerationCron();
+  } else {
+    logger.warn('Redis is not enabled');
+  }
   if (process.env.ENABLE_KAFKA.toLocaleLowerCase() === 'true') {
     logger.warn('Kafka is enabled, trying to connect');
     await startKafkaConsumer();
@@ -67,6 +80,9 @@ if (process.env.NODE_ENV !== 'test') {
 async function gracefulShutdown(signal) {
   logger.warn(`${signal} received. Starting secure shutdown...`);
 
+  if (process.env.ENABLE_REDIS.toLocaleLowerCase() === 'true') {
+    stopModerationCron();
+  }
   try {
     logger.warn('Disconnecting Kafka consumer...');
     await consumer.disconnect();
@@ -84,6 +100,11 @@ async function gracefulShutdown(signal) {
         'Since now new connections are not allowed. Waiting for current operations to finish...'
       );
       try {
+        await disconnectRedis();
+      } catch (err) {
+        logger.error('Error disconnecting Redis:', err);
+      }
+      try {
         await disconnectDB();
         logger.info('MongoDB disconnected');
       } catch (err) {
@@ -93,6 +114,12 @@ async function gracefulShutdown(signal) {
       logger.info('Shutdown complete. Bye! ;)');
       process.exit(0);
     });
+    setTimeout(() => {
+      logger.error('Forced shutdown after timeout');
+      process.exit(1);
+    }, 30000);
+  } else {
+    process.exit(0);
   }
 }
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));

@@ -307,7 +307,7 @@ class RatingService {
       const skip = (page - 1) * limit;
 
       let ratings = await Rating.find(match)
-        .sort({ createdAt: -1 })
+        .sort({ updatedAt: -1 })
         .skip(skip)
         .limit(limit);
 
@@ -393,7 +393,7 @@ class RatingService {
       const skip = (page - 1) * limit;
 
       let ratings = await Rating.find(match)
-        .sort({ createdAt: -1 })
+        .sort({ updatedAt: -1 })
         .skip(skip)
         .limit(limit);
 

@@ -1,17 +1,27 @@
 # Release v0.0.5
 
 ## Features
+
 No new features.
+
 ## Tests
+
 No test changes.
+
 ## Documentation
+
 No documentation changes.
+
 ## Fixes
+
 - fix: fix problem with beats materialized view
 
 ## Continuous integration (CI)
+
 No CI changes.
+
 ## Other changes
+
 - style: auto formatted by CI
 - Merge pull request #22 from SocialBeats/develop
 
