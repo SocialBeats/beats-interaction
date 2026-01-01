@@ -3,7 +3,7 @@ import logger from '../../logger.js';
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
-const MODEL = 'openai/gpt-4o-mini:free';
+const MODEL = 'meta-llama/llama-3.2-3b-instruct:free';
 
 export async function analyzeContent(text) {
   try {
