@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { moderateText } from './moderationEngine.js';
 import {
   Rating,
@@ -69,13 +70,14 @@ export async function processModeration(reportId) {
       report.state = 'Rejected';
       await report.save();
       logger.info(
-        `Moderation ${reportId} rejected (content is safe)${result.cached ? ' [cached]' : ''}`
+        `Moderation ${reportId} rejected (content is safe)${
+          result.cached ? ' [cached]' : ''
+        }`
       );
     } else {
       const stillExists = await target.constructor.findById(target._id);
+
       if (stillExists) {
-        // TODO: Get how many accepted moderationReports has authorId this user has
-        // TODO: if that user has 5 or more delete user
         await stillExists.deleteOne();
         logger.info(
           `Deleted ${contentType} ${contentId} due to moderation verdict: ${result.verdict}`
@@ -84,6 +86,34 @@ export async function processModeration(reportId) {
 
       report.state = 'Accepted';
       await report.save();
+
+      const acceptedCount = await ModerationReport.countDocuments({
+        authorId: report.authorId,
+        state: 'Accepted',
+      });
+
+      if (acceptedCount >= 5) {
+        try {
+          const deleteUrl = `${process.env.AUTH_SERVICE_URL}${report.authorId}`;
+
+          await axios.delete(deleteUrl, {
+            headers: {
+              'x-internal-api-key': process.env.INTERNAL_API_KEY,
+            },
+            timeout: 30000,
+          });
+
+          logger.warn(
+            `User ${report.authorId} deleted after reaching ${acceptedCount} accepted moderation reports`
+          );
+        } catch (err) {
+          logger.error(
+            `Failed to delete user ${report.authorId} after moderation threshold`,
+            err.response?.data || err.message
+          );
+        }
+      }
+
       logger.info(
         `Moderation ${reportId} accepted (content removed)${result.cached ? ' [cached]' : ''}`
       );
