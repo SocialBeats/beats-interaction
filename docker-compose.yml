@@ -84,6 +84,9 @@ services:
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - INTERNAL_API_KEY=${INTERNAL_API_KEY}
       - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
+      - SPACE_URL=${SPACE_URL}
+      - SPACE_API_KEY=${SPACE_API_KEY}
+      - ENABLE_PRICING=${ENABLE_PRICING}
     depends_on:
       - mongodb
       - kafka

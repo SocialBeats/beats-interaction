@@ -5,6 +5,7 @@ import {
   Comment,
   Rating,
 } from '../models/models.js';
+import { isPricingEnabled, spaceClient } from '../utils/spaceConnection.js';
 import { isKafkaEnabled } from './kafkaConsumer.js';
 import mongoose from 'mongoose';
 
@@ -139,6 +140,20 @@ class PlaylistService {
       }
 
       const playlist = new Playlist(data);
+
+      if (isPricingEnabled()) {
+        const playlistNumber = await spaceClient.features.evaluate(
+          userId,
+          'socialbeats-playlists',
+          { 'socialbeats-maxPlaylists': 1 }
+        );
+        if (!playlistNumber.eval) {
+          return res.status(402).json({
+            error:
+              'You have reached the limit of playlists. Upgrade your plan to create more!',
+          });
+        }
+      }
 
       await playlist.validate();
       await playlist.save();
@@ -591,6 +606,19 @@ class PlaylistService {
         Rating.deleteMany({ playlistId: playlist._id }),
       ]);
 
+      if (isPricingEnabled()) {
+        const playlistNumber = await spaceClient.features.evaluate(
+          userId,
+          'socialbeats-playlists',
+          { 'socialbeats-maxPlaylists': -1 }
+        );
+        if (!playlistNumber.eval) {
+          return res.status(402).json({
+            error:
+              'You have reached the limit of playlists. Upgrade your plan to create more!',
+          });
+        }
+      }
       await playlist.deleteOne();
       return;
     } catch (err) {
