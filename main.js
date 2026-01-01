@@ -11,6 +11,11 @@ import {
   consumer,
   producer,
 } from './src/services/kafkaConsumer.js';
+import {
+  startModerationCron,
+  stopModerationCron,
+} from './src/utils/moderationCron.js';
+
 // import your middlewares here
 import verifyToken from './src/middlewares/authMiddlewares.js';
 // import your routes here
@@ -52,6 +57,7 @@ if (process.env.NODE_ENV !== 'test') {
   await connectDB();
   if (process.env.ENABLE_REDIS.toLocaleLowerCase() === 'true') {
     await connectRedis();
+    startModerationCron();
   } else {
     logger.warn('Redis is not enabled');
   }
@@ -74,6 +80,9 @@ if (process.env.NODE_ENV !== 'test') {
 async function gracefulShutdown(signal) {
   logger.warn(`${signal} received. Starting secure shutdown...`);
 
+  if (process.env.ENABLE_REDIS.toLocaleLowerCase() === 'true') {
+    stopModerationCron();
+  }
   try {
     logger.warn('Disconnecting Kafka consumer...');
     await consumer.disconnect();
@@ -92,6 +101,10 @@ async function gracefulShutdown(signal) {
       );
       try {
         await disconnectRedis();
+      } catch (err) {
+        logger.error('Error disconnecting Redis:', err);
+      }
+      try {
         await disconnectDB();
         logger.info('MongoDB disconnected');
       } catch (err) {
@@ -101,6 +114,12 @@ async function gracefulShutdown(signal) {
       logger.info('Shutdown complete. Bye! ;)');
       process.exit(0);
     });
+    setTimeout(() => {
+      logger.error('Forced shutdown after timeout');
+      process.exit(1);
+    }, 30000);
+  } else {
+    process.exit(0);
   }
 }
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));

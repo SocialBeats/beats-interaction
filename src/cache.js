@@ -1,4 +1,5 @@
 import Redis from 'ioredis';
+import { EventEmitter } from 'events';
 import logger from '../logger.js';
 
 let redis;
@@ -7,6 +8,8 @@ let isConnecting = false;
 const MAX_RETRIES = Number(process.env.REDIS_CONNECTION_MAX_RETRIES || 5);
 const RETRY_DELAY = Number(process.env.REDIS_CONNECTION_RETRY_DELAY || 2000);
 const COOLDOWN = Number(process.env.REDIS_COOLDOWN || 10000);
+
+export const redisEvents = new EventEmitter();
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -38,6 +41,7 @@ const connectWithRetry = async () => {
 
         setupListeners();
         isConnecting = false;
+        redisEvents.emit('connected');
         return;
       } catch (err) {
         logger.error(`Redis connection failed: ${err.message}`);
@@ -59,6 +63,7 @@ const connectWithRetry = async () => {
 const setupListeners = () => {
   redis.on('close', async () => {
     logger.warn('Redis connection closed. Reconnecting...');
+    redisEvents.emit('disconnected');
     await connectWithRetry();
   });
 
@@ -78,6 +83,7 @@ export const disconnectRedis = async () => {
   if (redis) {
     logger.warn('Disconnecting Redis...');
     redis.removeAllListeners();
+    redisEvents.emit('disconnecting');
     await redis.quit();
     redis = null;
   }
@@ -86,4 +92,8 @@ export const disconnectRedis = async () => {
 
 export function isRedisEnabled() {
   return process.env.ENABLE_REDIS.toLocaleLowerCase() === 'true';
+}
+
+export function isRedisConnected() {
+  return redis && redis.status === 'ready';
 }

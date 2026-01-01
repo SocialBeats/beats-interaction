@@ -1,3 +1,4 @@
+// src/services/moderationReportService.js
 import mongoose from 'mongoose';
 import {
   ModerationReport,
@@ -10,6 +11,20 @@ import { isKafkaEnabled } from './kafkaConsumer.js';
 import { processModeration } from '../utils/moderationWorker.js';
 import { isRedisEnabled } from '../cache.js';
 
+async function checkExistingReport(query, contentType) {
+  const existingReport = await ModerationReport.findOne({
+    ...query,
+    state: 'Checking',
+  });
+
+  if (existingReport) {
+    throw {
+      status: 409,
+      message: `This ${contentType} has already been reported and is currently being reviewed`,
+    };
+  }
+}
+
 class ModerationReportService {
   async createCommentModerationReport({ commentId, userId }) {
     try {
@@ -17,7 +32,6 @@ class ModerationReportService {
         throw { status: 404, message: 'Comment not found' };
       }
 
-      // check author existence only if kafka is enabled
       let user = null;
       if (isKafkaEnabled()) {
         user = await UserMaterialized.findOne({ userId: userId });
@@ -34,11 +48,12 @@ class ModerationReportService {
         throw { status: 404, message: 'Comment not found' };
       }
 
+      await checkExistingReport({ commentId }, 'comment');
+
       const report = new ModerationReport({
         commentId,
         userId,
         authorId: comment.authorId,
-        // state defaults to 'Checking'
       });
 
       await report.validate();
@@ -59,6 +74,14 @@ class ModerationReportService {
         throw { status: 422, message: err.message };
       }
 
+      if (err.code === 11000) {
+        throw {
+          status: 409,
+          message:
+            'This comment has already been reported and is currently being reviewed',
+        };
+      }
+
       if (err.status) throw err;
       throw err;
     }
@@ -70,7 +93,6 @@ class ModerationReportService {
         throw { status: 404, message: 'Rating not found' };
       }
 
-      // check author existence only if kafka is enabled
       let user = null;
       if (isKafkaEnabled()) {
         user = await UserMaterialized.findOne({ userId: userId });
@@ -87,18 +109,21 @@ class ModerationReportService {
         throw { status: 404, message: 'Rating not found' };
       }
 
+      await checkExistingReport({ ratingId }, 'rating');
+
       const report = new ModerationReport({
         ratingId,
         userId,
         authorId: rating.userId,
-        // state defaults to 'Checking'
       });
 
       await report.validate();
       await report.save();
+
       if (isRedisEnabled()) {
         setImmediate(() => processModeration(report._id));
       }
+
       return report;
     } catch (err) {
       if (err.name === 'ValidationError') {
@@ -112,6 +137,14 @@ class ModerationReportService {
         throw { status: 422, message: err.message };
       }
 
+      if (err.code === 11000) {
+        throw {
+          status: 409,
+          message:
+            'This rating has already been reported and is currently being reviewed',
+        };
+      }
+
       if (err.status) throw err;
       throw err;
     }
@@ -123,7 +156,6 @@ class ModerationReportService {
         throw { status: 404, message: 'Playlist not found' };
       }
 
-      // check author existence only if kafka is enabled
       let user = null;
       if (isKafkaEnabled()) {
         user = await UserMaterialized.findOne({ userId: userId });
@@ -140,18 +172,21 @@ class ModerationReportService {
         throw { status: 404, message: 'Playlist not found' };
       }
 
+      await checkExistingReport({ playlistId }, 'playlist');
+
       const report = new ModerationReport({
         playlistId,
         userId,
         authorId: playlist.ownerId,
-        // state defaults to 'Checking'
       });
 
       await report.validate();
       await report.save();
+
       if (isRedisEnabled()) {
         setImmediate(() => processModeration(report._id));
       }
+
       return report;
     } catch (err) {
       if (err.name === 'ValidationError') {
@@ -163,6 +198,14 @@ class ModerationReportService {
 
       if (err.name === 'Error') {
         throw { status: 422, message: err.message };
+      }
+
+      if (err.code === 11000) {
+        throw {
+          status: 409,
+          message:
+            'This playlist has already been reported and is currently being reviewed',
+        };
       }
 
       if (err.status) throw err;

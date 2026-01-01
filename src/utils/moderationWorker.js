@@ -5,54 +5,119 @@ import {
   Playlist,
   ModerationReport,
 } from '../models/models.js';
+import { getRedis } from '../cache.js';
+import logger from '../../logger.js';
 
 export async function processModeration(reportId) {
-  const report = await ModerationReport.findById(reportId);
-  if (!report || report.state !== 'Checking') return;
+  const redis = getRedis();
+  const lockKey = `moderation:lock:${reportId}`;
 
-  let content = null;
-  let target = null;
-
-  if (report.commentId) {
-    target = await Comment.findById(report.commentId);
-    content = 'Contenido del comentario: ' + target?.text;
-  }
-
-  if (report.ratingId) {
-    target = await Rating.findById(report.ratingId);
-    content = 'Contenido de la puntuación: ' + target?.comment;
-  }
-
-  if (report.playlistId) {
-    target = await Playlist.findById(report.playlistId);
-    content =
-      'Contenido de la playlist: Título: ' +
-      target?.name +
-      ', Descripción: ' +
-      target?.description;
-  }
-
-  if (!content || !target) {
-    report.state = 'Accepted';
-    await report.save();
+  const lock = await redis.set(lockKey, '1', 'NX', 'EX', 30);
+  if (!lock) {
+    logger.info(`Moderation ${reportId} already being processed`);
     return;
   }
 
-  const result = await moderateText(content);
+  try {
+    const report = await ModerationReport.findById(reportId);
+    if (!report || report.state !== 'Checking') {
+      logger.info(`Moderation ${reportId} not in Checking state`);
+      return;
+    }
 
-  if (result.verdict === 'unknown' || result.verdict === 'pending') {
-    return;
+    let target = null;
+    let content = null;
+    let contentType = null;
+    let contentId = null;
+
+    if (report.commentId) {
+      target = await Comment.findById(report.commentId);
+      content = target?.text;
+      contentType = 'comment';
+      contentId = report.commentId;
+    } else if (report.ratingId) {
+      target = await Rating.findById(report.ratingId);
+      content = target?.comment;
+      contentType = 'rating';
+      contentId = report.ratingId;
+    } else if (report.playlistId) {
+      target = await Playlist.findById(report.playlistId);
+      content = target
+        ? `Título: ${target.name}\nDescripción: ${target.description || ''}`
+        : null;
+      contentType = 'playlist';
+      contentId = report.playlistId;
+    }
+
+    if (!target || !content) {
+      report.state = 'Accepted';
+      await report.save();
+      logger.info(
+        `Moderation ${reportId} marked as Accepted (content deleted)`
+      );
+      return;
+    }
+
+    const result = await moderateText(content, contentId, contentType);
+
+    if (result.verdict === 'pending') {
+      logger.warn(`Moderation ${reportId} pending: ${result.reason}`);
+      return;
+    }
+
+    if (result.verdict === 'safe') {
+      report.state = 'Rejected';
+      await report.save();
+      logger.info(
+        `Moderation ${reportId} rejected (content is safe)${result.cached ? ' [cached]' : ''}`
+      );
+    } else {
+      const stillExists = await target.constructor.findById(target._id);
+      if (stillExists) {
+        await stillExists.deleteOne();
+        logger.info(
+          `Deleted ${contentType} ${contentId} due to moderation verdict: ${result.verdict}`
+        );
+      }
+
+      report.state = 'Accepted';
+      await report.save();
+      logger.info(
+        `Moderation ${reportId} accepted (content removed)${result.cached ? ' [cached]' : ''}`
+      );
+    }
+  } catch (error) {
+    logger.error(`Error processing moderation ${reportId}:`, error);
+    throw error;
+  } finally {
+    await redis.del(lockKey);
   }
+}
 
-  const isAbusive = /hate|sexual|violence/i.test(result);
+export async function retryPendingModerations() {
+  try {
+    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
 
-  if (isAbusive) {
-    await target.deleteOne();
+    const pendingReports = await ModerationReport.find({
+      state: 'Checking',
+      createdAt: { $lt: twoMinutesAgo },
+    }).limit(30);
 
-    report.state = 'Accepted';
-  } else {
-    report.state = 'Rejected';
+    if (pendingReports.length === 0) {
+      logger.info('No pending moderations to retry');
+      return;
+    }
+
+    logger.info(
+      `Retrying ${pendingReports.length} pending moderations (older than 2 minutes)`
+    );
+
+    for (const report of pendingReports) {
+      setImmediate(() => processModeration(report._id));
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+    }
+    logger.info(`Queued ${pendingReports.length} moderations for retry`);
+  } catch (error) {
+    logger.error('Error retrying pending moderations:', error);
   }
-
-  await report.save();
 }

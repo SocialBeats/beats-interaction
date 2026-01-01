@@ -12,21 +12,25 @@ export default function moderationReportRoutes(app) {
    *       - ModerationReports
    *     summary: Create a moderation report for a comment
    *     description: >
-   *       Creates a moderation report for the specified comment for the authenticated user.
+   *       Creates a moderation report for the specified comment.
    *       The authenticated user becomes the reporter (`userId`).
+   *       The reported user (`authorId`) is inferred from the comment owner.
    *       The report is created with state "Checking".
-   *       The reported user (`authorId`) is automatically derived from the content owner.
-   *       `commentId` must be a valid MongoDB ObjectId.
-   *       When Kafka is enabled, `userId` must correspond to an existing user in the materialized store.
+   *
+   *       When Kafka is enabled, the `userId` must exist in the materialized users store.
+   *       If Redis is enabled, the moderation process is executed asynchronously.
+   *
    *     security:
    *       - bearerAuth: []
+   *
    *     parameters:
    *       - in: path
    *         name: commentId
    *         required: true
    *         schema:
    *           type: string
-   *         description: ID of the comment to report.
+   *         description: MongoDB ObjectId of the comment to report.
+   *
    *     requestBody:
    *       required: false
    *       content:
@@ -34,7 +38,8 @@ export default function moderationReportRoutes(app) {
    *           schema:
    *             type: object
    *             additionalProperties: false
-   *             description: No body is required. The authenticated user becomes the reporter.
+   *             description: No request body is required.
+   *
    *     responses:
    *       201:
    *         description: Moderation report successfully created.
@@ -42,58 +47,81 @@ export default function moderationReportRoutes(app) {
    *           application/json:
    *             schema:
    *               $ref: '#/components/schemas/ModerationReport'
+   *
    *       401:
-   *         description: Unauthorized. Token missing or invalid.
+   *         description: Unauthorized – missing or invalid JWT token.
    *         content:
    *           application/json:
    *             schema:
    *               type: object
-   *               additionalProperties: false
    *               properties:
    *                 message:
    *                   type: string
    *                   example: Unauthorized access.
+   *
    *       404:
-   *         description: Comment not found (invalid or non-existent `commentId`).
+   *         description: Resource not found.
    *         content:
    *           application/json:
    *             schema:
    *               type: object
-   *               additionalProperties: false
-   *               properties:
-   *                 message:
-   *                   type: string
-   *                   example: Comment not found.
-   *       422:
-   *         description: Validation error.
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               additionalProperties: false
    *               properties:
    *                 message:
    *                   type: string
    *             examples:
+   *               invalidCommentId:
+   *                 summary: Invalid or non-existing comment ID
+   *                 value:
+   *                   message: Comment not found
+   *
+   *       409:
+   *         description: Conflict – moderation report already exists.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *             examples:
+   *               duplicateReport:
+   *                 summary: Report already exists
+   *                 value:
+   *                   message: This comment has already been reported and is currently being reviewed
+   *
+   *       422:
+   *         description: Unprocessable entity – validation or domain rule violation.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *             examples:
+   *               invalidObjectId:
+   *                 summary: Invalid commentId format
+   *                 value:
+   *                   message: Comment not found
    *               reportingOwnContent:
-   *                 summary: User tries to report their own content
+   *                 summary: User attempts to report their own content
    *                 value:
    *                   message: A user cannot report their own content.
-   *               userIdNotExistingKafkaEnabled:
-   *                 summary: Kafka enabled and userId does not exist in materialized users
+   *               userNotFoundKafka:
+   *                 summary: Kafka enabled but user does not exist in materialized view
    *                 value:
    *                   message: userId must correspond to an existing user
-   *               schemaValidation:
-   *                 summary: Schema validation error (example)
+   *               validationError:
+   *                 summary: Mongoose validation error
    *                 value:
-   *                   message: userId is required
+   *                   message: Validation failed
+   *
    *       500:
    *         description: Internal server error while creating moderation report.
    *         content:
    *           application/json:
    *             schema:
    *               type: object
-   *               additionalProperties: false
    *               properties:
    *                 message:
    *                   type: string
@@ -145,21 +173,25 @@ export default function moderationReportRoutes(app) {
    *       - ModerationReports
    *     summary: Create a moderation report for a rating
    *     description: >
-   *       Creates a moderation report for the specified rating for the authenticated user.
+   *       Creates a moderation report for the specified rating.
    *       The authenticated user becomes the reporter (`userId`).
+   *       The reported user (`authorId`) is derived from the rating's owner (`rating.userId`).
    *       The report is created with state "Checking".
-   *       The reported user (`authorId`) is automatically derived from the rating's owner (`rating.userId`).
-   *       `ratingId` must be a valid MongoDB ObjectId.
-   *       When Kafka is enabled, `userId` must correspond to an existing user in the materialized store.
+   *
+   *       When Kafka is enabled, the `userId` must exist in the materialized users store.
+   *       If Redis is enabled, the moderation process is executed asynchronously.
+   *
    *     security:
    *       - bearerAuth: []
+   *
    *     parameters:
    *       - in: path
    *         name: ratingId
    *         required: true
    *         schema:
    *           type: string
-   *         description: ID of the rating to report.
+   *         description: MongoDB ObjectId of the rating to report.
+   *
    *     requestBody:
    *       required: false
    *       content:
@@ -167,7 +199,8 @@ export default function moderationReportRoutes(app) {
    *           schema:
    *             type: object
    *             additionalProperties: false
-   *             description: No body is required. The authenticated user becomes the reporter.
+   *             description: No request body is required.
+   *
    *     responses:
    *       201:
    *         description: Moderation report successfully created.
@@ -175,58 +208,81 @@ export default function moderationReportRoutes(app) {
    *           application/json:
    *             schema:
    *               $ref: '#/components/schemas/ModerationReport'
+   *
    *       401:
-   *         description: Unauthorized. Token missing or invalid.
+   *         description: Unauthorized – missing or invalid JWT token.
    *         content:
    *           application/json:
    *             schema:
    *               type: object
-   *               additionalProperties: false
    *               properties:
    *                 message:
    *                   type: string
    *                   example: Unauthorized access.
+   *
    *       404:
-   *         description: Rating not found (invalid or non-existent `ratingId`).
+   *         description: Resource not found.
    *         content:
    *           application/json:
    *             schema:
    *               type: object
-   *               additionalProperties: false
-   *               properties:
-   *                 message:
-   *                   type: string
-   *                   example: Rating not found.
-   *       422:
-   *         description: Validation error.
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               additionalProperties: false
    *               properties:
    *                 message:
    *                   type: string
    *             examples:
+   *               invalidRatingId:
+   *                 summary: Invalid or non-existent rating ID
+   *                 value:
+   *                   message: Rating not found
+   *
+   *       409:
+   *         description: Conflict – moderation report already exists.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *             examples:
+   *               duplicateReport:
+   *                 summary: Report already exists
+   *                 value:
+   *                   message: This rating has already been reported and is currently being reviewed
+   *
+   *       422:
+   *         description: Unprocessable entity – validation or business rule violation.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *             examples:
+   *               invalidObjectId:
+   *                 summary: Invalid ratingId format
+   *                 value:
+   *                   message: Rating not found
    *               reportingOwnContent:
-   *                 summary: User tries to report their own content
+   *                 summary: User attempts to report their own content
    *                 value:
    *                   message: A user cannot report their own content.
-   *               userIdNotExistingKafkaEnabled:
-   *                 summary: Kafka enabled and userId does not exist in materialized users
+   *               userNotFoundKafka:
+   *                 summary: Kafka enabled but user does not exist in materialized view
    *                 value:
    *                   message: userId must correspond to an existing user
-   *               schemaValidation:
-   *                 summary: Schema validation error (example)
+   *               validationError:
+   *                 summary: Mongoose validation error
    *                 value:
-   *                   message: userId is required
+   *                   message: Validation failed
+   *
    *       500:
    *         description: Internal server error while creating moderation report.
    *         content:
    *           application/json:
    *             schema:
    *               type: object
-   *               additionalProperties: false
    *               properties:
    *                 message:
    *                   type: string
@@ -278,21 +334,25 @@ export default function moderationReportRoutes(app) {
    *       - ModerationReports
    *     summary: Create a moderation report for a playlist
    *     description: >
-   *       Creates a moderation report for the specified playlist for the authenticated user.
+   *       Creates a moderation report for the specified playlist.
    *       The authenticated user becomes the reporter (`userId`).
+   *       The reported user (`authorId`) is derived from the playlist's owner (`ownerId`).
    *       The report is created with state "Checking".
-   *       The reported user (`authorId`) is automatically derived from the playlist's owner (`ownerId`).
-   *       `playlistId` must be a valid MongoDB ObjectId.
-   *       When Kafka is enabled, `userId` must correspond to an existing user in the materialized store.
+   *
+   *       When Kafka is enabled, the `userId` must exist in the materialized users store.
+   *       If Redis is enabled, the moderation process is executed asynchronously.
+   *
    *     security:
    *       - bearerAuth: []
+   *
    *     parameters:
    *       - in: path
    *         name: playlistId
    *         required: true
    *         schema:
    *           type: string
-   *         description: ID of the playlist to report.
+   *         description: MongoDB ObjectId of the playlist to report.
+   *
    *     requestBody:
    *       required: false
    *       content:
@@ -300,7 +360,8 @@ export default function moderationReportRoutes(app) {
    *           schema:
    *             type: object
    *             additionalProperties: false
-   *             description: No body is required. The authenticated user becomes the reporter.
+   *             description: No request body is required.
+   *
    *     responses:
    *       201:
    *         description: Moderation report successfully created.
@@ -308,58 +369,81 @@ export default function moderationReportRoutes(app) {
    *           application/json:
    *             schema:
    *               $ref: '#/components/schemas/ModerationReport'
+   *
    *       401:
-   *         description: Unauthorized. Token missing or invalid.
+   *         description: Unauthorized – missing or invalid JWT token.
    *         content:
    *           application/json:
    *             schema:
    *               type: object
-   *               additionalProperties: false
    *               properties:
    *                 message:
    *                   type: string
    *                   example: Unauthorized access.
+   *
    *       404:
-   *         description: Playlist not found (invalid or non-existent `playlistId`).
+   *         description: Resource not found.
    *         content:
    *           application/json:
    *             schema:
    *               type: object
-   *               additionalProperties: false
-   *               properties:
-   *                 message:
-   *                   type: string
-   *                   example: Playlist not found.
-   *       422:
-   *         description: Validation error.
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               additionalProperties: false
    *               properties:
    *                 message:
    *                   type: string
    *             examples:
+   *               invalidPlaylistId:
+   *                 summary: Invalid or non-existent playlist ID
+   *                 value:
+   *                   message: Playlist not found
+   *
+   *       409:
+   *         description: Conflict – moderation report already exists.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *             examples:
+   *               duplicateReport:
+   *                 summary: Report already exists
+   *                 value:
+   *                   message: This playlist has already been reported and is currently being reviewed
+   *
+   *       422:
+   *         description: Unprocessable entity – validation or business rule violation.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *             examples:
+   *               invalidObjectId:
+   *                 summary: Invalid playlistId format
+   *                 value:
+   *                   message: Playlist not found
    *               reportingOwnContent:
-   *                 summary: User tries to report their own content
+   *                 summary: User attempts to report their own content
    *                 value:
    *                   message: A user cannot report their own content.
-   *               userIdNotExistingKafkaEnabled:
-   *                 summary: Kafka enabled and userId does not exist in materialized users
+   *               userNotFoundKafka:
+   *                 summary: Kafka enabled but user does not exist in materialized view
    *                 value:
    *                   message: userId must correspond to an existing user
-   *               schemaValidation:
-   *                 summary: Schema validation error (example)
+   *               validationError:
+   *                 summary: Mongoose validation error
    *                 value:
-   *                   message: userId is required
+   *                   message: Validation failed
+   *
    *       500:
    *         description: Internal server error while creating moderation report.
    *         content:
    *           application/json:
    *             schema:
    *               type: object
-   *               additionalProperties: false
    *               properties:
    *                 message:
    *                   type: string

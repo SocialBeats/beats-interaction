@@ -154,6 +154,42 @@ moderationReportSchema.pre('validate', async function (next) {
   }
 });
 
+moderationReportSchema.index(
+  { commentId: 1, state: 1 },
+  {
+    unique: true,
+    sparse: true,
+    partialFilterExpression: {
+      commentId: { $exists: true },
+      state: 'Checking',
+    },
+  }
+);
+
+moderationReportSchema.index(
+  { ratingId: 1, state: 1 },
+  {
+    unique: true,
+    sparse: true,
+    partialFilterExpression: {
+      ratingId: { $exists: true },
+      state: 'Checking',
+    },
+  }
+);
+
+moderationReportSchema.index(
+  { playlistId: 1, state: 1 },
+  {
+    unique: true,
+    sparse: true,
+    partialFilterExpression: {
+      playlistId: { $exists: true },
+      state: 'Checking',
+    },
+  }
+);
+
 const ModerationReport = mongoose.model(
   'ModerationReport',
   moderationReportSchema
