@@ -1,3 +1,68 @@
+# Release v1.0.0
+
+## Features
+- feat: add pricing integration to limit users playlist number
+- feat: add command to delete user from the app if he has more than 5 legitimate complaints
+- feat: add OpenRouter integration
+- feat: improve the content of the body of the request to the moderation API
+- feat: add initial redis environment and openrouter connection
+- feat: add integration with materialized views in moderation reports
+- feat: add functionality to get all moderation reports
+- feat: add functionality to get all moderation reports by userId
+- feat: add functionality to get all moderation reports by authenticated user
+- feat: add functionality to get a moderation report by its id
+- feat: add create a moderation report for a playlist
+- feat: add create a moderation report for a rating
+- feat: add create a moderation report for a comment
+- feat: add files for Moderation Report functionality
+- feat: add Moderation Report entity
+
+## Tests
+- test: add test for functionality to get all moderation reports
+- test: add test for functionality to get all moderation reports by userId
+- test: add test for functionality to get all moderation reports by authenticated user
+- test: add test for functionality to get a moderation report by its id
+- test: add test for create a moderation report for a playlist
+- test: add test for create a moderation report for a rating
+- test: add test for create a moderation report for a comment
+- test: add test for Moderation Report entity
+
+## Documentation
+- docs: add Moderation Report schema to the swagger configuration
+
+## Fixes
+- fix: fix environment problems in testing commands to fix workflow
+- fix: remove :id from AUTH_SERVICE_URL
+- fix: change model to include an existing free one
+- fix: order ratings and comments lists by updatedAt instead of createdAt
+- fix: fix problem in mongo queries with userId in materialized view integration
+- fix: fix problem in mongo queries with userId in materialized view integration
+- fix: reorder methods
+
+## Continuous integration (CI)
+- ci: add redis to .env.examples and docker-compose
+
+## Other changes
+- Merge pull request #26 from SocialBeats/develop
+- Merge pull request #25 from SocialBeats/pricing-space-integration
+- Merge pull request #24 from SocialBeats/5-content-moderation
+- chore: add AUTH_SERVICE_URL envrionment variable
+- chore: add INTERNAL_API_KEY variable
+- style: auto formatted by CI
+- Merge branch 'develop' into 5-content-moderation
+- refactor: remove some unuseful comments
+- Merge remote-tracking branch 'origin/develop' into 5-content-moderation
+- Merge branch 'develop' into 5-content-moderation
+- Merge branch 'develop' into 5-content-moderation
+- Merge branch 'develop' into 5-content-moderation
+- Merge branch 'develop' into 5-content-moderation
+- refactor: remove unused imports
+- Merge branch '3-crud-rating' into 5-content-moderation
+
+## Full commit history
+
+For full commit history, see [here](https://github.com/SocialBeats/beats-interaction/compare/v0.0.5...v1.0.0).
+
 # Release v0.0.5
 
 ## Features
