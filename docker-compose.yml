@@ -83,6 +83,7 @@ services:
       - ENABLE_REDIS=${ENABLE_REDIS}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - INTERNAL_API_KEY=${INTERNAL_API_KEY}
+      - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
     depends_on:
       - mongodb
       - kafka

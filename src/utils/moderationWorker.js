@@ -74,6 +74,8 @@ export async function processModeration(reportId) {
     } else {
       const stillExists = await target.constructor.findById(target._id);
       if (stillExists) {
+        // TODO: Get how many accepted moderationReports has authorId this user has
+        // TODO: if that user has 5 or more delete user
         await stillExists.deleteOne();
         logger.info(
           `Deleted ${contentType} ${contentId} due to moderation verdict: ${result.verdict}`
