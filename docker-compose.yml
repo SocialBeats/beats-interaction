@@ -82,6 +82,7 @@ services:
       - REDIS_COOLDOWN=${REDIS_COOLDOWN}
       - ENABLE_REDIS=${ENABLE_REDIS}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY}
     depends_on:
       - mongodb
       - kafka

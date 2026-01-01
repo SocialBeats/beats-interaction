@@ -46,6 +46,7 @@ services:
       - REDIS_COOLDOWN=10000
       - ENABLE_REDIS=false
       - OPENROUTER_API_KEY=
+      - INTERNAL_API_KEY=
     depends_on:
       mongodb:
         condition: service_healthy
