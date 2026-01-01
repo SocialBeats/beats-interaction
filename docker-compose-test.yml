@@ -39,6 +39,15 @@ services:
       - KAFKA_COOLDOWN=30000
       - KAFKA_BROKER=kafka:9092
       - ENABLE_KAFKA=false
+      - REDIS_HOST=redis
+      - REDIS_PORT=6039
+      - REDIS_CONNECTION_MAX_RETRIES=5
+      - REDIS_CONNECTION_RETRY_DELAY=2000
+      - REDIS_COOLDOWN=10000
+      - ENABLE_REDIS=false
+      - OPENROUTER_API_KEY=
+      - INTERNAL_API_KEY=
+      - AUTH_SERVICE_URL=http://localhost:3001
     depends_on:
       mongodb:
         condition: service_healthy

@@ -1,6 +1,8 @@
 import { getVersion } from '../utils/versionUtils.js';
 import { isKafkaConnected } from '../services/kafkaConsumer.js';
 import mongoose from 'mongoose';
+import { isRedisEnabled, isRedisConnected } from '../cache.js';
+import { ModerationReport } from '../models/models.js';
 
 export default function healthRoutes(app) {
   const version = getVersion();
@@ -103,5 +105,112 @@ export default function healthRoutes(app) {
       kafka: status ? 'connected' : 'disconnected',
       timestamp: new Date().toISOString(),
     });
+  });
+
+  /**
+   * @swagger
+   * /api/v1/moderation/health:
+   *   get:
+   *     tags:
+   *       - Moderation
+   *     summary: Moderation system health check
+   *     description: >
+   *       Provides health information about the moderation system, including Redis connectivity,
+   *       cron execution status, and pending moderation reports.
+   *     responses:
+   *       200:
+   *         description: Moderation system is operational.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 status:
+   *                   type: string
+   *                   example: healthy
+   *                 moderation:
+   *                   type: object
+   *                   properties:
+   *                     cronStatus:
+   *                       type: string
+   *                       example: running
+   *                     redisEnabled:
+   *                       type: boolean
+   *                       example: true
+   *                     redisConnected:
+   *                       type: boolean
+   *                       example: true
+   *                     pendingReports:
+   *                       type: number
+   *                       example: 5
+   *                     oldPendingReports:
+   *                       type: number
+   *                       example: 2
+   *                     warning:
+   *                       type: string
+   *                       nullable: true
+   *                       example: null
+   *                 timestamp:
+   *                   type: string
+   *                   format: date-time
+   *                   example: "2025-11-08T13:41:47.074Z"
+   *       500:
+   *         description: Internal server error while checking moderation health.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 status:
+   *                   type: string
+   *                   example: error
+   *                 message:
+   *                   type: string
+   *                   example: Unexpected error while checking moderation health
+   */
+  app.get('/api/v1/moderation/health', async (req, res) => {
+    try {
+      const redisEnabled = isRedisEnabled();
+      const redisConnected = isRedisConnected();
+
+      let pendingReports = 0;
+      let oldPendingReports = 0;
+
+      if (redisConnected) {
+        pendingReports = await ModerationReport.countDocuments({
+          state: 'Checking',
+        });
+
+        const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+        oldPendingReports = await ModerationReport.countDocuments({
+          state: 'Checking',
+          createdAt: { $lt: tenMinutesAgo },
+        });
+      }
+
+      const cronStatus = redisEnabled && redisConnected ? 'running' : 'stopped';
+      const health = oldPendingReports > 10 ? 'degraded' : 'healthy';
+
+      res.json({
+        status: health,
+        moderation: {
+          cronStatus,
+          redisEnabled,
+          redisConnected,
+          pendingReports,
+          oldPendingReports,
+          warning:
+            oldPendingReports > 10
+              ? 'High number of old pending reports. Check rate limits or API availability.'
+              : null,
+        },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      res.status(500).json({
+        status: 'error',
+        message: error.message,
+      });
+    }
   });
 }

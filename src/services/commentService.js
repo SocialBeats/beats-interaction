@@ -194,7 +194,7 @@ class CommentService {
       const skip = (page - 1) * limit;
 
       let comments = await Comment.find(filter)
-        .sort({ createdAt: -1 })
+        .sort({ updatedAt: -1 })
         .skip(skip)
         .limit(limit);
 
@@ -269,7 +269,7 @@ class CommentService {
       const skip = (page - 1) * limit;
 
       let comments = await Comment.find(filter)
-        .sort({ createdAt: -1 })
+        .sort({ updatedAt: -1 })
         .skip(skip)
         .limit(limit);
 
