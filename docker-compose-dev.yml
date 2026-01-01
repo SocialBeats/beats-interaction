@@ -4,14 +4,14 @@ services:
   mongodb:
     restart: unless-stopped
     image: mongo:latest
-    container_name: mongodb
+    container_name: mongodb-beats-interaction
     environment:
       - MONGO_INITDB_ROOT_USERNAME=${MONGOADMIN}
       - MONGO_INITDB_ROOT_PASSWORD=${MONGOPASS}
     networks:
       - socialbeats-network
     ports:
-      - "27017:27017"
+      - "27019:27017"
     volumes:
       - mongo-data:/data/db
 
@@ -39,6 +39,18 @@ services:
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - socialbeats-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis-beats-interaction
+    restart: unless-stopped
+    ports:
+      - "6399:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data-beats-interaction:/data
     networks:
       - socialbeats-network
 
@@ -73,6 +85,7 @@ services:
     depends_on:
       - mongodb
       - kafka
+      - redis
     networks:
       - socialbeats-network
     ports:
@@ -84,6 +97,7 @@ services:
 
 volumes:
   mongo-data:
+  redis-data-beats-interaction:
 
 networks:
   socialbeats-network:
