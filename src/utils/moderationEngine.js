@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { getRedis } from '../cache.js';
 import { analyzeContent } from './openRouterClient.js';
-import { allowModerationRequest } from './rateLimit.js';
+import { allowModerationRequest, incrementDailyCount } from './rateLimit.js';
 
 function hashText(text) {
   return crypto.createHash('sha256').update(text).digest('hex');
@@ -39,6 +39,7 @@ export async function moderateText(text, contentId, contentType = 'unknown') {
   const result = await analyzeContent(text);
 
   if (result.verdict !== 'pending') {
+    await incrementDailyCount(redis);
     await redis.set(hashCacheKey, JSON.stringify(result), 'EX', 60 * 60 * 24);
 
     await redis.set(contentHashKey, textHash, 'EX', 60 * 60 * 24 * 30);
