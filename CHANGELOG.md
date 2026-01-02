@@ -1,6 +1,7 @@
 # Release v1.0.0
 
 ## Features
+
 - feat: add pricing integration to limit users playlist number
 - feat: add command to delete user from the app if he has more than 5 legitimate complaints
 - feat: add OpenRouter integration
@@ -18,6 +19,7 @@
 - feat: add Moderation Report entity
 
 ## Tests
+
 - test: add test for functionality to get all moderation reports
 - test: add test for functionality to get all moderation reports by userId
 - test: add test for functionality to get all moderation reports by authenticated user
@@ -28,9 +30,11 @@
 - test: add test for Moderation Report entity
 
 ## Documentation
+
 - docs: add Moderation Report schema to the swagger configuration
 
 ## Fixes
+
 - fix: fix environment problems in testing commands to fix workflow
 - fix: remove :id from AUTH_SERVICE_URL
 - fix: change model to include an existing free one
@@ -40,9 +44,11 @@
 - fix: reorder methods
 
 ## Continuous integration (CI)
+
 - ci: add redis to .env.examples and docker-compose
 
 ## Other changes
+
 - Merge pull request #26 from SocialBeats/develop
 - Merge pull request #25 from SocialBeats/pricing-space-integration
 - Merge pull request #24 from SocialBeats/5-content-moderation
