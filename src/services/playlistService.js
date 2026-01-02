@@ -148,10 +148,11 @@ class PlaylistService {
           { 'socialbeats-maxPlaylists': 1 }
         );
         if (!playlistNumber.eval) {
-          return res.status(402).json({
-            error:
+          throw {
+            status: 402,
+            message:
               'You have reached the limit of playlists. Upgrade your plan to create more!',
-          });
+          };
         }
       }
 
@@ -613,10 +614,11 @@ class PlaylistService {
           { 'socialbeats-maxPlaylists': -1 }
         );
         if (!playlistNumber.eval) {
-          return res.status(402).json({
-            error:
+          throw {
+            status: 402,
+            message:
               'You have reached the limit of playlists. Upgrade your plan to create more!',
-          });
+          };
         }
       }
       await playlist.deleteOne();
