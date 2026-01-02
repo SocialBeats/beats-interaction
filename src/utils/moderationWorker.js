@@ -7,6 +7,7 @@ import {
   ModerationReport,
 } from '../models/models.js';
 import { getRedis } from '../cache.js';
+import { getRateLimitStatus } from './rateLimit.js';
 import logger from '../../logger.js';
 
 export async function processModeration(reportId) {
@@ -62,7 +63,9 @@ export async function processModeration(reportId) {
     const result = await moderateText(content, contentId, contentType);
 
     if (result.verdict === 'pending') {
-      logger.warn(`Moderation ${reportId} pending: ${result.reason}`);
+      logger.warn(
+        `Moderation ${reportId} pending: ${result.reason || 'unknown'}`
+      );
       return;
     }
 
@@ -127,13 +130,32 @@ export async function processModeration(reportId) {
 }
 
 export async function retryPendingModerations() {
+  const redis = getRedis();
+
   try {
-    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
+    const status = await getRateLimitStatus(redis);
+
+    if (status) {
+      logger.info(
+        `Starting retry with ${status.daily.available}/${status.daily.limit} daily requests available`
+      );
+
+      if (status.daily.available < 3) {
+        logger.warn(
+          'Aborting retry: insufficient daily quota (< 3 requests remaining)'
+        );
+        return;
+      }
+    }
+
+    const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000);
 
     const pendingReports = await ModerationReport.find({
       state: 'Checking',
-      createdAt: { $lt: twoMinutesAgo },
-    }).limit(30);
+      createdAt: { $lt: threeMinutesAgo },
+    })
+      .sort({ createdAt: 1 })
+      .limit(20);
 
     if (pendingReports.length === 0) {
       logger.info('No pending moderations to retry');
@@ -141,15 +163,57 @@ export async function retryPendingModerations() {
     }
 
     logger.info(
-      `Retrying ${pendingReports.length} pending moderations (older than 2 minutes)`
+      `Retrying ${pendingReports.length} pending moderations (older than 3 minutes)`
     );
 
+    const delayBetweenRequests = 5000;
+
+    let processedCount = 0;
+    let skippedCount = 0;
+
     for (const report of pendingReports) {
+      const currentStatus = await getRateLimitStatus(redis);
+      if (currentStatus && currentStatus.daily.available < 1) {
+        logger.warn(
+          `Stopping retry: daily quota exhausted after ${processedCount} reports`
+        );
+        skippedCount = pendingReports.length - processedCount;
+        break;
+      }
+
       setImmediate(() => processModeration(report._id));
-      await new Promise((resolve) => setTimeout(resolve, 5000));
+      processedCount++;
+      if (processedCount < pendingReports.length) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, delayBetweenRequests)
+        );
+      }
     }
-    logger.info(`Queued ${pendingReports.length} moderations for retry`);
+
+    logger.info(
+      `Retry completed: ${processedCount} queued, ${skippedCount} skipped`
+    );
   } catch (error) {
     logger.error('Error retrying pending moderations:', error);
+  }
+}
+
+export async function getPendingModerationStats() {
+  try {
+    const total = await ModerationReport.countDocuments({ state: 'Checking' });
+
+    const oldPending = await ModerationReport.countDocuments({
+      state: 'Checking',
+      createdAt: { $lt: new Date(Date.now() - 5 * 60 * 1000) },
+    });
+
+    return {
+      total,
+      oldPending,
+      recentPending: total - oldPending,
+    };
+  } catch (error) {
+    logger.error('Error getting pending moderation stats:', error);
+    return null;
   }
 }
