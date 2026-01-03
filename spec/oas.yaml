@@ -1838,6 +1838,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DetailedPlaylist'
+        '402':
+          description: Pricing error due to invalid action.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: >-
+                      You have reached the limit of playlists. Upgrade your plan
+                      to create more!.
         '422':
           description: Validation error due to invalid input.
           content:
