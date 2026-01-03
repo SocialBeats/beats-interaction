@@ -64,6 +64,16 @@ export default function playlistRoutes(app) {
    *                 message:
    *                   type: string
    *                   example: Playlist name cannot exceed 50 characters.
+   *       402:
+   *         description: Pricing error due to invalid action.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: You have reached the limit of playlists. Upgrade your plan to create more!.
    *       500:
    *         description: Internal server error while creating playlist.
    *         content:
