@@ -1,17 +1,27 @@
 # Release v1.0.3
 
 ## Features
+
 No new features.
+
 ## Tests
+
 No test changes.
+
 ## Documentation
+
 - docs: add 402 code to playlists routes and oas.yaml
 
 ## Fixes
+
 No fixes added.
+
 ## Continuous integration (CI)
+
 No CI changes.
+
 ## Other changes
+
 - style: auto formatted by CI
 - Merge pull request #29 from SocialBeats/develop
 
