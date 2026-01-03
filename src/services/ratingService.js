@@ -5,7 +5,7 @@ import {
   BeatMaterialized,
   Playlist,
 } from '../models/models.js';
-import { isKafkaEnabled } from './kafkaConsumer.js';
+import { isKafkaEnabled, sendSocialEvent } from './kafkaConsumer.js';
 
 class RatingService {
   async createBeatRating({ beatId, userId, score, comment }) {
@@ -52,6 +52,12 @@ class RatingService {
       await rating.save();
 
       rating.user = user;
+
+      if (isKafkaEnabled()) {
+        sendSocialEvent('RATING_CREATED', rating).catch((err) => {
+          logger.error('Async social-event failed', err);
+        });
+      }
 
       return rating;
     } catch (err) {
@@ -109,6 +115,12 @@ class RatingService {
       await rating.save();
 
       rating.user = user;
+
+      if (isKafkaEnabled()) {
+        sendSocialEvent('RATING_CREATED', rating).catch((err) => {
+          logger.error('Async social-event failed', err);
+        });
+      }
 
       return rating;
     } catch (err) {

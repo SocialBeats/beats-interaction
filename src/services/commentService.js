@@ -5,7 +5,7 @@ import {
   BeatMaterialized,
   Playlist,
 } from '../models/models.js';
-import { isKafkaEnabled } from './kafkaConsumer.js';
+import { isKafkaEnabled, sendSocialEvent } from './kafkaConsumer.js';
 
 class CommentService {
   async createBeatComment({ beatId, authorId, text }) {
@@ -41,8 +41,13 @@ class CommentService {
 
       await comment.validate();
       await comment.save();
-
       comment.author = author;
+
+      if (isKafkaEnabled()) {
+        sendSocialEvent('COMMENT_CREATED', comment).catch((err) => {
+          logger.error('Async social-event failed', err);
+        });
+      }
 
       return comment;
     } catch (err) {
@@ -93,6 +98,12 @@ class CommentService {
       await comment.save();
 
       comment.author = author;
+
+      if (isKafkaEnabled()) {
+        sendSocialEvent('COMMENT_CREATED', comment).catch((err) => {
+          logger.error('Async social-event failed', err);
+        });
+      }
 
       return comment;
     } catch (err) {

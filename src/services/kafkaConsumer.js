@@ -182,6 +182,27 @@ async function sendToDLQ(event, reason) {
   }
 }
 
+export async function sendSocialEvent(eventType, eventPayload) {
+  try {
+    await producer.send({
+      topic: 'social-events',
+      messages: [
+        {
+          value: JSON.stringify({
+            type: eventType,
+            payload: eventPayload,
+          }),
+        },
+      ],
+    });
+    logger.info(
+      `Event created: ${eventType}, with payload: ${JSON.stringify(eventPayload)}`
+    );
+  } catch (err) {
+    logger.error('Failed to send social-event:', err);
+  }
+}
+
 export async function startKafkaConsumer() {
   const MAX_RETRIES = Number(process.env.KAFKA_CONNECTION_MAX_RETRIES || 5);
   const RETRY_DELAY = Number(process.env.KAFKA_CONNECTION_RETRY_DELAY || 5000);
