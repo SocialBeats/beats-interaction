@@ -143,7 +143,7 @@ Return ONLY valid JSON with this exact format:
           error.response?.data
         );
         return {
-          verdict: 'pending',
+          verdict: 'hate',
           reason: 'parse_error',
           rawResponse: error.response?.data,
         };
