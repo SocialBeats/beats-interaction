@@ -613,13 +613,6 @@ class PlaylistService {
           'socialbeats-playlists',
           { 'socialbeats-maxPlaylists': -1 }
         );
-        if (!playlistNumber.eval) {
-          throw {
-            status: 402,
-            message:
-              'You have reached the limit of playlists. Upgrade your plan to create more!',
-          };
-        }
       }
       await playlist.deleteOne();
       return;
