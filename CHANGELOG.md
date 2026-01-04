@@ -1,3 +1,24 @@
+# Release v1.0.5
+
+## Features
+- feat: fix some errors with cronjob
+
+## Tests
+No test changes.
+## Documentation
+No documentation changes.
+## Fixes
+No fixes added.
+## Continuous integration (CI)
+No CI changes.
+## Other changes
+- style: auto formatted by CI
+- Merge pull request #31 from SocialBeats/develop
+
+## Full commit history
+
+For full commit history, see [here](https://github.com/SocialBeats/beats-interaction/compare/v1.0.4...v1.0.5).
+
 # Release v1.0.4
 
 ## Features
