@@ -85,6 +85,10 @@ export async function processModeration(reportId) {
         logger.info(
           `Deleted ${contentType} ${contentId} due to moderation verdict: ${result.verdict}`
         );
+      } else {
+        logger.info(
+          `Not deleting ${contentType} ${contentId} with: ${result.verdict}. This contenct does not exist anymore`
+        );
       }
 
       report.state = 'Accepted';
