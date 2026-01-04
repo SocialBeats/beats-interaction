@@ -213,6 +213,7 @@ export async function startKafkaConsumer() {
   while (true) {
     try {
       logger.info(`Connecting to Kafka... (Attempt ${attempt}/${MAX_RETRIES})`);
+      await producer.connect();
       await consumer.connect();
       await consumer.subscribe({ topic: 'beats-events', fromBeginning: true });
       await consumer.subscribe({ topic: 'users-events', fromBeginning: true });

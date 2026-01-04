@@ -69,6 +69,12 @@ moderationReportSchema.pre('validate', function (next) {
 
 // validate existence + visibility + real authorId according to type
 moderationReportSchema.pre('validate', async function (next) {
+  // Relax validation for updates - if the content was deleted, we still want to be able to
+  // update the report status to 'Accepted' or 'Rejected' without crashing.
+  if (!this.isNew) {
+    return next();
+  }
+
   try {
     // PLAYLIST
     if (this.playlistId) {

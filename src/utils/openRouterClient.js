@@ -21,20 +21,20 @@ export async function analyzeContent(text) {
           messages: [
             {
               role: 'system',
-              content: `Eres un sistema de moderación de contenido.
-                        Clasifica el texto en UNA de estas categorías:
+              content: `You are a content moderation system.
+Classify the text into ONE of these categories:
 
-                        - safe: contenido apropiado
-                        - hate: discurso de odio, discriminación
-                        - harassment: acoso, intimidación, bullying
-                        - sexual: contenido sexual explícito o inapropiado
-                        - violence: violencia explícita, amenazas
+- safe: appropriate content
+- hate: hate speech, discrimination
+- harassment: harassment, bullying, intimidation
+- sexual: explicit sexual content
+- violence: explicit violence, threats
 
-                        Devuelve SOLO JSON válido con este formato exacto:
-                        {
-                          "verdict": "safe|hate|harassment|sexual|violence",
-                          "confidence": 0.0
-                        }`,
+Return ONLY valid JSON with this exact format:
+{
+  "verdict": "safe|hate|harassment|sexual|violence",
+  "confidence": 0.0
+}`,
             },
             {
               role: 'user',

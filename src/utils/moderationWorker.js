@@ -123,7 +123,6 @@ export async function processModeration(reportId) {
     }
   } catch (error) {
     logger.error(`Error processing moderation ${reportId}:`, error);
-    throw error;
   } finally {
     await redis.del(lockKey);
   }
@@ -181,7 +180,14 @@ export async function retryPendingModerations() {
         break;
       }
 
-      setImmediate(() => processModeration(report._id));
+      setImmediate(() => {
+        processModeration(report._id).catch((err) => {
+          logger.error(
+            `Unhandled error in retry setImmediate for report ${report._id}:`,
+            err
+          );
+        });
+      });
       processedCount++;
       if (processedCount < pendingReports.length) {
         await new Promise((resolve) =>
