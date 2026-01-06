@@ -23,16 +23,27 @@ For full commit history, see [here](https://github.com/SocialBeats/beats-interac
 # Release v1.1.0
 
 ## Features
+
 No new features.
+
 ## Tests
+
 No test changes.
+
 ## Documentation
+
 No documentation changes.
+
 ## Fixes
+
 No fixes added.
+
 ## Continuous integration (CI)
+
 No CI changes.
+
 ## Other changes
+
 - Merge pull request #32 from SocialBeats/develop
 - chore: add logging when not deleting a deleted content
 - style: auto formatted by CI

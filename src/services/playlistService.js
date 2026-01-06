@@ -608,10 +608,21 @@ class PlaylistService {
       ]);
 
       if (isPricingEnabled()) {
-        const playlistNumber = await spaceClient.features.evaluate(
-          userId,
-          'socialbeats-playlists',
-          { 'socialbeats-maxPlaylists': -1 }
+        const SPACE_URL = process.env.SPACE_URL || 'http://localhost:5403';
+        const SPACE_API_KEY = process.env.SPACE_API_KEY;
+        await axios.put(
+          `${SPACE_URL}/api/v1/contracts/${userId}/usageLevels`,
+          {
+            socialbeats: {
+              maxPlaylists: -1,
+            },
+          },
+          {
+            headers: {
+              'x-api-key': SPACE_API_KEY,
+              'Content-Type': 'application/json',
+            },
+          }
         );
       }
       await playlist.deleteOne();
