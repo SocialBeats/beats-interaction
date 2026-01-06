@@ -8,6 +8,7 @@ import {
 import { isPricingEnabled, spaceClient } from '../utils/spaceConnection.js';
 import { isKafkaEnabled } from './kafkaConsumer.js';
 import mongoose from 'mongoose';
+import axios from 'axios';
 
 class PlaylistService {
   async createPlaylist(data, userId) {
