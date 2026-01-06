@@ -1,3 +1,26 @@
+# Release v1.1.2
+
+## Features
+No new features.
+## Tests
+No test changes.
+## Documentation
+No documentation changes.
+## Fixes
+- fix: fix problem with pricing when deleting playlists
+
+## Continuous integration (CI)
+No CI changes.
+## Other changes
+- style: auto formatted by CI
+- Merge pull request #34 from SocialBeats/develop
+- style: auto formatted by CI
+- Merge pull request #33 from SocialBeats/main
+
+## Full commit history
+
+For full commit history, see [here](https://github.com/SocialBeats/beats-interaction/compare/v1.1.1...v1.1.2).
+
 # Release v1.1.1
 
 ## Features
