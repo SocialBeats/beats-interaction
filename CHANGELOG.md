@@ -1,17 +1,27 @@
 # Release v1.1.2
 
 ## Features
+
 No new features.
+
 ## Tests
+
 No test changes.
+
 ## Documentation
+
 No documentation changes.
+
 ## Fixes
+
 - fix: fix problem with pricing when deleting playlists
 
 ## Continuous integration (CI)
+
 No CI changes.
+
 ## Other changes
+
 - style: auto formatted by CI
 - Merge pull request #34 from SocialBeats/develop
 - style: auto formatted by CI
