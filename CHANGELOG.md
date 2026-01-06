@@ -1,3 +1,25 @@
+# Release v1.2.0
+
+## Features
+No new features.
+## Tests
+No test changes.
+## Documentation
+No documentation changes.
+## Fixes
+- fix: add axios import
+- fix: fix problem importing axios
+
+## Continuous integration (CI)
+No CI changes.
+## Other changes
+- Merge pull request #35 from SocialBeats/develop
+- style: auto formatted by CI
+
+## Full commit history
+
+For full commit history, see [here](https://github.com/SocialBeats/beats-interaction/compare/v1.1.2...v1.2.0).
+
 # Release v1.1.2
 
 ## Features
